@@ -23,13 +23,13 @@ const Core = {
         let html = '';
         html += '<div style="position: fixed; top: 20px; right: 20px; display: flex; gap: 25px;">';
             html += '<a href="https://blog.breathingworld.com/" target="_blank" style="display: block;">';
-                html += '<img src="/img/icon_blog.svg" alt="Blog" style="width: 32px; height: 32px;">';
+                html += '<img src="/img/icon_blog.svg" alt="Blog" style="width: 32px; height: 32px; filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));">';
             html += '</a>';
             html += '<a href="https://github.com/Farer/breathingworld_client_web" target="_blank" style="display: block;">';
-                html += '<img src="/img/github-mark-white.svg" alt="Github" style="width: 32px; height: 32px;">';
+                html += '<img src="/img/github-mark-white.svg" alt="Github" style="width: 32px; height: 32px; filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));">';
             html += '</a>';
             html += '<a href="https://discord.gg/4Y2TpWDtJm" target="_blank" style="display: block;">';
-                html += '<img src="/img/icon_clyde_white_RGB.svg" alt="Discord" style="width: 32px; height: 32px;">';
+                html += '<img src="/img/icon_clyde_white_RGB.svg" alt="Discord" style="width: 32px; height: 32px; filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));">';
             html += '</a>';
         html += '</div>';
         discordDom.innerHTML = html;
