@@ -11,16 +11,28 @@ const Core = {
         wrap.style.top = '0px';
         wrap.style.overflow = 'hidden';
         document.body.appendChild(wrap);
-        Core.DrawDiscordLink();
+        Core.DrawOutterLink();
     },
-    DrawDiscordLink: () => {
+    DrawOutterLink: () => {
         const discordDom = document.createElement('div');
         discordDom.id = 'discord_link';
         discordDom.style.position = 'fixed';
-        discordDom.style.right = '15px';
+        discordDom.style.right = '100px';
         discordDom.style.top = '12px';
         discordDom.style.width = '30px';
-        discordDom.innerHTML = '<a href="https://discord.gg/4Y2TpWDtJm" target="_blank"><img src="/img/icon_clyde_white_RGB.svg" /></a>';
+        let html = '';
+        html += '<div style="position: fixed; top: 20px; right: 20px; display: flex; gap: 25px;">';
+            html += '<a href="https://blog.breathingworld.com/" target="_blank" style="display: block;">';
+                html += '<img src="/img/icon_blog.svg" alt="Blog" style="width: 32px; height: 32px;">';
+            html += '</a>';
+            html += '<a href="https://github.com/Farer/breathingworld_client_web" target="_blank" style="display: block;">';
+                html += '<img src="/img/github-mark-white.svg" alt="Github" style="width: 32px; height: 32px;">';
+            html += '</a>';
+            html += '<a href="https://discord.gg/4Y2TpWDtJm" target="_blank" style="display: block;">';
+                html += '<img src="/img/icon_clyde_white_RGB.svg" alt="Discord" style="width: 32px; height: 32px;">';
+            html += '</a>';
+        html += '</div>';
+        discordDom.innerHTML = html;
         document.body.appendChild(discordDom);
     },
     PrepareImageSources: () => {
