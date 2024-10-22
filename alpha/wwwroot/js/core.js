@@ -34,6 +34,18 @@ const Core = {
         html += '</div>';
         discordDom.innerHTML = html;
         document.body.appendChild(discordDom);
+
+        const mainLinkDom = document.createElement('div');
+        mainLinkDom.id = 'main_link';
+        mainLinkDom.style.position = 'fixed';
+        mainLinkDom.style.left = '20px';
+        mainLinkDom.style.top = '10px';
+        html = '';
+        html += '<a href="https://breathingworld.com/" style="filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5)); color: #FFF; font-size: 20px; text-decoration: none">';
+            html += 'Breathing World';
+        html += '</a>';
+        mainLinkDom.innerHTML = html;
+        document.body.appendChild(mainLinkDom);
     },
     PrepareImageSources: () => {
         Images.PreloadData.unshift('environmentMap|'+Variables.ApiUrl + '/maps/' + Variables.Settings.mapId + '/live/' + Variables.Settings.mapImageUpdateId);
