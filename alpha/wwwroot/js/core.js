@@ -21,8 +21,9 @@ const Core = {
         discordDom.style.right = '100px';
         discordDom.style.top = '12px';
         discordDom.style.width = '30px';
+    
         let html = '';
-        html += '<div style="position: fixed; top: 20px; right: 20px; display: flex; gap: 25px;">';
+        html += '<div class="external-links-container" style="position: fixed; top: 20px; right: 20px; display: flex; gap: 25px;">';
             html += '<a href="https://blog.breathingworld.com/" target="_blank" style="display: block;">';
                 html += '<img src="/img/icon_blog.svg" alt="Blog" style="width: 32px; height: 32px; filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));">';
             html += '</a>';
@@ -35,7 +36,7 @@ const Core = {
         html += '</div>';
         discordDom.innerHTML = html;
         document.body.appendChild(discordDom);
-
+    
         const mainLinkDom = document.createElement('div');
         mainLinkDom.id = 'main_link';
         mainLinkDom.style.position = 'fixed';
@@ -50,7 +51,7 @@ const Core = {
     },
     DrawUsersCountDom: () => {
         const usersDom = document.createElement('div');
-        usersDom.id = 'main_link';
+        usersDom.id = 'users_count';
         usersDom.style.position = 'fixed';
         usersDom.style.left = '20px';
         usersDom.style.bottom = '15px';
