@@ -127,7 +127,15 @@ const Socket = {
     },
     GetConnectedUserCount: () => {
         Socket.WebsocketConnection.invoke("GetConnectedUserCount").catch(function (err) {
-            return console.error(err.toString());
+            const targetDom = document.getElementById("connectedUserCountSpan");
+            if (targetDom == null) { return; }
+            targetDom.innerHTML = `
+            <img src="/img/refresh-svgrepo-com.svg" 
+                alt="Refresh Icon" 
+                style="width: 32px; height: 32px; vertical-align: middle; cursor: pointer;" 
+                onclick="location.reload();" />
+            `;
+            console.error(err.toString());
         });
         setTimeout(() => {
             Socket.GetConnectedUserCount();
