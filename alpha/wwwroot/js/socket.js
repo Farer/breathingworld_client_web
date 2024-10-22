@@ -13,6 +13,12 @@ const Socket = {
         Socket.WebsocketConnection.on("ReceiveMessage", function (user, message) {
             console.log(user, message);
             console.log('Are you a developer ? 😁');
+            Socket.GetConnectedUserCount();
+        });
+        Socket.WebsocketConnection.on("ReceiveConnectedUserCount", function (count) {
+            const targetDom = document.getElementById("connectedUserCountSpan");
+            if(targetDom == null) { return; }
+            targetDom.innerHTML = count;
         });
         Socket.WebsocketConnection.on("WebsocketDisconnected", function () {
             console.log("WebsocketDisconnected");
@@ -118,6 +124,14 @@ const Socket = {
         Socket.WebsocketConnection.invoke("SendMessage", user, message).catch(function (err) {
             return console.error(err.toString());
         });
+    },
+    GetConnectedUserCount: () => {
+        Socket.WebsocketConnection.invoke("GetConnectedUserCount").catch(function (err) {
+            return console.error(err.toString());
+        });
+        setTimeout(() => {
+            Socket.GetConnectedUserCount();
+        }, 1000);
     },
     UnjoinMapGroup: () => {
         if(Variables.MapScaleInfo.current > 4) {

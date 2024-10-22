@@ -12,6 +12,7 @@ const Core = {
         wrap.style.overflow = 'hidden';
         document.body.appendChild(wrap);
         Core.DrawOutterLink();
+        Core.DrawUsersCountDom();
     },
     DrawOutterLink: () => {
         const discordDom = document.createElement('div');
@@ -39,13 +40,29 @@ const Core = {
         mainLinkDom.id = 'main_link';
         mainLinkDom.style.position = 'fixed';
         mainLinkDom.style.left = '20px';
-        mainLinkDom.style.top = '10px';
+        mainLinkDom.style.top = '15px';
         html = '';
-        html += '<a href="https://breathingworld.com/" style="filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5)); color: #FFF; font-size: 20px; text-decoration: none">';
+        html += '<a href="https://breathingworld.com/" style="filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5)); color: #FFF; font-size: 30px; font-weight: bold; text-decoration: none">';
             html += 'Breathing World';
         html += '</a>';
         mainLinkDom.innerHTML = html;
         document.body.appendChild(mainLinkDom);
+    },
+    DrawUsersCountDom: () => {
+        const usersDom = document.createElement('div');
+        usersDom.id = 'main_link';
+        usersDom.style.position = 'fixed';
+        usersDom.style.left = '20px';
+        usersDom.style.bottom = '15px';
+        
+        let html = '';
+        html += '<div style="display: flex; align-items: center; gap: 5px; filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));">';
+            html += '<img src="/img/person-svgrepo-com.svg" alt="User Icon" style="width: 32px; height: 32px;" />';
+            html += '<span id="connectedUserCountSpan" style="color: #FFF; font-size: 20px; font-weight: bold;">?</span>';
+        html += '</div>';
+        
+        usersDom.innerHTML = html;
+        document.body.appendChild(usersDom);
     },
     PrepareImageSources: () => {
         Images.PreloadData.unshift('environmentMap|'+Variables.ApiUrl + '/maps/' + Variables.Settings.mapId + '/live/' + Variables.Settings.mapImageUpdateId);
