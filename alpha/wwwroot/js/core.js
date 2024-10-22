@@ -59,7 +59,7 @@ const Core = {
         let html = '';
         html += '<div style="display: flex; align-items: center; gap: 5px; filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));">';
             html += '<img src="/img/person-svgrepo-com.svg" alt="User Icon" style="width: 32px; height: 32px;" />';
-            html += '<span id="connectedUserCountSpan" style="color: #FFF; font-size: 20px; font-weight: bold;">?</span>';
+            html += '<span id="connectedUserCountSpan" style="color: #FFF; font-size: 26px; font-weight: bold;">?</span>';
         html += '</div>';
         
         usersDom.innerHTML = html;
