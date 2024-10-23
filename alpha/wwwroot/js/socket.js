@@ -5,7 +5,7 @@ const Socket = {
         Socket.WebsocketConnection = new signalR.HubConnectionBuilder().withUrl(Variables.ApiUrl+"/nodeHub").build();
         Socket.WebsocketConnection.start().then(function () {
             console.log("Datahub connection started.");
-            Socket.SendMessageViaWebsocket('Welcome', 'to Breathing World!');
+            Socket.SendMessage('Welcome', 'to Breathing World!');
             Socket.UnjoinMapGroup();
         }).catch(function (err) {
             return console.error(err.toString());
@@ -118,7 +118,7 @@ const Socket = {
             }
         });
     },
-    SendMessageViaWebsocket: (user, message) => {
+    SendMessage: (user, message) => {
         Socket.WebsocketConnection.invoke("SendMessage", user, message).catch(function (err) {
             return console.error(err.toString());
         });

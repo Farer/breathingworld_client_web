@@ -13,6 +13,7 @@ const Core = {
         document.body.appendChild(wrap);
         Core.DrawOutterLink();
         Core.DrawUsersCountDom();
+        Chat.DrawChatUI();
     },
     DrawOutterLink: () => {
         const discordDom = document.createElement('div');
@@ -65,6 +66,7 @@ const Core = {
         usersDom.innerHTML = html;
         document.body.appendChild(usersDom);
     },
+        
     PrepareImageSources: () => {
         Images.PreloadData.unshift('environmentMap|'+Variables.ApiUrl + '/maps/' + Variables.Settings.mapId + '/live/' + Variables.Settings.mapImageUpdateId);
         Images.PreloadData.forEach((item) => {
