@@ -1,6 +1,7 @@
 'use strict';
 const Variables = {
     ApiUrl: '',
+    ChatUrl: '',
     Settings: null,
     PlantsTurnId: 0,
     UserDragged: false,

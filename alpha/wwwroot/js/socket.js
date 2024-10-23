@@ -4,7 +4,7 @@ const Socket = {
     PrepareWebsocketCommunication: () => {
         Socket.WebsocketConnection = new signalR.HubConnectionBuilder().withUrl(Variables.ApiUrl+"/nodeHub").build();
         Socket.WebsocketConnection.start().then(function () {
-            console.log("SignalR connection started.");
+            console.log("Datahub connection started.");
             Socket.SendMessageViaWebsocket('Welcome', 'to Breathing World!');
             Socket.UnjoinMapGroup();
         }).catch(function (err) {
@@ -13,7 +13,6 @@ const Socket = {
         Socket.WebsocketConnection.on("ReceiveMessage", function (user, message) {
             console.log(user, message);
             console.log('Are you a developer ? 😁');
-            Socket.GetConnectedUserCount();
         });
         Socket.WebsocketConnection.on("ReceiveConnectedUserCount", function (count) {
             const targetDom = document.getElementById("connectedUserCountSpan");
@@ -91,7 +90,6 @@ const Socket = {
                 console.error(error);
             }
         });
-        
         Socket.WebsocketConnection.on("ReceiveRabbitInfoByDistrictId", function (districtId, rabbitsBytes) {
             try {
                 if (rabbitsBytes.length > 0) {
@@ -124,22 +122,6 @@ const Socket = {
         Socket.WebsocketConnection.invoke("SendMessage", user, message).catch(function (err) {
             return console.error(err.toString());
         });
-    },
-    GetConnectedUserCount: () => {
-        Socket.WebsocketConnection.invoke("GetConnectedUserCount").catch(function (err) {
-            const targetDom = document.getElementById("connectedUserCountSpan");
-            if (targetDom == null) { return; }
-            targetDom.innerHTML = `
-            <img src="/img/refresh-svgrepo-com.svg" 
-                alt="Refresh Icon" 
-                style="width: 32px; height: 32px; vertical-align: middle; cursor: pointer;" 
-                onclick="location.reload();" />
-            `;
-            console.error(err.toString());
-        });
-        setTimeout(() => {
-            Socket.GetConnectedUserCount();
-        }, 1000);
     },
     UnjoinMapGroup: () => {
         if(Variables.MapScaleInfo.current > 4) {
@@ -181,7 +163,6 @@ const Socket = {
         });
     },
     GetWeedInfoByDistrictId: (districtId) => {
-        
         if(Methods.IfDistrictWeedCacheValid(districtId)) {
             Core.DrawDistrictWeedTileByDistrictId(districtId);
             Methods.GetDistrictDataOneByOneByFromBucket();
