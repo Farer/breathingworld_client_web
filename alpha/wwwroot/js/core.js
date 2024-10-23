@@ -314,6 +314,17 @@ const Core = {
         for(let i in Data.AnimalMoving.timeouts) { clearTimeout(Data.AnimalMoving.timeouts[i]); }
     },
     TryScroll: (event) => {
+        const chatLogDom = document.getElementById('chat_log');
+        const chatUsernameDom = document.getElementById('chat_username');
+        const chatMessageDom = document.getElementById('chat_message');
+        if (
+            (chatLogDom && chatLogDom.contains(event.target)) ||
+            (chatUsernameDom && chatUsernameDom.contains(event.target)) ||
+            (chatMessageDom && chatMessageDom.contains(event.target))
+        ) {
+            return;
+        }
+    
         if (event.deltaY < 0) {
             Variables.ScrollInfo.upAmount++;
             Variables.ScrollInfo.downAmount = 0;
