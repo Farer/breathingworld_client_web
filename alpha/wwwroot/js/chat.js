@@ -256,19 +256,26 @@ const Chat = {
 
     GetConnectedUserCount: () => {
         clearTimeout(Chat.GetUsersCountTimeout);
+        if(Chat.WebsocketConnection == null) {
+            Chat.ShowRefreshIcon();
+            return;
+        }
         Chat.WebsocketConnection.invoke("GetConnectedUserCount").catch(function (err) {
-            const targetDom = document.getElementById("connectedUserCountSpan");
-            if (targetDom == null) { return; }
-            targetDom.innerHTML = `
-            <img src="/img/refresh-svgrepo-com.svg" 
-                alt="Refresh Icon" 
-                style="width: 32px; height: 32px; vertical-align: middle; cursor: pointer;" 
-                onclick="location.reload();" />
-            `;
+            Chat.ShowRefreshIcon();
             console.error(err.toString());
         });
         Chat.GetUsersCountTimeout = setTimeout(() => {
             Chat.GetConnectedUserCount();
         }, 1000);
     },
+    ShowRefreshIcon: () => {
+        const targetDom = document.getElementById("connectedUserCountSpan");
+        if (targetDom == null) { return; }
+        targetDom.innerHTML = `
+            <img src="/img/refresh-svgrepo-com.svg" 
+                alt="Refresh Icon" 
+                style="width: 32px; height: 32px; vertical-align: middle; cursor: pointer;" 
+                onclick="location.reload();" />
+        `;
+    }
 };

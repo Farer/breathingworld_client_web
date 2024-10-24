@@ -1,27 +1,41 @@
-body { margin: 0px; padding: 0px; overflow: hidden;}
+body { 
+    margin: 0px; 
+    padding: 0px; 
+    overflow: hidden;
+}
+
 .external-links-container {
     display: flex;
-    gap: 25px;
+    gap: 20px;
+    flex-direction: row;
 }
+
 @media (max-width: 768px) {
     .external-links-container {
         flex-direction: column;
         right: 10px;
-        top: 10px;
+        top: 60px;
         gap: 15px;
     }
     #main_link {
         top: 50px;
     }
 }
+
 #users_count {
     position: fixed;
     left: 20px;
     bottom: 15px;
 }
+
 @media (max-width: 768px) {
     #users_count {
         left: 10px;
         bottom: 10px;
     }
 }
+
+#more_button {
+    display: none;
+}
+

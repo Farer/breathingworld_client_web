@@ -22,17 +22,19 @@ const Core = {
         discordDom.style.right = '100px';
         discordDom.style.top = '12px';
         discordDom.style.width = '30px';
+
+        const filterShadowStyle = ' filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));';
     
         let html = '';
         html += '<div class="external-links-container" style="position: fixed; top: 20px; right: 20px; display: flex; gap: 25px;">';
             html += '<a href="https://blog.breathingworld.com/" target="_blank" style="display: block;">';
-                html += '<img src="/img/icon_blog.svg" alt="Blog" style="width: 32px; height: 32px; filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));">';
+                html += '<img src="/img/icon_blog.svg" alt="Blog" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
             html += '</a>';
             html += '<a href="https://github.com/Farer/breathingworld_client_web" target="_blank" style="display: block;">';
-                html += '<img src="/img/github-mark-white.svg" alt="Github" style="width: 32px; height: 32px; filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));">';
+                html += '<img src="/img/github-mark-white.svg" alt="Github" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
             html += '</a>';
             html += '<a href="https://discord.gg/4Y2TpWDtJm" target="_blank" style="display: block;">';
-                html += '<img src="/img/icon_clyde_white_RGB.svg" alt="Discord" style="width: 32px; height: 32px; filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));">';
+                html += '<img src="/img/icon_clyde_white_RGB.svg" alt="Discord" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
             html += '</a>';
         html += '</div>';
         discordDom.innerHTML = html;
@@ -42,13 +44,52 @@ const Core = {
         mainLinkDom.id = 'main_link';
         mainLinkDom.style.position = 'fixed';
         mainLinkDom.style.left = '20px';
-        mainLinkDom.style.top = '15px';
+        mainLinkDom.style.top = '24px';
         html = '';
-        html += '<a href="https://breathingworld.com/" style="filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5)); color: #FFF; font-size: 30px; font-weight: bold; text-decoration: none">';
+        html += '<a href="https://breathingworld.com/" style=" '+filterShadowStyle+' color: #FFF; font-size: 24px; font-weight: bold; text-decoration: none">';
             html += 'Breathing World';
         html += '</a>';
         mainLinkDom.innerHTML = html;
         document.body.appendChild(mainLinkDom);
+    
+        const moreButton = document.createElement('div');
+        moreButton.id = 'more_button';
+        moreButton.innerHTML = '<img src="/img/more-horizontal-svgrepo-com.svg" alt="more" style="width: 34px; height: 34px; '+filterShadowStyle+'">';
+        moreButton.style.position = 'fixed';
+        moreButton.style.right = '20px';
+        moreButton.style.top = '20px';
+        moreButton.style.cursor = 'pointer';
+        document.body.appendChild(moreButton);
+    
+        const externalLinksContainer = document.querySelector('.external-links-container');
+    
+        const updateVisibility = () => {
+            if (window.innerWidth <= 768) {
+                externalLinksContainer.style.display = 'none';
+                externalLinksContainer.style.flexDirection = 'column';
+                externalLinksContainer.style.top = '72px';
+                externalLinksContainer.style.right = '19px';
+                moreButton.style.display = 'block';
+            } else {
+                externalLinksContainer.style.display = 'flex';
+                externalLinksContainer.style.flexDirection = 'row';
+                externalLinksContainer.style.top = '20px';
+                moreButton.style.display = 'none';
+            }
+        };
+    
+        updateVisibility();
+        window.addEventListener('resize', updateVisibility);
+    
+        moreButton.addEventListener('click', () => {
+            if (externalLinksContainer.style.display === 'none') {
+                externalLinksContainer.style.display = 'flex';
+                moreButton.innerHTML = '<img src="/img/close-svgrepo-com.svg" alt="close" style="width: 34px; height: 34px; '+filterShadowStyle+'">';
+            } else {
+                externalLinksContainer.style.display = 'none';
+                moreButton.innerHTML = '<img src="/img/more-horizontal-svgrepo-com.svg" alt="more" style="width: 34px; height: 34px; '+filterShadowStyle+'">';
+            }
+        });
     },
     DrawUsersCountDom: () => {
         const usersDom = document.createElement('div');
