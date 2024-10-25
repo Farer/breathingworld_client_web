@@ -269,6 +269,7 @@ const Chat = {
         }, 1000);
     },
     ShowRefreshIcon: () => {
+        clearTimeout(Chat.GetUsersCountTimeout);
         const targetDom = document.getElementById("connectedUserCountSpan");
         if (targetDom == null) { return; }
         targetDom.innerHTML = `
