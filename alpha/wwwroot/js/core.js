@@ -309,37 +309,32 @@ const Core = {
         const newLeftTop = newLeft + '|' + newTop;
         mapWrapDom.setAttribute("leftTop", newLeftTop);
 
-        if (Variables.MapInfo.mapImage.complete && !Variables.MapInfo.mapImage.broken) {
+        ctx.drawImage(
+            Variables.MapInfo.mapImage,
+            Variables.MapCanvasInfo.xStartPos,
+            Variables.MapCanvasInfo.yStartPos,
+            Variables.MapCanvasInfo.bringMapWidth,
+            Variables.MapCanvasInfo.bringMapHeight,
+            Variables.MapCanvasInfo.xPosStartOfCanvas,
+            Variables.MapCanvasInfo.yPosStartOfCanvas,
+            Variables.MapCanvasInfo.widthOfCanvas,
+            Variables.MapCanvasInfo.heightOfCanvas
+        );
+        if(Variables.MapScaleInfo.current <=4 ) {
             ctx.drawImage(
-                Variables.MapInfo.mapImage,
-                Variables.MapCanvasInfo.xStartPos,
-                Variables.MapCanvasInfo.yStartPos,
-                Variables.MapCanvasInfo.bringMapWidth,
-                Variables.MapCanvasInfo.bringMapHeight,
+                Images.Data.environmentMap,
+                Variables.MapCanvasInfo.xStartPos / Variables.MapScaleInfo.maxScale,
+                Variables.MapCanvasInfo.yStartPos / Variables.MapScaleInfo.maxScale,
+                Variables.MapInfo.mapMinWidth,
+                Variables.MapInfo.mapMinHeight,
                 Variables.MapCanvasInfo.xPosStartOfCanvas,
                 Variables.MapCanvasInfo.yPosStartOfCanvas,
-                Variables.MapCanvasInfo.widthOfCanvas,
-                Variables.MapCanvasInfo.heightOfCanvas
+                Variables.MapInfo.mapMinWidth * Variables.MapScaleInfo.current,
+                Variables.MapInfo.mapMinHeight * Variables.MapScaleInfo.current,
             );
-            if(Variables.MapScaleInfo.current <=4 ) {
-                ctx.drawImage(
-                    Images.Data.environmentMap,
-                    Variables.MapCanvasInfo.xStartPos / Variables.MapScaleInfo.maxScale,
-                    Variables.MapCanvasInfo.yStartPos / Variables.MapScaleInfo.maxScale,
-                    Variables.MapInfo.mapMinWidth,
-                    Variables.MapInfo.mapMinHeight,
-                    Variables.MapCanvasInfo.xPosStartOfCanvas,
-                    Variables.MapCanvasInfo.yPosStartOfCanvas,
-                    Variables.MapInfo.mapMinWidth * Variables.MapScaleInfo.current,
-                    Variables.MapInfo.mapMinHeight * Variables.MapScaleInfo.current,
-                );
-            }
-            Variables.MapInfo.firstDraw = false;
-            Core.ReserveDistrictInOut();
         }
-        else {
-            Chat.ShowRefreshIcon();
-        }
+        Variables.MapInfo.firstDraw = false;
+        Core.ReserveDistrictInOut();
     },
     RelocateWeedWrapWhenDrag: (movedX, movedY) => {
         const weedWrapDom = document.getElementById('weedWrapDom');
