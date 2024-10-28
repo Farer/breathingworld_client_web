@@ -309,7 +309,7 @@ const Core = {
         const newLeftTop = newLeft + '|' + newTop;
         mapWrapDom.setAttribute("leftTop", newLeftTop);
 
-        if (Variables.MapInfo.mapImage.complete && !Variables.MapInfo.mapImage.broken) {
+        try {
             ctx.drawImage(
                 Variables.MapInfo.mapImage,
                 Variables.MapCanvasInfo.xStartPos,
@@ -337,7 +337,7 @@ const Core = {
             Variables.MapInfo.firstDraw = false;
             Core.ReserveDistrictInOut();
         }
-        else {
+        catch(e) {
             Chat.ShowRefreshIcon();
         }
     },
