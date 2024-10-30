@@ -193,5 +193,13 @@ const Methods = {
             doingInteraction: rabbitArray[25],
             updateTimeUnix: rabbitArray[26]
         };
+    },
+    MapTreeArrayToObject: (treeArray) => {
+        return {
+            id: treeArray[0],
+            centerPosition: treeArray[1],
+            size: treeArray[2],
+            growth: treeArray[3],
+        };
     }
 };
