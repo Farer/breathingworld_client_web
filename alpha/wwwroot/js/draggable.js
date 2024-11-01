@@ -49,6 +49,7 @@ function AddDragMapEvent() {
         Variables.MapMoveInfo.finalTop = newTop;
 
         Core.RelocateWeedWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
+        Core.RelocateTreeWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
         Core.RelocateAnimalWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
         AnimationProcess.TargetDomIds = [];
 
@@ -72,6 +73,7 @@ function AddDragMapEvent() {
             Variables.MapMoveInfo.finalTop = newTop;
 
             Core.RelocateWeedWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
+            Core.RelocateTreeWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
             Core.RelocateAnimalWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
             AnimationProcess.TargetDomIds = [];
 

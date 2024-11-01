@@ -102,7 +102,43 @@ const Socket = {
                 console.error(error);
             }
         });
-
+        Socket.WebsocketConnection.on("ReceiveTreeInfoByDistrictId", function (districtId, treesBytes) {
+            try {
+                const nowDate = Date.now();
+                const treesIds = [];
+                const count = treesBytes.length;
+                for (let i=0; i<count; i++) {
+                    const treeInfoDecoded = Tree.DecodeTreeBytes(treesBytes[i]);
+                    Tree.UpsertData(treeInfoDecoded);
+                    treesIds.push(treeInfoDecoded.id);
+                }
+                if (treesIds.length === 0) {
+                    Methods.GetDistrictDataOneByOneByFromBucket();
+                    return;
+                }
+                Data.Tree.DistrictDataUpdateTime[districtId] = nowDate;
+                Data.Tree.IdsInDistrict[districtId] = treesIds;
+            
+                Tree.DrawDistrictTreeTileByDistrictId(districtId);
+                Methods.GetDistrictDataOneByOneByFromBucket();
+            } catch (error) {
+                console.error(error);
+            }
+        });
+        Socket.WebsocketConnection.on("ReceiveOneTreeInfoByDistrict", function (treeId, treesBytes) {
+            try {
+                if(treesBytes == null) {
+                    Tree.RemoveDom(treeId);
+                }
+                else {
+                    const treeInfoDecoded = Tree.DecodeTreeBytes(treesBytes);
+                    Tree.UpsertData(treeInfoDecoded);
+                    Tree.HandleTreeDomByStat(treeInfoDecoded);
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        });
         Socket.WebsocketConnection.on("ReceiveAddedFertilizerByDistrict", function (districtId, tileId) {
             try {
                 Core.UpdateOneWeedTileByFeces(districtId, tileId, true);
@@ -156,6 +192,7 @@ const Socket = {
             if(Data.Weed.UserPaused == false && Variables.UserDragged == true) { return; }
             Methods.CleanPrepareWeedWrapDom();
             Methods.CleanPrepareAnimalWrapDom();
+            Methods.CleanPrepareTreeWrapDom();
             Methods.GetDistrictDataOneByOneByFromBucket();
         })
         .catch(function (err) {
@@ -169,6 +206,16 @@ const Socket = {
             return;
         }
         Socket.WebsocketConnection.invoke("GetWeedInfoByDistrictId", districtId).catch(function (err) {
+            return console.error(err.toString());
+        });
+    },
+    GetTreeInfoByDistrictId: (districtId) => {
+        if(Methods.IfDistrictTreeCacheValid(districtId)) {
+            Tree.DrawDistrictTreeTileByDistrictId(districtId);
+            Methods.GetDistrictDataOneByOneByFromBucket();
+            return;
+        }
+        Socket.WebsocketConnection.invoke("GetTreeInfoByDistrictId", districtId).catch(function (err) {
             return console.error(err.toString());
         });
     },

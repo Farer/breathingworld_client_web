@@ -32,9 +32,10 @@ Once connected, you will see that it is linked to the current data of the alpha 
 ## ROADMAP
 - [x] WEED
 - [x] RABBIT
+- [x] TREE
 - [ ] WOLF
 - [ ] EAGLE
-- [ ] TREE
+
 
 ## COMMUNITY
 - I hope you can visit Discord anytime and feel free to communicate with us.

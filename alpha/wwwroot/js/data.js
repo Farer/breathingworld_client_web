@@ -7,6 +7,13 @@ const Data = {
         DistrictIdsBucket: new Set(),
         UserPaused: false,
     },
+    Tree: {
+        CacheExpireMillis: 60000,
+        DistrictDataUpdateTime: [],
+        IdsInDistrict: [],
+        DistrictIdsBucket: new Set(),
+        UserPaused: false,
+    },
     AnimalMoving: {
         timeouts: [],
         timeoutIntervals: [],

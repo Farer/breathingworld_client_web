@@ -107,9 +107,9 @@ const Core = {
         usersDom.innerHTML = html;
         document.body.appendChild(usersDom);
     },
-        
     PrepareImageSources: () => {
         Images.PreloadData.unshift('environmentMap|'+Variables.ApiUrl + '/maps/' + Variables.Settings.mapId + '/live/' + Variables.Settings.mapImageUpdateId);
+        Core.PrepareTreeImages();
         Images.PreloadData.forEach((item) => {
             const splits = item.split('|');
             Images.Data[splits[0]] = new Image();
@@ -119,6 +119,11 @@ const Core = {
                 Core.IfAllImagesLoaded();
             };
         });
+    },
+    PrepareTreeImages: () => {
+        for (let i = 0; i < 12; i++) {
+            Images.PreloadData.push('tree' + i + '|/img/tree_' + i + '_tiny.png');
+        }
     },
     IfAllImagesLoaded: () => {
         if(Images.PreloadData.length === Images.LoadedCount) {
@@ -349,6 +354,14 @@ const Core = {
         weedWrapDom.style.left = newLeft + 'px';
         weedWrapDom.style.top = newTop + 'px';
     },
+    RelocateTreeWrapWhenDrag: (movedX, movedY) => {
+        const treeWrapDom = document.getElementById('treeWrapDom');
+        const newLeft = -movedX;
+        const newTop = -movedY;
+        if (treeWrapDom == null) { return; }
+        treeWrapDom.style.left = newLeft + 'px';
+        treeWrapDom.style.top = newTop + 'px';
+    },
     RelocateAnimalWrapWhenDrag: (movedX, movedY) => {
         const animalWrapDom = document.getElementById('animalWrapDom');
         const newLeft = -movedX;
@@ -415,6 +428,7 @@ const Core = {
 
         if(Variables.MapScaleInfo.current != Variables.MapScaleInfo.maxScale || scrollDirection != 'up') {
             Methods.CleanPrepareWeedWrapDom();
+            Methods.CleanPrepareTreeWrapDom();
         }
 
         let newIndex = 0;

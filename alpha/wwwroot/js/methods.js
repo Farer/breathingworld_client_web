@@ -41,6 +41,14 @@ const Methods = {
         }
         return true;
     },
+    IfDistrictTreeCacheValid: (districtId) => {
+        const nowDate = Date.now();
+        const cacheExpireDiff = nowDate - Data.Tree.CacheExpireMillis;
+        if(Data.Tree.DistrictDataUpdateTime[districtId] == undefined || Data.Tree.DistrictDataUpdateTime[districtId] <= cacheExpireDiff) {
+            return false;
+        }
+        return true;
+    },
     PrepareDistrictIdsToGet: () => {
         Data.Weed.DistrictIdsBucket.clear();
         for(let i=0; Variables.MapInfo.viewDistrictIds.length > i; i++) {
@@ -52,6 +60,7 @@ const Methods = {
         const districtId = Data.Weed.DistrictIdsBucket.values().next().value;
         Data.Weed.DistrictIdsBucket.delete(districtId);
         Socket.GetWeedInfoByDistrictId(districtId);
+        Socket.GetTreeInfoByDistrictId(districtId);
         Socket.GetRabbitInfoByDistrictId(districtId);
     },
     CleanPrepareWeedWrapDom: () => {
@@ -85,6 +94,17 @@ const Methods = {
         animalWrapDom.style.top = '0px';
 
         document.getElementById('mapWrap').appendChild(animalWrapDom);
+    },
+    CleanPrepareTreeWrapDom: () => {
+        let treeWrapDom = document.getElementById('treeWrapDom');
+        if(treeWrapDom != null) { treeWrapDom. parentNode.removeChild(treeWrapDom); }
+        treeWrapDom = document.createElement('div');
+        treeWrapDom.id = 'treeWrapDom';
+        treeWrapDom.style.position = 'absolute';
+        treeWrapDom.style.left = '0px';
+        treeWrapDom.style.top = '0px';
+
+        document.getElementById('mapWrap').appendChild(treeWrapDom);
     },
     RemoveWeedWrapDom: () => {
         const weedWrapDom = document.getElementById('weedWrapDom');
