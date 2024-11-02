@@ -8,11 +8,10 @@ const Data = {
         UserPaused: false,
     },
     Tree: {
-        CacheExpireMillis: 60000,
+        CacheExpireMillis: 300000,
         DistrictDataUpdateTime: [],
         IdsInDistrict: [],
-        DistrictIdsBucket: new Set(),
-        UserPaused: false,
+        DistrictData: [],
     },
     AnimalMoving: {
         timeouts: [],

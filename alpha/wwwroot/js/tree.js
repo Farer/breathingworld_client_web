@@ -30,17 +30,23 @@ const Tree = {
         };
     },
     DrawDistrictTreeTileByDistrictId: (districtId) => {
-        if( Data.Tree.IdsInDistrict[districtId] == undefined ) { return; }
+        if (!Data.Tree.IdsInDistrict[districtId]) return;
+        const currentTime = Date.now();
+        if ( !Data.Tree.DistrictData[districtId] || (currentTime - Data.Tree.DistrictDataUpdateTime[districtId] > Data.Tree.CacheExpireMillis) ) {
+            const treesInDistrict = Data.Tree.IdsInDistrict[districtId].map(treeId => {
+                return Tree.Data['tree-' + treeId];
+            });
+            treesInDistrict.sort((a, b) => a.centerPositionY - b.centerPositionY);
+            Data.Tree.DistrictData[districtId] = treesInDistrict;
+            Data.Tree.DistrictDataUpdateTime[districtId] = currentTime;
+        }
         const mapWarpLeftTop = Methods.GetLeftTopMapWrap();
-        let count = Data.Tree.IdsInDistrict[districtId].length;
-        for(let i=0; i < count; i++) { 
-            const treeData = Tree.Data['tree-' + Data.Tree.IdsInDistrict[districtId][i]]
+        Data.Tree.DistrictData[districtId].forEach(treeData => {
             const centerTilePosX = treeData.centerPositionX * Variables.MapScaleInfo.current + mapWarpLeftTop[0];
             const centerTilePosY = treeData.centerPositionY * Variables.MapScaleInfo.current + mapWarpLeftTop[1];
-            const isVisible = Tree.IfThisTreeVisible(centerTilePosX, centerTilePosY, treeData.size);
-            if(isVisible) { Tree.HandleTreeDomByStat(treeData); }
-        }
-    },
+            if (Tree.IfThisTreeVisible(centerTilePosX, centerTilePosY, treeData.size)) { Tree.HandleTreeDomByStat(treeData); }
+        });
+    },    
     IfThisTreeVisible: (centerTilePosX, centerTilePosY, size) => {
         const oneTileSize = Variables.MapScaleInfo.current;
         const plusTileSize = size * oneTileSize;
