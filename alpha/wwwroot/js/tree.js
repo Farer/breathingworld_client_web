@@ -94,6 +94,7 @@ const Tree = {
             treeDom = document.createElement('div');
             treeDom.id = treeDomId;
             treeDom.style.position = 'absolute';
+            document.getElementById('treeWrapDom').appendChild(treeDom);
         }
         treeDom.style.width = imageWidth + 'px';
         treeDom.style.height = imageHeight + 'px';
@@ -122,7 +123,7 @@ const Tree = {
         const finalTop = rootCenterTilePosY + Variables.MapScaleInfo.current * plusCountY - imageHeight;
         treeDom.style.left = finalLeft + 'px';
         treeDom.style.top = finalTop + 'px';
-        document.getElementById('treeWrapDom').appendChild(treeDom);
+        
     },
     RemoveDom: (id) => {
         const treeDomId = 'tree-' + id;
