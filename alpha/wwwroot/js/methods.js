@@ -86,7 +86,7 @@ const Methods = {
     },
     CleanPrepareAnimalWrapDom: () => {
         let animalWrapDom = document.getElementById('animalWrapDom');
-        if(animalWrapDom != null) { animalWrapDom. parentNode.removeChild(animalWrapDom); }
+        if(animalWrapDom != null) { animalWrapDom.parentNode.removeChild(animalWrapDom); }
         animalWrapDom = document.createElement('div');
         animalWrapDom.id = 'animalWrapDom';
         animalWrapDom.style.position = 'absolute';
@@ -97,7 +97,7 @@ const Methods = {
     },
     CleanPrepareTreeWrapDom: () => {
         let treeWrapDom = document.getElementById('treeWrapDom');
-        if(treeWrapDom != null) { treeWrapDom. parentNode.removeChild(treeWrapDom); }
+        if(treeWrapDom != null) { treeWrapDom.parentNode.removeChild(treeWrapDom); }
         treeWrapDom = document.createElement('div');
         treeWrapDom.id = 'treeWrapDom';
         treeWrapDom.style.position = 'absolute';
