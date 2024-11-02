@@ -128,8 +128,7 @@ const Tree = {
             treeDom.style.position = 'absolute';
             document.getElementById('treeWrapDom').appendChild(treeDom);
         }
-        const districtId = Methods.DefineDistrictIdByTileId(treeData.centerPositionX, treeData.centerPositionY);
-        treeDom.style.zIndex = districtId;
+        treeDom.style.zIndex = treeData.centerPositionY;
         treeDom.style.width = imageInfo.width + 'px';
         treeDom.style.height = imageInfo.height + 'px';
         treeDom.style.background = 'url(' + imageSource.src + ') no-repeat center center / contain';
