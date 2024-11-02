@@ -132,8 +132,10 @@ const Socket = {
                 }
                 else {
                     const treeInfoDecoded = Tree.DecodeTreeBytes(treesBytes);
-                    Tree.UpsertData(treeInfoDecoded);
-                    Tree.HandleTreeDomByStat(treeInfoDecoded);
+                    const treeData = Tree.UpsertData(treeInfoDecoded);
+                    const districtId = Methods.DefineDistrictIdByTileId(treeData.centerPositionX, treeData.centerPositionY);
+                    Data.Tree.DistrictDataUpdateTime[districtId] = Date.now() - Data.Tree.CacheExpireMillis;
+                    Tree.HandleTreeDomByStat(treeData);
                 }
             } catch (error) {
                 console.error(error);

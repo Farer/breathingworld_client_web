@@ -24,15 +24,6 @@ const Methods = {
         const divide = Variables.MapInfo.mapMinWidth / Variables.Settings.districtWidth;
         return yPos * divide + xPos;
     },
-    DefineDistrictIdByTileId: (tileId) => {
-        const split = tileId.split(":");
-        const xPos = parseInt(split[0], 10);
-        const yPos = parseInt(split[1], 10);
-        const row = Variables.MapInfo.mapMinWidth / Variables.Settings.districtWidth;
-        const xId = parseInt(xPos / Variables.Settings.districtWidth, 10);
-        const yId = parseInt(yPos / Variables.Settings.districtHeight, 10);
-        return yId * row + xId;
-    },
     IfDistrictWeedCacheValid: (districtId) => {
         const nowDate = Date.now();
         const cacheExpireDiff = nowDate - Data.Weed.CacheExpireMillis;
@@ -58,6 +49,7 @@ const Methods = {
     GetDistrictDataOneByOneByFromBucket: () => {
         if(Data.Weed.DistrictIdsBucket.size == 0) { return; }
         const districtId = Data.Weed.DistrictIdsBucket.values().next().value;
+        // console.log("GetDistrictDataOneByOneByFromBucket districtId: ", districtId);
         Data.Weed.DistrictIdsBucket.delete(districtId);
         Socket.GetWeedInfoByDistrictId(districtId);
         Socket.GetTreeInfoByDistrictId(districtId);
@@ -219,5 +211,11 @@ const Methods = {
             doingInteraction: rabbitArray[25],
             updateTimeUnix: rabbitArray[26]
         };
+    },
+    DefineDistrictIdByTileId: (tilePosX, tilePosY) => {
+        var row = Variables.Settings.mapMinWidth / Variables.Settings.districtWidth;
+        var xId = parseInt(tilePosX / Variables.Settings.districtWidth, 10);
+        var yId = parseInt(tilePosY / Variables.Settings.districtHeight, 10);
+        return yId * row + xId;
     }
 };

@@ -28,6 +28,7 @@ const Tree = {
             growth: data.growth,
             proceedCode: data.proceedCode
         };
+        return Tree.Data[keyId];
     },
     DrawDistrictTreeTileByDistrictId: (districtId) => {
         if (!Data.Tree.IdsInDistrict[districtId]) return;
@@ -42,31 +43,69 @@ const Tree = {
         }
         const mapWarpLeftTop = Methods.GetLeftTopMapWrap();
         Data.Tree.DistrictData[districtId].forEach(treeData => {
-            const centerTilePosX = treeData.centerPositionX * Variables.MapScaleInfo.current + mapWarpLeftTop[0];
-            const centerTilePosY = treeData.centerPositionY * Variables.MapScaleInfo.current + mapWarpLeftTop[1];
-            if (Tree.IfThisTreeVisible(centerTilePosX, centerTilePosY, treeData.size)) { Tree.HandleTreeDomByStat(treeData); }
+            if (Tree.IfThisTreeVisible(treeData)) { Tree.HandleTreeDomByStat(treeData); }
         });
     },    
-    IfThisTreeVisible: (centerTilePosX, centerTilePosY, size) => {
-        const oneTileSize = Variables.MapScaleInfo.current;
-        const plusTileSize = size * oneTileSize;
-        const fromXposOfTree = centerTilePosX - plusTileSize;
-        const fromYposOfTree = centerTilePosY - plusTileSize;
-        const toXposOfTree = centerTilePosX + oneTileSize + plusTileSize;
-        const toYposOfTree = centerTilePosY + oneTileSize + plusTileSize;
+    IfThisTreeVisible: (treeData) => {
+        const imageInfo = Tree.GetTreeImageInfoByCurrentScale(treeData);
+        const toXposOfTree = imageInfo.left + imageInfo.width;
+        const toYposOfTree = imageInfo.top + imageInfo.height;
         let visible = true;
         if(
-            fromXposOfTree > Variables.MapCanvasInfo.widthOfCanvas - 1 ||
-            fromYposOfTree > Variables.MapCanvasInfo.heightOfCanvas - 1 ||
+            imageInfo.left > Variables.MapCanvasInfo.widthOfCanvas - 1 ||
+            imageInfo.top > Variables.MapCanvasInfo.heightOfCanvas - 1 ||
             toXposOfTree <= 0 ||
             toYposOfTree <= 0
         ) { visible = false; }
         return visible;
     },
+    GetTreeImageInfoByCurrentScale: (treeData) => {
+        const imageSource = Tree.GetTreeImageSource(treeData.id);
+        const imageFixedWidth = imageSource.width*Variables.MapScaleInfo.maxScale / 74;
+        const imageFixedHeight = imageSource.height*Variables.MapScaleInfo.maxScale / 74;
+        const imageWidth = imageFixedWidth * Variables.MapScaleInfo.current / Variables.MapScaleInfo.maxScale;
+        const imageHeight = imageFixedHeight * Variables.MapScaleInfo.current / Variables.MapScaleInfo.maxScale;
+        const mapWarpLeftTop = Methods.GetLeftTopMapWrap();
+        const rootCenterTilePosX = treeData.centerPositionX * Variables.MapScaleInfo.current + mapWarpLeftTop[0];
+        const rootCenterTilePosY = treeData.centerPositionY * Variables.MapScaleInfo.current + mapWarpLeftTop[1];
+        let plusCountY = 0;
+        const rootSizeX = parseInt(treeData.size[0], 10);
+        const rootSizeY = parseInt(treeData.size[1], 10);
+        switch(rootSizeY) {
+            case 1: plusCountY = 2; break;
+            case 3: plusCountY = 2; break;
+            case 5: plusCountY = 3; break;
+            case 6: plusCountY = 3; break;
+            case 7: plusCountY = 4; break;
+        }
+        if(plusCountY == 0) {
+            console.error('plusCountY == 0');
+            return;
+        }
+        const left = rootCenterTilePosX + Variables.MapScaleInfo.current/2 - imageWidth/2;
+        const top = rootCenterTilePosY + Variables.MapScaleInfo.current * plusCountY - imageHeight;
+        return {
+            width: imageWidth,
+            height: imageHeight,
+            left: left,
+            top: top
+        };
+    },
     GetTreeImageSource: (id) => {
         const keyId = 'tree-' + id;
         const imageId = 'tree' + Tree.Data[keyId].proceedCode;
         return Images.Data[imageId];
+    },
+    GetTreePlusCountY: (rootSizeY) => {
+        let plusCountY = 0;
+        switch(rootSizeY) {
+            case 1: plusCountY = 2; break;
+            case 3: plusCountY = 2; break;
+            case 5: plusCountY = 3; break;
+            case 6: plusCountY = 3; break;
+            case 7: plusCountY = 4; break;
+        }
+        return plusCountY;
     },
     HandleTreeDomByStat: (treeData) => {
         const treeWrapDom = document.getElementById('treeWrapDom');
@@ -80,14 +119,7 @@ const Tree = {
             return;
         }
 
-        const mapWarpLeftTop = Methods.GetLeftTopMapWrap();
-
-        const imageFixedWidth = imageSource.width*Variables.MapScaleInfo.maxScale / 74;
-        const imageFixedHeight = imageSource.height*Variables.MapScaleInfo.maxScale / 74;
-
-        const imageWidth = imageFixedWidth * Variables.MapScaleInfo.current / Variables.MapScaleInfo.maxScale;
-        const imageHeight = imageFixedHeight * Variables.MapScaleInfo.current / Variables.MapScaleInfo.maxScale;
-        
+        const imageInfo = Tree.GetTreeImageInfoByCurrentScale(treeData);
         const treeDomId = 'tree-' + treeData.id;
         let treeDom = document.getElementById(treeDomId);
         if (treeDom == null) {
@@ -96,34 +128,13 @@ const Tree = {
             treeDom.style.position = 'absolute';
             document.getElementById('treeWrapDom').appendChild(treeDom);
         }
-        treeDom.style.width = imageWidth + 'px';
-        treeDom.style.height = imageHeight + 'px';
+        const districtId = Methods.DefineDistrictIdByTileId(treeData.centerPositionX, treeData.centerPositionY);
+        treeDom.style.zIndex = districtId;
+        treeDom.style.width = imageInfo.width + 'px';
+        treeDom.style.height = imageInfo.height + 'px';
         treeDom.style.background = 'url(' + imageSource.src + ') no-repeat center center / contain';
-
-        const rootCenterTilePosX = treeData.centerPositionX * Variables.MapScaleInfo.current + mapWarpLeftTop[0];
-        const rootCenterTilePosY = treeData.centerPositionY * Variables.MapScaleInfo.current + mapWarpLeftTop[1];
-
-        const rootSizeX = parseInt(treeData.size[0], 10);
-        const rootSizeY = parseInt(treeData.size[1], 10);
-
-        let plusCountY = 0;
-        switch(rootSizeY) {
-            case 1: plusCountY = 2; break;
-            case 3: plusCountY = 2; break;
-            case 5: plusCountY = 3; break;
-            case 6: plusCountY = 3; break;
-            case 7: plusCountY = 4; break;
-        }
-        if(plusCountY == 0) {
-            console.error('plusCountY == 0');
-            return;
-        }
-
-        const finalLeft = rootCenterTilePosX + Variables.MapScaleInfo.current/2 - imageWidth/2;
-        const finalTop = rootCenterTilePosY + Variables.MapScaleInfo.current * plusCountY - imageHeight;
-        treeDom.style.left = finalLeft + 'px';
-        treeDom.style.top = finalTop + 'px';
-        
+        treeDom.style.left = imageInfo.left + 'px';
+        treeDom.style.top = imageInfo.top + 'px';
     },
     RemoveDom: (id) => {
         const treeDomId = 'tree-' + id;

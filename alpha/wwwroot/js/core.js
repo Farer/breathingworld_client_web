@@ -10,6 +10,7 @@ const Core = {
         wrap.style.left = '0px';
         wrap.style.top = '0px';
         wrap.style.overflow = 'hidden';
+        wrap.style.zIndex = '0';
         document.body.appendChild(wrap);
         Core.DrawOutterLink();
         Core.DrawUsersCountDom();
