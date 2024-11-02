@@ -277,27 +277,26 @@ const Animal = {
     },
     ContinueAnimalMoving: (speciesName, keyId) => {
         if(Data.AnimalMoving.movingTileIds[keyId] == undefined || Data.AnimalMoving.movingTileIds[keyId].length == 0) {
-            if(Data.AnimalMoving.reservedTiles[keyId].length == 0) {
-                const animalDom = document.getElementById(keyId);
-                if(animalDom == null) { return; }
+            const animalDom = document.getElementById(keyId);
+            if(animalDom == null) { return; }
 
-                const originalActionId = Animal.Data.rabbit[keyId].actionId;
-                if(Variables.Settings.rabbitActionStatus[originalActionId]=='dead') {
-                    Animal.DrawAnimalBones(speciesName, Animal.Data.rabbit[keyId]);
-                }
-                else if(
-                    Variables.Settings.rabbitActionStatus[originalActionId]=='mating' ||
-                    Variables.Settings.rabbitActionStatus[originalActionId]=='pregnant' ||
-                    Variables.Settings.rabbitActionStatus[originalActionId]=='breeding'
-                ) {
-                    Animal.DrawEtcBackground(keyId, originalActionId);
-                }
-                else {
-                    Animal.Data.rabbit[keyId].currentActionFrameCount = Sprites.Rabbit.frameCounts[originalActionId];
-                    Animal.Data.rabbit[keyId].currentActionFrameDelay = Sprites.Rabbit.frameDelay[originalActionId];
-                    const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, originalActionId);
-                    animalDom.style.backgroundPositionY = '-' + backgroundPosY + 'px';
-                }
+            let originalActionId = Animal.Data.rabbit[keyId].actionId;
+            if(Variables.Settings.rabbitActionStatus[originalActionId]=='dead') {
+                Animal.DrawAnimalBones(speciesName, Animal.Data.rabbit[keyId]);
+            }
+            else if(
+                Variables.Settings.rabbitActionStatus[originalActionId]=='mating' ||
+                Variables.Settings.rabbitActionStatus[originalActionId]=='pregnant' ||
+                Variables.Settings.rabbitActionStatus[originalActionId]=='breeding'
+            ) {
+                Animal.DrawEtcBackground(keyId, originalActionId);
+            }
+            else {
+                originalActionId = 0;
+                Animal.Data.rabbit[keyId].currentActionFrameCount = Sprites.Rabbit.frameCounts[originalActionId];
+                Animal.Data.rabbit[keyId].currentActionFrameDelay = Sprites.Rabbit.frameDelay[originalActionId];
+                const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, originalActionId);
+                animalDom.style.backgroundPositionY = '-' + backgroundPosY + 'px';
             }
             return;
         }
