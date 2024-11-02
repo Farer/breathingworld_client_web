@@ -179,6 +179,7 @@ const Socket = {
             }
         })
         .catch(function (err) {
+            Chat.ShowRefreshIcon();
             return console.error(err.toString());
         });
     },
