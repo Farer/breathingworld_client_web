@@ -92,7 +92,6 @@ const Tree = {
         treeDom.style.width = imageWidth + 'px';
         treeDom.style.height = imageHeight + 'px';
         treeDom.style.background = 'url(' + imageSource.src + ') no-repeat center center / contain';
-        // treeDom.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
 
         const rootCenterTilePosX = treeData.centerPositionX * Variables.MapScaleInfo.current + mapWarpLeftTop[0];
         const rootCenterTilePosY = treeData.centerPositionY * Variables.MapScaleInfo.current + mapWarpLeftTop[1];
@@ -118,17 +117,6 @@ const Tree = {
         treeDom.style.left = finalLeft + 'px';
         treeDom.style.top = finalTop + 'px';
         document.getElementById('treeWrapDom').appendChild(treeDom);
-
-        // const centerTile = document.createElement('div');
-        // centerTile.id = 'centerTile'+treeData.id;
-        // centerTile.style.position = 'absolute';
-        // centerTile.style.width = Variables.MapScaleInfo.current + 'px';
-        // centerTile.style.height = Variables.MapScaleInfo.current + 'px';
-        // centerTile.style.left = rootCenterTilePosX + 'px';
-        // centerTile.style.top = rootCenterTilePosY + 'px';
-        // centerTile.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
-        // document.getElementById('treeWrapDom').appendChild(centerTile);
-
     },
     RemoveDom: (id) => {
         const treeDomId = 'tree-' + id;

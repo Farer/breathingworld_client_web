@@ -112,6 +112,12 @@ const Methods = {
             weedWrapDom.parentNode.removeChild(weedWrapDom);
         }
     },
+    RemoveTreeWrapDom: () => {
+        const treeWrapDom = document.getElementById('treeWrapDom');
+        if(treeWrapDom != null) {
+            treeWrapDom.parentNode.removeChild(treeWrapDom);
+        }
+    },
     RemoveAnimalWrapDom: () => {
         const animalWrapDom = document.getElementById('animalWrapDom');
         if(animalWrapDom != null) {

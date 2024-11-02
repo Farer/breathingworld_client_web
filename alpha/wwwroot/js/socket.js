@@ -166,6 +166,7 @@ const Socket = {
         else if(Variables.MapInfo.viewDistrictIds.length > 0) {
             Variables.MapInfo.viewDistrictIds = [];
             Methods.RemoveWeedWrapDom();
+            Methods.RemoveTreeWrapDom();
             Methods.RemoveAnimalWrapDom();
         }
         else if(Variables.MapInfo.viewDistrictIds.length == 0) {
