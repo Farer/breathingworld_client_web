@@ -1,5 +1,6 @@
 'use strict';
 function AddDragMapEvent() {
+    let getDataDebounceTimer = null;
     const element = document.getElementById('mapWrap');
     element.addEventListener('mousedown', TriggerMouseDown);
     element.addEventListener('touchstart', TriggerTouchStart, { passive: false });
@@ -84,11 +85,16 @@ function AddDragMapEvent() {
     }
 
     function RemoveDragMapEvent() {
-        Methods.CleanPrepareWeedWrapDom();
-        Methods.SetWhenUserStopAction(1);
         document.removeEventListener('mouseup', RemoveDragMapEvent);
         document.removeEventListener('mousemove', DoingMouseDrag);
         document.removeEventListener('touchend', RemoveDragMapEvent);
         document.removeEventListener('touchmove', DoingTouchDrag);
+        if(getDataDebounceTimer !== null) { clearTimeout(getDataDebounceTimer); }
+        getDataDebounceTimer = setTimeout(() => {
+            Methods.CleanPrepareWeedWrapDom();
+            Methods.SetWhenUserStopAction(1);
+            getDataDebounceTimer = null;
+        }, 300);
+        
     }
 }
