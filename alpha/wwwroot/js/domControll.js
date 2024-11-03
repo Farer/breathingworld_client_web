@@ -59,7 +59,7 @@ const DomControll = {
                     const treeRight = treeLeft + Tree.Data[treeDom.id].width;
                     const treeBottom = treeTop + Tree.Data[treeDom.id].height;
 
-                    if (rabbitBottom > treeTop && rabbitTop < treeBottom && rabbitRight > treeLeft && rabbitLeft < treeRight) {
+                    if (rabbitBottom > treeBottom && rabbitTop < treeBottom && rabbitRight > treeLeft && rabbitLeft < treeRight) {
                         rabbitDom.style.zIndex = treeDom.style.zIndex;
                         treeDom.parentNode.appendChild(rabbitDom);
                         moved = true;
