@@ -8,7 +8,7 @@ const Data = {
         UserPaused: false,
     },
     Tree: {
-        CacheExpireMillis: 300000,
+        CacheExpireMillis: 60000,
         DistrictDataUpdateTime: [],
         IdsInDistrict: [],
         DistrictData: [],
