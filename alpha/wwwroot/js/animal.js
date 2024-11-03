@@ -83,6 +83,9 @@ const Animal = {
             const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, 1);
             animalDom.style.background = 'transparent url("'+Images.Data.rabbit.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
 
+            Animal.Data.rabbit[keyId].currentActionFrameCount = Sprites.Rabbit.frameCounts[1];
+            const frameDelay = Animal.CalculateWalkingAnimationFrameDelay(speciesName, data.movedTileIds.length);
+            Animal.Data.rabbit[keyId].currentActionFrameDelay = frameDelay;
             Animal.StartAnimation(speciesName, data.id, 1);
             data.nextActionDateTime = new Date((data.updateTimeUnix + Variables.Settings.averageRabbitProceedIntervalSeconds)*1000);
             let timeDiff = data.nextActionDateTime.getTime() - new Date().getTime();
@@ -111,6 +114,18 @@ const Animal = {
             Animal.StartAnimation(speciesName, data.id, data.actionId);
         }
         animalDom.style.transform = Animal.MakeAnimalDomTrasformString(speciesName, Animal.Data.rabbit[keyId]);
+    },
+    CalculateWalkingAnimationFrameDelay: (speciesName, movedTilesCount) => {
+        const defaultDelay = Sprites.Rabbit.frameDelay[1];
+        const halfDelay = defaultDelay / 2;
+        if (speciesName === 'rabbit') {
+            const divideFactor = Math.max(movedTilesCount, 1) / 16;
+            let newDelay = defaultDelay / divideFactor;
+            if (newDelay > defaultDelay) { newDelay = defaultDelay; }
+            else if (newDelay < halfDelay ) { newDelay = halfDelay; }
+            return newDelay;
+        }
+        return defaultDelay;
     },
     MakeAnimalDomTrasformString: (speciesName, data) => {
         let transformString = '';
@@ -287,6 +302,7 @@ const Animal = {
             DomControll.RemoveTargetDomId(keyId);
             const animalDom = document.getElementById(keyId);
             if(animalDom == null) { return; }
+            animalDom.style.backgroundPositionX = '0px';
 
             let originalActionId = Animal.Data.rabbit[keyId].actionId;
             if(Variables.Settings.rabbitActionStatus[originalActionId]=='dead') {
