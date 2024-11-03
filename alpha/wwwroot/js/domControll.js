@@ -53,7 +53,7 @@ const DomControll = {
                 const treeDoms = treeWrap.getElementsByTagName('div');
 
                 Array.from(treeDoms).forEach(treeDom => {
-                    if(Tree.Data[treeDom.id].width == undefined) { return; }
+                    if(Tree.Data[treeDom.id] == undefined) { return; }
                     const treeLeft = Tree.Data[treeDom.id].left;
                     const treeTop = Tree.Data[treeDom.id].top;
                     const treeRight = treeLeft + Tree.Data[treeDom.id].width;
