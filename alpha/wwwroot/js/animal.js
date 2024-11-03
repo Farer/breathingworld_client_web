@@ -316,7 +316,9 @@ const Animal = {
                 Animal.DrawEtcBackground(keyId, originalActionId);
             }
             else {
-                originalActionId = 0;
+                if(Variables.Settings.rabbitActionStatus[originalActionId]!='eating' && Variables.Settings.rabbitActionStatus[originalActionId]!='sleep') {
+                    originalActionId = 0;
+                }
                 Animal.Data.rabbit[keyId].currentActionFrameCount = Sprites.Rabbit.frameCounts[originalActionId];
                 Animal.Data.rabbit[keyId].currentActionFrameDelay = Sprites.Rabbit.frameDelay[originalActionId];
                 const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, originalActionId);
