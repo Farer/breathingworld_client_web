@@ -47,6 +47,11 @@ const Animal = {
         animalDom.style.left = animalDomInfo.left + 'px';
         animalDom.style.top = animalDomInfo.top + 'px';
 
+        Animal.Data.rabbit[keyId].width = animalDomInfo.size;
+        Animal.Data.rabbit[keyId].height = animalDomInfo.size;
+        Animal.Data.rabbit[keyId].left = animalDomInfo.left;
+        Animal.Data.rabbit[keyId].top = animalDomInfo.top;
+
         let ifShowMoving = false;
         if(data.movedTileIds.length > 0) { ifShowMoving = true; }
 
@@ -253,6 +258,8 @@ const Animal = {
             clearTimeout(Data.AnimalMoving.timeouts[keyId]);
             Data.AnimalMoving.movingTileIds[keyId] = [];
             if(data.movedTileIds.length > 0) {
+                DomControll.AddTargetDomId(keyId);
+                DomControll.StartAnimation();
                 const startTile = data.movedTileIds[0];
                 const endTile = data.movedTileIds[data.movedTileIds.length-1];
                 const rabbitDom = document.getElementById(keyId);
@@ -277,6 +284,7 @@ const Animal = {
     },
     ContinueAnimalMoving: (speciesName, keyId) => {
         if(Data.AnimalMoving.movingTileIds[keyId] == undefined || Data.AnimalMoving.movingTileIds[keyId].length == 0) {
+            DomControll.RemoveTargetDomId(keyId);
             const animalDom = document.getElementById(keyId);
             if(animalDom == null) { return; }
 

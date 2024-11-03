@@ -41,7 +41,6 @@ const Tree = {
             Data.Tree.DistrictData[districtId] = treesInDistrict;
             Data.Tree.DistrictDataUpdateTime[districtId] = currentTime;
         }
-        const mapWarpLeftTop = Methods.GetLeftTopMapWrap();
         Data.Tree.DistrictData[districtId].forEach(treeData => {
             if (Tree.IfThisTreeVisible(treeData)) { Tree.HandleTreeDomByStat(treeData); }
         });
@@ -118,7 +117,6 @@ const Tree = {
             console.error('imageSource == null');
             return;
         }
-
         const imageInfo = Tree.GetTreeImageInfoByCurrentScale(treeData);
         const treeDomId = 'tree-' + treeData.id;
         let treeDom = document.getElementById(treeDomId);
@@ -134,6 +132,11 @@ const Tree = {
         treeDom.style.background = 'url(' + imageSource.src + ') no-repeat center center / contain';
         treeDom.style.left = imageInfo.left + 'px';
         treeDom.style.top = imageInfo.top + 'px';
+
+        Tree.Data[treeDomId].width = imageInfo.width;
+        Tree.Data[treeDomId].height = imageInfo.height;
+        Tree.Data[treeDomId].left = imageInfo.left;
+        Tree.Data[treeDomId].top = imageInfo.top;
     },
     RemoveDom: (id) => {
         const treeDomId = 'tree-' + id;
