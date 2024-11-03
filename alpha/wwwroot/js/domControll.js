@@ -67,7 +67,7 @@ const DomControll = {
                 });
             }
 
-            if (!moved && rabbitDom.style.zIndex !== '') {
+            if (!moved && rabbitDom.style && rabbitDom.style.zIndex !== '') {
                 rabbitDom.style.zIndex = '';
                 document.getElementById('animalWrapDom').appendChild(rabbitDom);
             }
