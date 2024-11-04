@@ -29,13 +29,13 @@ const Core = {
         let html = '';
         html += '<div class="external-links-container" style="position: fixed; top: 20px; right: 20px; display: flex; gap: 25px;">';
             html += '<a href="https://blog.breathingworld.com/" target="_blank" style="display: block;">';
-                html += '<img src="/img/icon_blog.svg" alt="Blog" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
+                html += '<img src="' + window.cdnPrefix + '/img/icon_blog.svg" alt="Blog" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
             html += '</a>';
             html += '<a href="https://github.com/Farer/breathingworld_client_web" target="_blank" style="display: block;">';
-                html += '<img src="/img/github-mark-white.svg" alt="Github" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
+                html += '<img src="' + window.cdnPrefix + '/img/github-mark-white.svg" alt="Github" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
             html += '</a>';
             html += '<a href="https://discord.gg/4Y2TpWDtJm" target="_blank" style="display: block;">';
-                html += '<img src="/img/icon_clyde_white_RGB.svg" alt="Discord" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
+                html += '<img src="' + window.cdnPrefix + '/img/icon_clyde_white_RGB.svg" alt="Discord" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
             html += '</a>';
         html += '</div>';
         discordDom.innerHTML = html;
@@ -55,7 +55,7 @@ const Core = {
     
         const moreButton = document.createElement('div');
         moreButton.id = 'more_button';
-        moreButton.innerHTML = '<img src="/img/more-horizontal-svgrepo-com.svg" alt="more" style="width: 34px; height: 34px; '+filterShadowStyle+'">';
+        moreButton.innerHTML = '<img src="' + window.cdnPrefix + '/img/more-horizontal-svgrepo-com.svg" alt="more" style="width: 34px; height: 34px; '+filterShadowStyle+'">';
         moreButton.style.position = 'fixed';
         moreButton.style.right = '20px';
         moreButton.style.top = '20px';
@@ -85,10 +85,10 @@ const Core = {
         moreButton.addEventListener('click', () => {
             if (externalLinksContainer.style.display === 'none') {
                 externalLinksContainer.style.display = 'flex';
-                moreButton.innerHTML = '<img src="/img/close-svgrepo-com.svg" alt="close" style="width: 34px; height: 34px; '+filterShadowStyle+'">';
+                moreButton.innerHTML = '<img src="' + window.cdnPrefix + '/img/close-svgrepo-com.svg" alt="close" style="width: 34px; height: 34px; '+filterShadowStyle+'">';
             } else {
                 externalLinksContainer.style.display = 'none';
-                moreButton.innerHTML = '<img src="/img/more-horizontal-svgrepo-com.svg" alt="more" style="width: 34px; height: 34px; '+filterShadowStyle+'">';
+                moreButton.innerHTML = '<img src="' + window.cdnPrefix + '/img/more-horizontal-svgrepo-com.svg" alt="more" style="width: 34px; height: 34px; '+filterShadowStyle+'">';
             }
         });
     },
@@ -101,7 +101,7 @@ const Core = {
         
         let html = '';
         html += '<div style="display: flex; align-items: center; gap: 5px; filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));">';
-            html += '<img src="/img/person-svgrepo-com.svg" alt="User Icon" style="width: 32px; height: 32px;" />';
+            html += '<img src="' + window.cdnPrefix + '/img/person-svgrepo-com.svg" alt="User Icon" style="width: 32px; height: 32px;" />';
             html += '<span id="connectedUserCountSpan" style="color: #FFF; font-size: 26px; font-weight: bold;">?</span>';
         html += '</div>';
         
@@ -114,7 +114,7 @@ const Core = {
         Images.PreloadData.forEach((item) => {
             const splits = item.split('|');
             Images.Data[splits[0]] = new Image();
-            Images.Data[splits[0]].src = splits[1];
+            Images.Data[splits[0]].src = window.cdnPrefix + splits[1];
             Images.Data[splits[0]].onload = () => {
                 Images.LoadedCount++;
                 Core.IfAllImagesLoaded();
@@ -205,7 +205,7 @@ const Core = {
         document.getElementById('mapWrap').appendChild(canvas);
     },
     LoadMap: () => {
-        Variables.MapInfo.mapImage.src = '/img/map1.svg?3';
+        Variables.MapInfo.mapImage.src = window.cdnPrefix + '/img/map1.svg?3';
         Variables.MapInfo.mapImage.onload = function () {
             Variables.MapInfo.mapMaxWidth = Variables.MapInfo.mapImage.width;
             Variables.MapInfo.mapMaxHeight = Variables.MapInfo.mapImage.height;

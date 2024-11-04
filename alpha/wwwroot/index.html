@@ -4,25 +4,57 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Breathing World - Alpha Test</title>
-    <link rel="stylesheet" type="text/css" href="./css/common.css?2"/>
+    <script>
+      window.cdnPrefix = '';
+      const origin = window.location.origin;
+      if (origin === "https://us-alpha.breathingworld.com") {
+          window.cdnPrefix = "https://us-alpha-bw.b-cdn.net"; // 미국 서버용 BunnyCDN 경로
+      } else if (origin === "https://eu-alpha.breathingworld.com") {
+          window.cdnPrefix = "https://eu-alpha-bw.b-cdn.net"; // 유럽 서버용 BunnyCDN 경로
+      }
+      function loadCSS(href) {
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.type = "text/css";
+          link.href = window.cdnPrefix + href;
+          document.head.appendChild(link);
+      }
+      function loadScript(src, callback) {
+          const script = document.createElement("script");
+          script.src = window.cdnPrefix + src;
+          script.onload = callback;
+          document.body.appendChild(script);
+      }
+      loadCSS("/css/common.css?2");
+      const scripts = [
+          "/js/lib/msgpack.min.js",
+          "/js/lib/signalr.min.js",
+          "/js/sprites.js?1",
+          "/js/variables.js?2",
+          "/js/data.js?2",
+          "/js/animal.js?4",
+          "/js/tree.js?6",
+          "/js/animationProcess.js",
+          "/js/domControll.js",
+          "/js/images.js",
+          "/js/methods.js?3",
+          "/js/draggable.js?1",
+          "/js/socket.js?11",
+          "/js/chat.js?4",
+          "/js/core.js?11",
+          "/js/index.js?1"
+      ];
+      function loadScriptsSequentially(index = 0) {
+          if (index < scripts.length) {
+              loadScript(scripts[index], () => loadScriptsSequentially(index + 1));
+          }
+      }
+      document.addEventListener("DOMContentLoaded", () => {
+          loadScriptsSequentially();
+      });
+    </script>
 </head>
 <body>
-    <script src="./js/lib/msgpack.min.js"></script>
-    <script src="./js/lib/signalr.min.js"></script>
-    <script src="./js/sprites.js?1"></script>
-    <script src="./js/variables.js?1"></script>
-    <script src="./js/data.js?2"></script>
-    <script src="./js/animal.js?3"></script>
-    <script src="./js/tree.js?6"></script>
-    <script src="./js/animationProcess.js"></script>
-    <script src="./js/domControll.js"></script>
-    <script src="./js/images.js"></script>
-    <script src="./js/methods.js?3"></script>
-    <script src="./js/draggable.js?1"></script>
-    <script src="./js/socket.js?11"></script>
-    <script src="./js/chat.js?3"></script>
-    <script src="./js/core.js?10"></script>
-    <script src="./js/index.js?1"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-76TZPZS6VM"></script>
     <script>
       window.dataLayer = window.dataLayer || [];

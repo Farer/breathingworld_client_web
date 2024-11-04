@@ -139,7 +139,7 @@ const Chat = {
         chatToggleIcon.style.justifyContent = 'center';
         chatToggleIcon.style.alignItems = 'center';
         chatToggleIcon.style.cursor = 'pointer';
-        chatToggleIcon.innerHTML = '<img id="chatToggleIconImage" src="/img/chat-round-dots-svgrepo-com-empty.svg" alt="Chat" style="width: 32px; height: 32px; filter: drop-shadow(2px 2px 5px rgba(255, 255, 255, 0.8));" />';
+        chatToggleIcon.innerHTML = '<img id="chatToggleIconImage" src="' + window.cdnPrefix + '/img/chat-round-dots-svgrepo-com-empty.svg" alt="Chat" style="width: 32px; height: 32px; filter: drop-shadow(2px 2px 5px rgba(255, 255, 255, 0.8));" />';
         
         chatToggleIcon.addEventListener('click', () => {
             Chat.toggleChatVisibility();
@@ -184,12 +184,12 @@ const Chat = {
     },
 
     markNewMessage: () => {
-        document.getElementById('chatToggleIconImage').src = '/img/chat-round-dots-svgrepo-com-new.svg';
+        document.getElementById('chatToggleIconImage').src = window.cdnPrefix + '/img/chat-round-dots-svgrepo-com-new.svg';
         Chat.newMessageReceived = true;
     },
 
     clearNotification: () => {
-        document.getElementById('chatToggleIconImage').src = '/img/chat-round-dots-svgrepo-com-empty.svg';
+        document.getElementById('chatToggleIconImage').src = window.cdnPrefix + '/img/chat-round-dots-svgrepo-com-empty.svg';
         Chat.newMessageReceived = false;
     },
 
@@ -273,7 +273,7 @@ const Chat = {
         const targetDom = document.getElementById("connectedUserCountSpan");
         if (targetDom == null) { return; }
         targetDom.innerHTML = `
-            <img src="/img/refresh-svgrepo-com.svg" 
+            <img src="` + window.cdnPrefix + `/img/refresh-svgrepo-com.svg" 
                 alt="Refresh Icon" 
                 style="width: 32px; height: 32px; vertical-align: middle; cursor: pointer;" 
                 onclick="location.reload();" />

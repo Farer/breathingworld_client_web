@@ -171,7 +171,7 @@ const Animal = {
         let animalDom = document.getElementById(keyId);
         animalDom.style.background = '';
         animalDom.style.textAlign = 'center';
-        animalDom.innerHTML = '<img style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);" src="/img/animal_bones_tiny.png" width="'+boneSize+'px" height="'+boneSize+'px" />';
+        animalDom.innerHTML = '<img style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);" src="' + window.cdnPrefix + '/img/animal_bones_tiny.png" width="'+boneSize+'px" height="'+boneSize+'px" />';
         if(animalWrapDom.firstChild != null) { animalWrapDom.insertBefore(animalDom, animalWrapDom.firstChild); }
         clearTimeout(Animal.Timeout[keyId]);
         clearTimeout(Data.AnimalMoving.timeouts[keyId]);
