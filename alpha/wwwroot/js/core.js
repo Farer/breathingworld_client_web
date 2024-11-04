@@ -114,7 +114,8 @@ const Core = {
         Images.PreloadData.forEach((item) => {
             const splits = item.split('|');
             Images.Data[splits[0]] = new Image();
-            Images.Data[splits[0]].src = window.cdnPrefix + splits[1];
+            if(splits[0] === 'environmentMap') { splits[1]; }
+            else { Images.Data[splits[0]].src = window.cdnPrefix + splits[1]; }
             Images.Data[splits[0]].onload = () => {
                 Images.LoadedCount++;
                 Core.IfAllImagesLoaded();
