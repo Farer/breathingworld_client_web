@@ -113,10 +113,11 @@ const Core = {
         Core.PrepareTreeImages();
         Images.PreloadData.forEach((item) => {
             const splits = item.split('|');
-            Images.Data[splits[0]] = new Image();
-            if(splits[0] === 'environmentMap') { splits[1]; }
-            else { Images.Data[splits[0]].src = window.cdnPrefix + splits[1]; }
-            Images.Data[splits[0]].onload = () => {
+            const keyString = splits[0];
+            const url = keyString === 'environmentMap' ? splits[1] : window.cdnPrefix + splits[1];
+            Images.Data[keyString] = new Image();
+            Images.Data[keyString].src = url;
+            Images.Data[keyString].onload = () => {
                 Images.LoadedCount++;
                 Core.IfAllImagesLoaded();
             };
