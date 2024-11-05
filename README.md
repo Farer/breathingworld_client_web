@@ -74,9 +74,9 @@ https://learn.microsoft.com/en-us/dotnet/core/install/
 ## 로드맵
 - [x] 잡초
 - [x] 토끼
-- [ ] 늑대
+- [x] 나무
 - [ ] 독수리
-- [ ] 나무
+- [ ] 늑대
 
 ## 커뮤니티
 - 언제든지 Discord 에 방문하셔서 자유롭게 소통할 수 있으면 좋겠습니다.
