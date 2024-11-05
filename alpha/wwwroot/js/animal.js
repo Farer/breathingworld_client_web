@@ -306,6 +306,7 @@ const Animal = {
 
             let originalActionId = Animal.Data.rabbit[keyId].actionId;
             if(Variables.Settings.rabbitActionStatus[originalActionId]=='dead') {
+                AnimationProcess.RemoveTargetDomId(keyId);
                 Animal.DrawAnimalBones(speciesName, Animal.Data.rabbit[keyId]);
             }
             else if(
@@ -313,6 +314,7 @@ const Animal = {
                 Variables.Settings.rabbitActionStatus[originalActionId]=='pregnant' ||
                 Variables.Settings.rabbitActionStatus[originalActionId]=='breeding'
             ) {
+                AnimationProcess.RemoveTargetDomId(keyId);
                 Animal.DrawEtcBackground(keyId, originalActionId);
             }
             else {
