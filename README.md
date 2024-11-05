@@ -75,8 +75,8 @@ https://learn.microsoft.com/en-us/dotnet/core/install/
 - [x] 잡초
 - [x] 토끼
 - [x] 나무
-- [ ] 독수리
 - [ ] 늑대
+- [ ] 독수리
 
 ## 커뮤니티
 - 언제든지 Discord 에 방문하셔서 자유롭게 소통할 수 있으면 좋겠습니다.
