@@ -49,7 +49,6 @@ const Methods = {
     GetDistrictDataOneByOneByFromBucket: () => {
         if(Data.Weed.DistrictIdsBucket.size == 0) { return; }
         const districtId = Data.Weed.DistrictIdsBucket.values().next().value;
-        // console.log("GetDistrictDataOneByOneByFromBucket districtId: ", districtId);
         Data.Weed.DistrictIdsBucket.delete(districtId);
         Socket.GetWeedInfoByDistrictId(districtId);
         Socket.GetTreeInfoByDistrictId(districtId);

@@ -8,9 +8,9 @@
       window.cdnPrefix = '';
       const origin = window.location.origin;
       if (origin === "https://us-alpha.breathingworld.com") {
-          window.cdnPrefix = "https://us-alpha-bw.b-cdn.net"; // 미국 서버용 BunnyCDN 경로
+          window.cdnPrefix = "https://us-alpha-bw.b-cdn.net";
       } else if (origin === "https://eu-alpha.breathingworld.com") {
-          window.cdnPrefix = "https://eu-alpha-bw.b-cdn.net"; // 유럽 서버용 BunnyCDN 경로
+          window.cdnPrefix = "https://eu-alpha-bw.b-cdn.net";
       }
       function loadCSS(href) {
           const link = document.createElement("link");
