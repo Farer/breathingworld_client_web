@@ -513,10 +513,14 @@ const Core = {
             const xPos = parseInt(tileIdSplit[0], 10) * Variables.MapScaleInfo.current + mapWarpLeftTop[0];
             const yPos = parseInt(tileIdSplit[1], 10) * Variables.MapScaleInfo.current + mapWarpLeftTop[1];
             const isVisible = Core.IfThisWeedTileVisible(xPos, yPos);
-            const value = Data.Weed.DistrictData[districtId][tileId];
-            const status = value[0];
-            const rabbitFecesExists = value[1];
-            if(isVisible) { Core.HandleWeedTileByStat(xPos, yPos, status, '', rabbitFecesExists); }
+            const weedStatus = Data.Weed.DistrictData[districtId][tileId];
+            let fecesData = [false, false];
+            if(Data.Feces.DistrictData[districtId] != undefined && Data.Feces.DistrictData[districtId][tileId] != undefined) {
+                fecesData = Data.Feces.DistrictData[districtId][tileId];
+            }
+            const rabbitFecesExists = fecesData[0];
+            const wolfFecesExists = fecesData[1];
+            if(isVisible) { Core.HandleWeedTileByStat(xPos, yPos, weedStatus, rabbitFecesExists, wolfFecesExists); }
         }
     },
     UpdateOneWeedTile: (districtId, tileId) => {
@@ -525,12 +529,13 @@ const Core = {
         const xPos = parseInt(tileIdSplit[0], 10) * Variables.MapScaleInfo.current + mapWarpLeftTop[0];
         const yPos = parseInt(tileIdSplit[1], 10) * Variables.MapScaleInfo.current + mapWarpLeftTop[1];
         const isVisible = Core.IfThisWeedTileVisible(xPos, yPos);
-        const value = Data.Weed.DistrictData[districtId][tileId];
-        const status = value[0];
-        const rabbitFecesExists = value[1];
-        if(isVisible) { Core.HandleWeedTileByStat(xPos, yPos, status, 'update', rabbitFecesExists); }
+        const weedStatus = Data.Weed.DistrictData[districtId][tileId];
+        const fecesData = Data.Feces.DistrictData[districtId][tileId];
+        const rabbitFecesExists = fecesData[0];
+        const wolfFecesExists = fecesData[1];
+        if(isVisible) { Core.HandleWeedTileByStat(xPos, yPos, weedStatus, rabbitFecesExists, wolfFecesExists); }
     },
-    UpdateOneWeedTileByFeces: (districtId, tileId, rabbitFecesExists, kind) => {
+    UpdateOneWeedTileByFeces: (districtId, tileId, fecesExists, kind) => {
         if(Data.Weed.DistrictData[districtId] == undefined || Data.Weed.DistrictData[districtId][tileId] == undefined) { return; }
         
         const tileIdSplit = tileId.split(':');
@@ -540,10 +545,15 @@ const Core = {
         const isVisible = Core.IfThisWeedTileVisible(xPos, yPos);
         if(isVisible == false) { return; }
 
-        const value = Data.Weed.DistrictData[districtId][tileId];
-        const status = value[0];
-        Data.Weed.DistrictData[districtId][tileId] = [status, rabbitFecesExists];
-        Core.HandleWeedTileByStat(xPos, yPos, status, 'update', rabbitFecesExists);
+        if(Data.Feces.DistrictData[districtId][tileId] == undefined) {
+            Data.Feces.DistrictData[districtId][tileId] = [false, false];
+        }
+        if(kind=="rabbit") { Data.Feces.DistrictData[districtId][tileId][0] = fecesExists; }
+        else if(kind=="wolf") { Data.Feces.DistrictData[districtId][tileId][1] = fecesExists; }
+
+        const weedStatus = Data.Weed.DistrictData[districtId][tileId];
+        var fecesData = Data.Feces.DistrictData[districtId][tileId];
+        Core.HandleWeedTileByStat(xPos, yPos, weedStatus, fecesData[0], fecesData[1]);
     },
     IfThisWeedTileVisible: (xPos, yPos) => {
         const weedTileSize = Variables.MapScaleInfo.current;
@@ -558,7 +568,7 @@ const Core = {
         ) { visible = false; }
         return visible;
     },
-    HandleWeedTileByStat: (posX, posY, proceedId, action, rabbitFecesExists) => {
+    HandleWeedTileByStat: (posX, posY, proceedId, rabbitFecesExists, wolfFecesExists) => {
         const weedWrapDom = document.getElementById('weedWrapDom');
         if (weedWrapDom == null) { return; }
         

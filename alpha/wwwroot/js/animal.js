@@ -217,7 +217,13 @@ const Animal = {
     },
     RemoveWeedAfterEating: (tileId, districtId) => {
         let rabbitFecesExists = false;
-        if(districtId != undefined && Data.Weed.DistrictData[districtId] != undefined) { rabbitFecesExists = Data.Weed.DistrictData[districtId][tileId][1]; }
+        let wolfFecesExists = false;
+        if(districtId != undefined && Data.Weed.DistrictData[districtId] != undefined) {
+            if(Data.Feces.DistrictData[districtId] != undefined && Data.Feces.DistrictData[districtId][tileId] != undefined) {
+                rabbitFecesExists = Data.Feces.DistrictData[districtId][tileId][0];
+                wolfFecesExists = Data.Feces.DistrictData[districtId][tileId][1];
+            }
+        }
         const mapWarpLeftTop = Methods.GetLeftTopMapWrap();
         const tileIdSplit = tileId.split(':');
         const xPos = parseInt(tileIdSplit[0], 10) * Variables.MapScaleInfo.current + mapWarpLeftTop[0];

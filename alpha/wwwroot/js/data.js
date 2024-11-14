@@ -14,8 +14,6 @@ const Data = {
         DistrictData: [],
     },
     Feces: {
-        CacheExpireMillis: 60000,
-        DistrictDataUpdateTime: [],
         DistrictData: [],
     },
     AnimalMoving: {

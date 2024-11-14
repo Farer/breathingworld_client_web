@@ -34,7 +34,7 @@ const Socket = {
                 console.error(error);
             }
         });
-        Socket.WebsocketConnection.on("ReceiveOneWeedInfo", function (districtId, tileId, weedProceedCode, rabbitFecesExists) {
+        Socket.WebsocketConnection.on("ReceiveOneWeedInfo", function (districtId, tileId, weedProceedCode, rabbitFeceExists, wolfFeceExists) {
             try {
                 if(Data.Weed.DistrictData[districtId] == undefined) {
                     Animal.RemoveWeedAfterEating(tileId, districtId);
@@ -42,14 +42,18 @@ const Socket = {
                 }
                 if(Data.Weed.DistrictData[districtId][tileId] != undefined) {
                     if(Variables.Settings.weedProceedCode[weedProceedCode] == 'none') {
-                        Data.Weed.DistrictData[districtId][tileId] = [-1, rabbitFecesExists];
+                        Data.Weed.DistrictData[districtId][tileId] = -1;
                         Animal.RemoveWeedAfterEating(tileId, districtId);
                     }
                     else if(weedProceedCode == -1) {
                         Animal.RemoveWeedAfterEating(tileId, districtId);
                     }
                     else {
-                        Data.Weed.DistrictData[districtId][tileId] = [weedProceedCode, rabbitFecesExists];
+                        Data.Weed.DistrictData[districtId][tileId] = weedProceedCode;
+                        if(Data.Feces.DistrictData[districtId] == undefined) {
+                            Data.Feces.DistrictData[districtId] = [];
+                        }
+                        Data.Feces.DistrictData[districtId][tileId] = [rabbitFeceExists, wolfFeceExists];
                         Core.UpdateOneWeedTile(districtId, tileId);
                     }
                 }
@@ -69,8 +73,12 @@ const Socket = {
                     return;
                 }
                 Data.Weed.DistrictDataUpdateTime[districtId] = nowDate;
-                Data.Weed.DistrictData[districtId] = weedInfoDecoded;
-                // TODO Data.Feces 에 반영해야 함
+                Data.Weed.DistrictData[districtId] = [];
+                for(var i in weedInfoDecoded) {
+                    // console.log(weedInfoDecoded[i][0]);
+                    Data.Weed.DistrictData[districtId][i] = weedInfoDecoded[i][0];
+                    // Methods.UpdateFecesData(districtId, i, [weedInfoDecoded[i][1], weedInfoDecoded[i][2]]);
+                }
             
                 Core.DrawDistrictWeedTileByDistrictId(districtId);
                 Methods.GetDistrictDataOneByOneByFromBucket();
