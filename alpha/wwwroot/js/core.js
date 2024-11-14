@@ -515,8 +515,8 @@ const Core = {
             const isVisible = Core.IfThisWeedTileVisible(xPos, yPos);
             const value = Data.Weed.DistrictData[districtId][tileId];
             const status = value[0];
-            const fecesExists = value[1];
-            if(isVisible) { Core.HandleWeedTileByStat(xPos, yPos, status, '', fecesExists); }
+            const rabbitFecesExists = value[1];
+            if(isVisible) { Core.HandleWeedTileByStat(xPos, yPos, status, '', rabbitFecesExists); }
         }
     },
     UpdateOneWeedTile: (districtId, tileId) => {
@@ -527,10 +527,10 @@ const Core = {
         const isVisible = Core.IfThisWeedTileVisible(xPos, yPos);
         const value = Data.Weed.DistrictData[districtId][tileId];
         const status = value[0];
-        const fecesExists = value[1];
-        if(isVisible) { Core.HandleWeedTileByStat(xPos, yPos, status, 'update', fecesExists); }
+        const rabbitFecesExists = value[1];
+        if(isVisible) { Core.HandleWeedTileByStat(xPos, yPos, status, 'update', rabbitFecesExists); }
     },
-    UpdateOneWeedTileByFeces: (districtId, tileId, fecesExists) => {
+    UpdateOneWeedTileByFeces: (districtId, tileId, rabbitFecesExists, kind) => {
         if(Data.Weed.DistrictData[districtId] == undefined || Data.Weed.DistrictData[districtId][tileId] == undefined) { return; }
         
         const tileIdSplit = tileId.split(':');
@@ -542,8 +542,8 @@ const Core = {
 
         const value = Data.Weed.DistrictData[districtId][tileId];
         const status = value[0];
-        Data.Weed.DistrictData[districtId][tileId] = [status, fecesExists];
-        Core.HandleWeedTileByStat(xPos, yPos, status, 'update', fecesExists);
+        Data.Weed.DistrictData[districtId][tileId] = [status, rabbitFecesExists];
+        Core.HandleWeedTileByStat(xPos, yPos, status, 'update', rabbitFecesExists);
     },
     IfThisWeedTileVisible: (xPos, yPos) => {
         const weedTileSize = Variables.MapScaleInfo.current;
@@ -558,7 +558,7 @@ const Core = {
         ) { visible = false; }
         return visible;
     },
-    HandleWeedTileByStat: (posX, posY, proceedId, action, fecesExists) => {
+    HandleWeedTileByStat: (posX, posY, proceedId, action, rabbitFecesExists) => {
         const weedWrapDom = document.getElementById('weedWrapDom');
         if (weedWrapDom == null) { return; }
         
@@ -566,7 +566,7 @@ const Core = {
         const viewSize = Variables.MapScaleInfo.current;
 
         Core.DrawDirtFloorOnTile(ctx, posX, posY, viewSize);
-        if(fecesExists) { Core.DrawFecesOnTile(ctx, posX, posY, viewSize);} 
+        if(rabbitFecesExists) { Core.DrawFecesOnTile(ctx, posX, posY, viewSize);} 
         
         if( proceedId != -1) {
             const weedWidthHeight = Images.Data.weed.height;

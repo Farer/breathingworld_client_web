@@ -216,5 +216,30 @@ const Methods = {
         var xId = parseInt(tilePosX / Variables.Settings.districtWidth, 10);
         var yId = parseInt(tilePosY / Variables.Settings.districtHeight, 10);
         return yId * row + xId;
+    },
+    UpdateFecesData: (districtId, tileId, value) => {
+        if(Data.Feces.DistrictData[districtId] == undefined) { Data.Feces.DistrictData[districtId] = []; }
+        Data.Feces.DistrictData[districtId][tileId] = value;
+    },
+    AddFecesData: (districtId, tileId, kind) => {
+        if(Data.Feces.DistrictData[districtId] == undefined) { Data.Feces.DistrictData[districtId] = []; }
+        if(Data.Feces.DistrictData[districtId][tileId] == undefined) {
+            if(kind == 'rabbit') { Data.Feces.DistrictData[districtId][tileId] = [true, false]; }
+            else if(kind == 'wolf') { Data.Feces.DistrictData[districtId][tileId] = [false, true]; }
+        }
+        else {
+            var value = Data.Feces.DistrictData[districtId][tileId];
+            if(kind == 'rabbit') { value[0] = true; }
+            else if(kind == 'wolf') { value[1] = true; }
+            Data.Feces.DistrictData[districtId][tileId] = value;
+        }
+    },
+    RemoveFecesData: (districtId, tileId, kind) => {
+        if(Data.Feces.DistrictData[districtId] == undefined) { return; }
+        if(Data.Feces.DistrictData[districtId][tileId] == undefined) { return; }
+        var value = Data.Feces.DistrictData[districtId][tileId];
+        if(kind == 'rabbit') { value[0] = false; }
+        else if(kind == 'wolf') { value[1] = false; }
+        Data.Feces.DistrictData[districtId][tileId] = value;
     }
 };

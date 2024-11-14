@@ -216,8 +216,8 @@ const Animal = {
         }
     },
     RemoveWeedAfterEating: (tileId, districtId) => {
-        let fecesExists = false;
-        if(districtId != undefined && Data.Weed.DistrictData[districtId] != undefined) { fecesExists = Data.Weed.DistrictData[districtId][tileId][1]; }
+        let rabbitFecesExists = false;
+        if(districtId != undefined && Data.Weed.DistrictData[districtId] != undefined) { rabbitFecesExists = Data.Weed.DistrictData[districtId][tileId][1]; }
         const mapWarpLeftTop = Methods.GetLeftTopMapWrap();
         const tileIdSplit = tileId.split(':');
         const xPos = parseInt(tileIdSplit[0], 10) * Variables.MapScaleInfo.current + mapWarpLeftTop[0];
@@ -226,7 +226,7 @@ const Animal = {
         if(document.getElementById('weedCanvas') ==null) { return; }
         const ctx = document.getElementById('weedCanvas').getContext('2d');
         Core.DrawDirtFloorOnTile(ctx, xPos, yPos, viewSize);
-        if(fecesExists) { Core.DrawFecesOnTile(ctx, xPos, yPos, viewSize);} 
+        if(rabbitFecesExists) { Core.DrawFecesOnTile(ctx, xPos, yPos, viewSize);} 
     },
     StartAnimation: (speciesName, id, actionId) => {
         const keyId = speciesName + '-' + id;

@@ -34,7 +34,7 @@ const Socket = {
                 console.error(error);
             }
         });
-        Socket.WebsocketConnection.on("ReceiveOneWeedInfo", function (districtId, tileId, weedProceedCode, fecesExists) {
+        Socket.WebsocketConnection.on("ReceiveOneWeedInfo", function (districtId, tileId, weedProceedCode, rabbitFecesExists) {
             try {
                 if(Data.Weed.DistrictData[districtId] == undefined) {
                     Animal.RemoveWeedAfterEating(tileId, districtId);
@@ -42,14 +42,14 @@ const Socket = {
                 }
                 if(Data.Weed.DistrictData[districtId][tileId] != undefined) {
                     if(Variables.Settings.weedProceedCode[weedProceedCode] == 'none') {
-                        Data.Weed.DistrictData[districtId][tileId] = [-1, fecesExists];
+                        Data.Weed.DistrictData[districtId][tileId] = [-1, rabbitFecesExists];
                         Animal.RemoveWeedAfterEating(tileId, districtId);
                     }
                     else if(weedProceedCode == -1) {
                         Animal.RemoveWeedAfterEating(tileId, districtId);
                     }
                     else {
-                        Data.Weed.DistrictData[districtId][tileId] = [weedProceedCode, fecesExists];
+                        Data.Weed.DistrictData[districtId][tileId] = [weedProceedCode, rabbitFecesExists];
                         Core.UpdateOneWeedTile(districtId, tileId);
                     }
                 }
@@ -70,6 +70,7 @@ const Socket = {
                 }
                 Data.Weed.DistrictDataUpdateTime[districtId] = nowDate;
                 Data.Weed.DistrictData[districtId] = weedInfoDecoded;
+                // TODO Data.Feces 에 반영해야 함
             
                 Core.DrawDistrictWeedTileByDistrictId(districtId);
                 Methods.GetDistrictDataOneByOneByFromBucket();
@@ -141,16 +142,18 @@ const Socket = {
                 console.error(error);
             }
         });
-        Socket.WebsocketConnection.on("ReceiveAddedFertilizerByDistrict", function (districtId, tileId) {
+        Socket.WebsocketConnection.on("ReceiveAddedFecesByDistrict", function (districtId, tileId, kind) {
             try {
-                Core.UpdateOneWeedTileByFeces(districtId, tileId, true);
+                Methods.AddFecesData(districtId, tileId, kind);
+                Core.UpdateOneWeedTileByFeces(districtId, tileId, true, kind);
             } catch (error) {
                 console.error(error);
             }
         });
-        Socket.WebsocketConnection.on("ReceiveRemovedFertilizerByDistrict", function (districtId, tileId) {
+        Socket.WebsocketConnection.on("ReceiveRemovedFecesByDistrict", function (districtId, tileId, kind) {
             try {
-                Core.UpdateOneWeedTileByFeces(districtId, tileId, false);
+                Methods.RemoveFecesData(districtId, tileId, kind);
+                Core.UpdateOneWeedTileByFeces(districtId, tileId, false, kind);
             } catch (error) {
                 console.error(error);
             }

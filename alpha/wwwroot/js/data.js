@@ -13,6 +13,11 @@ const Data = {
         IdsInDistrict: [],
         DistrictData: [],
     },
+    Feces: {
+        CacheExpireMillis: 60000,
+        DistrictDataUpdateTime: [],
+        DistrictData: [],
+    },
     AnimalMoving: {
         timeouts: [],
         timeoutIntervals: [],
