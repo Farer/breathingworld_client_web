@@ -75,11 +75,9 @@ const Socket = {
                 Data.Weed.DistrictDataUpdateTime[districtId] = nowDate;
                 Data.Weed.DistrictData[districtId] = [];
                 for(var i in weedInfoDecoded) {
-                    // console.log(weedInfoDecoded[i][0]);
                     Data.Weed.DistrictData[districtId][i] = weedInfoDecoded[i][0];
-                    // Methods.UpdateFecesData(districtId, i, [weedInfoDecoded[i][1], weedInfoDecoded[i][2]]);
+                    Methods.UpdateFecesData(districtId, i, [weedInfoDecoded[i][1], weedInfoDecoded[i][2]]);
                 }
-            
                 Core.DrawDistrictWeedTileByDistrictId(districtId);
                 Methods.GetDistrictDataOneByOneByFromBucket();
             } catch (error) {

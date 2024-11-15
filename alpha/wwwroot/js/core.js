@@ -545,9 +545,8 @@ const Core = {
         const isVisible = Core.IfThisWeedTileVisible(xPos, yPos);
         if(isVisible == false) { return; }
 
-        if(Data.Feces.DistrictData[districtId][tileId] == undefined) {
-            Data.Feces.DistrictData[districtId][tileId] = [false, false];
-        }
+        if(Data.Feces.DistrictData[districtId] == undefined) { Data.Feces.DistrictData[districtId] = []; }
+        Data.Feces.DistrictData[districtId][tileId] = [false, false];
         if(kind=="rabbit") { Data.Feces.DistrictData[districtId][tileId][0] = fecesExists; }
         else if(kind=="wolf") { Data.Feces.DistrictData[districtId][tileId][1] = fecesExists; }
 
@@ -575,8 +574,7 @@ const Core = {
         const ctx = document.getElementById('weedCanvas').getContext('2d');
         const viewSize = Variables.MapScaleInfo.current;
 
-        Core.DrawDirtFloorOnTile(ctx, posX, posY, viewSize);
-        if(rabbitFecesExists) { Core.DrawFecesOnTile(ctx, posX, posY, viewSize);} 
+        Core.DrawDirtFloorOnTile(ctx, posX, posY, viewSize, [rabbitFecesExists, wolfFecesExists]);
         
         if( proceedId != -1) {
             const weedWidthHeight = Images.Data.weed.height;
@@ -595,16 +593,15 @@ const Core = {
             );
         }
     },
-    DrawDirtFloorOnTile: (ctx, posX, posY, viewSize) => {
+    DrawDirtFloorOnTile: (ctx, posX, posY, viewSize, fecesData) => {
         const weedWrapDom = document.getElementById('weedWrapDom');
         if (weedWrapDom == null) { return; }
-        const dirtFloorWidthHeight = Images.Data.dirt_floor.height;
-        const dirtFloorImagePosX = 0;
-        const dirtFloorImagePosY = 0;
+        const imagePosInfo = Core.DefineDirtDroppingImagePos(fecesData);
+        const dirtFloorWidthHeight = Images.Data.dirt_droppings.height;
         ctx.drawImage(
-            Images.Data.dirt_floor,
-            dirtFloorImagePosX,
-            dirtFloorImagePosY,
+            Images.Data.dirt_droppings,
+            imagePosInfo.posX,
+            imagePosInfo.posY,
             dirtFloorWidthHeight,
             dirtFloorWidthHeight,
             posX,
@@ -613,22 +610,17 @@ const Core = {
             viewSize
         );
     },
-    DrawFecesOnTile: (ctx, posX, posY, viewSize) => {
-        const weedWrapDom = document.getElementById('weedWrapDom');
-        if (weedWrapDom == null) { return; }
-        const fecesWidthHeight = Images.Data.rabbit_dropping.height;
-        const fecesImagePosX = 0;
-        const fecesImagePosY = 0;
-        ctx.drawImage(
-            Images.Data.rabbit_dropping,
-            fecesImagePosX,
-            fecesImagePosY,
-            fecesWidthHeight,
-            fecesWidthHeight,
-            posX,
-            posY,
-            viewSize,
-            viewSize
-        );
+    DefineDirtDroppingImagePos: (fecesData) => {
+        const imageSize = Images.Data.dirt_droppings.height;
+        const rabbitFecesExists = fecesData[0];
+        const wolfFecesExists = fecesData[1];
+        let caseId = 0;
+        if(rabbitFecesExists && !wolfFecesExists) { caseId = 1; }
+        else if(!rabbitFecesExists && wolfFecesExists) { caseId = 2; }
+        else if(rabbitFecesExists && wolfFecesExists) { caseId = 3; }
+        return {
+            posX: caseId * imageSize,
+            posY: 0
+        }
     },
 };
