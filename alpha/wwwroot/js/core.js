@@ -110,7 +110,6 @@ const Core = {
     },
     PrepareImageSources: () => {
         Images.PreloadData.unshift('environmentMap|'+Variables.ApiUrl + '/maps/' + Variables.Settings.mapId + '/live/' + Variables.Settings.mapImageUpdateId);
-        Images.PreloadData.unshift('mapSvg|'+window.cdnPrefix + '/img/map1.svg?3');
         Core.PrepareTreeImages();
         totalTasks = scripts.length + Images.PreloadData.length;
         Images.PreloadData.forEach((item) => {
@@ -626,5 +625,8 @@ const Core = {
             posX: caseId * imageSize,
             posY: 0
         }
+    },
+    UpdatePlantProceedAccelerated: () => {
+        Variables.Settings.plantProceedAccelerated
     },
 };

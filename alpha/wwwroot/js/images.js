@@ -9,6 +9,8 @@ const Images = {
         'animal_bones|/img/animal_bones_tiny.png',
         'wolf|/img/sprites/sprite_wolf_256_tiny.png',
         'dirt_droppings|/img/sprites/sprite_dirt_droppings_tiny.png',
+        'mapSvg|/img/map1.svg?3',
+        'icon_weed|/img/icon_weed.svg',
     ],
     Data: {},
 };
