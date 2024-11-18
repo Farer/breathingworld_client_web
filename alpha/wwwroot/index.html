@@ -5,64 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Breathing World - Alpha Test</title>
     <script>
-      window.cdnPrefix = '';
-      const origin = window.location.origin;
-      if (origin === "https://us-alpha.breathingworld.com") {
-          window.cdnPrefix = "https://us-alpha-bw.b-cdn.net";
-      } else if (origin === "https://eu-alpha.breathingworld.com") {
-          window.cdnPrefix = "https://eu-alpha-bw.b-cdn.net";
-      }
-      function loadCSS(href) {
-          const link = document.createElement("link");
-          link.rel = "stylesheet";
-          link.type = "text/css";
-          link.href = window.cdnPrefix + href;
-          document.head.appendChild(link);
-      }
-      function loadScript(src, callback) {
-          const script = document.createElement("script");
-          script.src = window.cdnPrefix + src;
-          script.onload = callback;
-          document.body.appendChild(script);
-      }
-      loadCSS("/css/common.css?2");
-      const scripts = [
-          "/js/lib/msgpack.min.js",
-          "/js/lib/signalr.min.js",
-          "/js/sprites.js?4",
-          "/js/variables.js?5",
-          "/js/data.js?5",
-          "/js/animal.js?7",
-          "/js/tree.js?8",
-          "/js/animationProcess.js?2",
-          "/js/domControll.js?2",
-          "/js/images.js?3",
-          "/js/methods.js?6",
-          "/js/draggable.js?3",
-          "/js/socket.js?14",
-          "/js/chat.js?6",
-          "/js/core.js?16",
-          "/js/index.js?3"
-      ];
-      function loadScriptsSequentially(index = 0) {
-          if (index < scripts.length) {
-              loadScript(scripts[index], () => loadScriptsSequentially(index + 1));
-          }
-      }
-      document.addEventListener("DOMContentLoaded", () => {
-          loadScriptsSequentially();
-      });
+        window.cdnPrefix = ''; let totalTasks = 0; let completedTasks = 0;
+        const origin = window.location.origin;
+        if (origin === "https://us-alpha.breathingworld.com") { window.cdnPrefix = "https://us-alpha-bw.b-cdn.net"; }
+        else if (origin === "https://eu-alpha.breathingworld.com") { window.cdnPrefix = "https://eu-alpha-bw.b-cdn.net"; }
+        function loadCSS(href) {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.type = "text/css";
+            link.href = window.cdnPrefix + href;
+            document.head.appendChild(link);
+        }
+        function loadScript(src, callback) {
+            const script = document.createElement("script");
+            script.src = window.cdnPrefix + src;
+            script.onload = () => { if (typeof callback === "function") { if(src.indexOf('images.js') !== -1) { totalTasks += Images.PreloadData.length; } callback(); } };
+            script.onerror = () => { console.error(`Failed to load script: ${script.src}`); };
+            document.body.appendChild(script);
+        }
+        loadCSS("/css/common.css?3");
+        const scripts = [
+            "/js/images.js?3",
+            "/js/lib/msgpack.min.js",
+            "/js/lib/signalr.min.js",
+            "/js/sprites.js?4",
+            "/js/variables.js?5",
+            "/js/data.js?5",
+            "/js/animal.js?7",
+            "/js/tree.js?8",
+            "/js/animationProcess.js?2",
+            "/js/domControll.js?2",
+            "/js/methods.js?6",
+            "/js/draggable.js?3",
+            "/js/socket.js?14",
+            "/js/chat.js?6",
+            "/js/core.js?17",
+            "/js/index.js?3"
+        ];
+        function updateProgress() { completedTasks++; const percent = Math.round((completedTasks / totalTasks) * 100); document.getElementById("progress-bar").style.width = percent + "%"; }
+        function loadScriptsSequentially(index = 0) { if (index < scripts.length) { loadScript(scripts[index], () => { updateProgress(); loadScriptsSequentially(index + 1); }); } }
+        document.addEventListener("DOMContentLoaded", () => {
+            totalTasks = scripts.length;
+            loadScriptsSequentially();
+        });
     </script>
 </head>
 <body>
+    <div id="loading-screen">
+        <div id="progress-bar-container">
+            <div id="progress-bar">aaaa</div>
+        </div>
+    </div>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-76TZPZS6VM"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-76TZPZS6VM', {
-        cookie_flags: 'SameSite=None;Secure'
-      });
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-76TZPZS6VM', {
+            cookie_flags: 'SameSite=None;Secure'
+        });
     </script>
 </body>
 </html>

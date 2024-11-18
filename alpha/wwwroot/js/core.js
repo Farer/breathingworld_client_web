@@ -110,7 +110,9 @@ const Core = {
     },
     PrepareImageSources: () => {
         Images.PreloadData.unshift('environmentMap|'+Variables.ApiUrl + '/maps/' + Variables.Settings.mapId + '/live/' + Variables.Settings.mapImageUpdateId);
+        Images.PreloadData.unshift('mapSvg|'+window.cdnPrefix + '/img/map1.svg?3');
         Core.PrepareTreeImages();
+        totalTasks = scripts.length + Images.PreloadData.length;
         Images.PreloadData.forEach((item) => {
             const splits = item.split('|');
             const keyString = splits[0];
@@ -118,6 +120,7 @@ const Core = {
             Images.Data[keyString] = new Image();
             Images.Data[keyString].src = url;
             Images.Data[keyString].onload = () => {
+                updateProgress();
                 Images.LoadedCount++;
                 Core.IfAllImagesLoaded();
             };
@@ -130,6 +133,7 @@ const Core = {
     },
     IfAllImagesLoaded: () => {
         if(Images.PreloadData.length === Images.LoadedCount) {
+            if (completedTasks === totalTasks) { setTimeout(() => { document.getElementById("loading-screen").style.display = "none"; }, 300); }
             Core.LoadMap();
         }
     },
@@ -207,7 +211,7 @@ const Core = {
         document.getElementById('mapWrap').appendChild(canvas);
     },
     LoadMap: () => {
-        Variables.MapInfo.mapImage.src = window.cdnPrefix + '/img/map1.svg?3';
+        Variables.MapInfo.mapImage.src = Images.Data['mapSvg'].src;
         Variables.MapInfo.mapImage.onload = function () {
             Variables.MapInfo.mapMaxWidth = Variables.MapInfo.mapImage.width;
             Variables.MapInfo.mapMaxHeight = Variables.MapInfo.mapImage.height;
