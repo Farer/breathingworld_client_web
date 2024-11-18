@@ -37,10 +37,10 @@
             "/js/domControll.js?2",
             "/js/methods.js?6",
             "/js/draggable.js?3",
-            "/js/socket.js?14",
+            "/js/socket.js?15",
             "/js/chat.js?6",
-            "/js/core.js?18",
-            "/js/index.js?3"
+            "/js/core.js?19",
+            "/js/index.js?4"
         ];
         function updateProgress() { completedTasks++; const percent = Math.round((completedTasks / totalTasks) * 100); document.getElementById("progress-bar").style.width = percent + "%"; }
         function loadScriptsSequentially(index = 0) { if (index < scripts.length) { loadScript(scripts[index], () => { updateProgress(); loadScriptsSequentially(index + 1); }); } }

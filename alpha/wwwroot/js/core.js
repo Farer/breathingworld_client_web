@@ -627,6 +627,25 @@ const Core = {
         }
     },
     UpdatePlantProceedAccelerated: () => {
-        Variables.Settings.plantProceedAccelerated
+        const accelerationIconId = 'plantAccelerationIcon';
+        let accelerationIcon = document.getElementById(accelerationIconId);
+        if(Variables.Settings.plantProceedAccelerated) {
+            if(accelerationIcon == null) {
+                accelerationIcon = document.createElement('img');
+                accelerationIcon.id = accelerationIconId;
+                accelerationIcon.src = Images.Data['icon_weed'].src;
+                accelerationIcon.style.position = 'absolute';
+                accelerationIcon.style.left = '20px';
+                accelerationIcon.style.bottom = '55px';
+                accelerationIcon.style.width = '32px';
+                accelerationIcon.style.height = '32px';
+                accelerationIcon.style.filter = 'drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5))';
+                accelerationIcon.style.zIndex = '9999';
+                document.body.appendChild(accelerationIcon);
+            }
+        }
+        else if(accelerationIcon != null) {
+            accelerationIcon.parentNode.removeChild(accelerationIcon);
+        }
     },
 };

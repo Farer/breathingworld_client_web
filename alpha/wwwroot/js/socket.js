@@ -34,6 +34,14 @@ const Socket = {
                 console.error(error);
             }
         });
+        Socket.WebsocketConnection.on("ReceivePlantProceedAccelerated", function (plantProceedAccelerated) {
+            try {
+                Variables.Settings.plantProceedAccelerated = plantProceedAccelerated;
+                Core.UpdatePlantProceedAccelerated();
+            } catch (error) {
+                console.error(error);
+            }
+        });
         Socket.WebsocketConnection.on("ReceiveOneWeedInfo", function (districtId, tileId, weedProceedCode, rabbitFeceExists, wolfFeceExists) {
             try {
                 if(Data.Weed.DistrictData[districtId] == undefined) {

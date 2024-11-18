@@ -12,6 +12,7 @@ window.onload = async function () {
     Core.AddEvents();
     Core.PrepareCanvas();
     Core.PrepareImageSources();
+    Core.UpdatePlantProceedAccelerated();
 }
 window.onresize = function () {
     Core.DrawMap(true, false);
