@@ -111,7 +111,7 @@ const Core = {
     PrepareImageSources: () => {
         Images.PreloadData.unshift('environmentMap|'+Variables.ApiUrl + '/maps/' + Variables.Settings.mapId + '/live/' + Variables.Settings.mapImageUpdateId);
         Core.PrepareTreeImages();
-        totalTasks = scripts.length + Images.PreloadData.length;
+        totalTasks = scripts.length + Images.PreloadData.length - 1;
         Images.PreloadData.forEach((item) => {
             const splits = item.split('|');
             const keyString = splits[0];
@@ -131,7 +131,7 @@ const Core = {
         }
     },
     IfAllImagesLoaded: () => {
-        if(Images.PreloadData.length === Images.LoadedCount) {
+        if(Images.PreloadData.length === Images.LoadedCount - 1) {
             if (completedTasks === totalTasks) { setTimeout(() => { document.getElementById("loading-screen").style.display = "none"; }, 300); }
             Core.LoadMap();
         }
