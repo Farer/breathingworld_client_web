@@ -117,6 +117,31 @@ const Socket = {
                 console.error(error);
             }
         });
+        Socket.WebsocketConnection.on("ReceiveOneWolfInfoByDistrict", function (wolfId, wolfBytes) {
+            try {
+                if(wolfBytes == null) {
+                    Animal.RemoveDom('wolf', wolfId);
+                }
+                else {
+                    const wolfInfo = Animal.DecodeWolfBytes(wolfBytes);
+                    Animal.DrawDom('wolf', wolfInfo);
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        });
+        Socket.WebsocketConnection.on("ReceiveWolfInfoByDistrictId", function (districtId, wolvesBytes) {
+            try {
+                if (wolvesBytes.length > 0) {
+                    for (let i in wolvesBytes) {
+                        const wolfInfo = Animal.DecodeWolfBytes(wolvesBytes[i]);
+                        Animal.DrawDom('wolf', wolfInfo);
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        });
         Socket.WebsocketConnection.on("ReceiveTreeInfoByDistrictId", function (districtId, treesBytes) {
             try {
                 const nowDate = Date.now();
@@ -242,6 +267,11 @@ const Socket = {
     },
     GetRabbitInfoByDistrictId: (districtId) => {
         Socket.WebsocketConnection.invoke("GetRabbitInfoByDistrictId", districtId).catch(function (err) {
+            return console.error(err.toString());
+        });
+    },
+    GetWolfInfoByDistrictId: (districtId) => {
+        Socket.WebsocketConnection.invoke("GetWolfInfoByDistrictId", districtId).catch(function (err) {
             return console.error(err.toString());
         });
     },

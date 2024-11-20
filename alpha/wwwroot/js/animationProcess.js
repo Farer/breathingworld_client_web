@@ -30,6 +30,7 @@ const AnimationProcess = {
         const splits = domId.split('-');
         if(splits[0] == 'weedTile') { targetKind = 'weed'; }
         else if(splits[0] == 'rabbit') { targetKind = 'rabbit'; }
+        else if(splits[0] == 'wolf') { targetKind = 'wolf'; }
         return targetKind;
     },
     Animate: () => {
@@ -44,6 +45,12 @@ const AnimationProcess = {
                 const divideAmount = parseInt(Animal.Data.rabbit[domId].currentActionFrameDelay / AnimationProcess.FrameDiff, 10);
                 if(AnimationProcess.AnimateId % divideAmount == 0) {
                     Animal.ContinueAnimation(targetKind, Animal.Data.rabbit[domId].id, Animal.Data.rabbit[domId].actionIdForAnimation);
+                }
+            }
+            else if(targetKind=='wolf' && Animal.Data.wolf[domId] != undefined) {
+                const divideAmount = parseInt(Animal.Data.wolf[domId].currentActionFrameDelay / AnimationProcess.FrameDiff, 10);
+                if(AnimationProcess.AnimateId % divideAmount == 0) {
+                    Animal.ContinueAnimation(targetKind, Animal.Data.wolf[domId].id, Animal.Data.wolf[domId].actionIdForAnimation);
                 }
             }
         });

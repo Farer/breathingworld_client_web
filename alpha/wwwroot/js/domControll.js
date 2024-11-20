@@ -24,7 +24,9 @@ const DomControll = {
     },
     DefineTargetKindByDomId: (domId) => {
         const splits = domId.split('-');
-        return splits[0] === 'rabbit' ? 'rabbit' : splits[0] === 'tree' ? 'tree' : '';
+        if(splits[0] === 'rabbit') { return 'rabbit'; }
+        else if(splits[0] === 'wolf') { return 'wolf'; }
+        else if(splits[0] === 'tree') { return 'tree'; }
     },
     Control: () => {
         if (DomControll.TargetDomIds.length === 0) {
@@ -40,14 +42,17 @@ const DomControll = {
 
         DomControll.TargetDomIds.forEach((domId) => {
             const targetKind = DomControll.DefineTargetKindByDomId(domId);
-            const rabbitDom = document.getElementById(domId);
+            const targetDom = document.getElementById(domId);
             let moved = false;
+            let targetData;
+            if(targetKind === 'rabbit') { targetData = Animal.Data.rabbit; }
+            else if(targetKind === 'wolf') { targetData = Animal.Data.wolf; }
 
-            if (targetKind === 'rabbit' && rabbitDom && Animal.Data.rabbit[domId] !== undefined) {
-                const rabbitLeft = Animal.Data.rabbit[domId].left;
-                const rabbitTop = Animal.Data.rabbit[domId].top;
-                const rabbitRight = rabbitLeft + Animal.Data.rabbit[domId].width;
-                const rabbitBottom = rabbitTop + Animal.Data.rabbit[domId].height;
+            if (targetDom && targetData[domId] !== undefined) {
+                const targetDomLeft = targetData[domId].left;
+                const targetDomTop = targetData[domId].top;
+                const targetDomRight = targetDomLeft + targetData[domId].width;
+                const targetDomBottom = targetDomTop + targetData[domId].height;
 
                 const treeWrap = document.getElementById('treeWrapDom');
                 const treeDoms = treeWrap.getElementsByTagName('div');
@@ -59,17 +64,17 @@ const DomControll = {
                     const treeRight = treeLeft + Tree.Data[treeDom.id].width;
                     const treeBottom = treeTop + Tree.Data[treeDom.id].height;
 
-                    if (rabbitBottom > treeBottom && rabbitTop < treeBottom && rabbitRight > treeLeft && rabbitLeft < treeRight) {
-                        rabbitDom.style.zIndex = treeDom.style.zIndex;
-                        treeDom.parentNode.appendChild(rabbitDom);
+                    if (targetDomBottom > treeBottom && targetDomTop < treeBottom && targetDomRight > treeLeft && targetDomLeft < treeRight) {
+                        targetDom.style.zIndex = treeDom.style.zIndex;
+                        treeDom.parentNode.appendChild(targetDom);
                         moved = true;
                     }
                 });
             }
 
-            if (!moved && rabbitDom && rabbitDom.style && rabbitDom.style.zIndex !== '') {
-                rabbitDom.style.zIndex = '';
-                document.getElementById('animalWrapDom').appendChild(rabbitDom);
+            if (!moved && targetDom && targetDom.style && targetDom.style.zIndex !== '') {
+                targetDom.style.zIndex = '';
+                document.getElementById('animalWrapDom').appendChild(targetDom);
             }
         });
         DomControll.AnimateId = requestAnimationFrame(DomControll.Control);

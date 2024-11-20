@@ -2,6 +2,7 @@
 const Animal = {
     Data: {
         rabbit: [],
+        wolf: [],
     },
     Timeout: [],
     DecodeRabbitBytes: (rabbitsBytes) => {
@@ -9,6 +10,12 @@ const Animal = {
         const decodedData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
         const rabbitInfoArray = msgpack.decode(decodedData);
         return Methods.MapRabbitArrayToObject(rabbitInfoArray);
+    },
+    DecodeWolfBytes: (wolvesBytes) => {
+        const base64Data = wolvesBytes;
+        const decodedData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        const wolfInfoArray = msgpack.decode(decodedData);
+        return Methods.MapWolfArrayToObject(wolfInfoArray);
     },
     RemoveDom: (speciesName, animalId) => {
         const keyId = speciesName + '-' + animalId;
@@ -47,78 +54,165 @@ const Animal = {
         animalDom.style.left = animalDomInfo.left + 'px';
         animalDom.style.top = animalDomInfo.top + 'px';
 
-        Animal.Data.rabbit[keyId].width = animalDomInfo.size;
-        Animal.Data.rabbit[keyId].height = animalDomInfo.size;
-        Animal.Data.rabbit[keyId].left = animalDomInfo.left;
-        Animal.Data.rabbit[keyId].top = animalDomInfo.top;
+        // Rabbit
+        if(speciesName == 'rabbit') {
+            Animal.Data.rabbit[keyId].width = animalDomInfo.size;
+            Animal.Data.rabbit[keyId].height = animalDomInfo.size;
+            Animal.Data.rabbit[keyId].left = animalDomInfo.left;
+            Animal.Data.rabbit[keyId].top = animalDomInfo.top;
 
-        let ifShowMoving = false;
-        if(data.movedTileIds.length > 0) { ifShowMoving = true; }
+            let ifShowMoving = false;
+            if(data.movedTileIds.length > 0) { ifShowMoving = true; }
 
-        const backgroundImageWidth = Sprites.Rabbit.width / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
-        const backgroundImageHeight = Sprites.Rabbit.height / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
-        
-        if(Variables.Settings.rabbitActionStatus[data.actionId]=='dead' && ifShowMoving == false) {
-            AnimationProcess.RemoveTargetDomId(keyId);
-            const boneSize = animalDomInfo.size / 2;
-            animalDom.style.background = '';
-            animalDom.style.textAlign = 'center';
-            animalDom.innerHTML = '<img style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);" src="'+Images.Data.animal_bones.src+'" width="'+boneSize+'px" height="'+boneSize+'px" />';
-            if(animalWrapDom.firstChild != null) { animalWrapDom.insertBefore(animalDom, animalWrapDom.firstChild); }
-            clearTimeout(Animal.Timeout[keyId]);
-            clearTimeout(Data.AnimalMoving.timeouts[keyId]);
-        }
-        else {
-            let backgroundPosX = 0;
-            if(data.actionId > 5) {
-                backgroundPosX = (data.actionId - 6) * Sprites.Rabbit.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
-            }
-            const backgroundPosY = 0;
-            animalDom.style.overflow = 'hidden';
-            animalDom.style.background = 'transparent url("'+Images.Data.rabbit_etc.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
-        }
+            const backgroundImageWidth = Sprites.Rabbit.width / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            const backgroundImageHeight = Sprites.Rabbit.height / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
             
-        if(ifShowMoving) {
-            const backgroundPosX = 0;
-            const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, 1);
-            animalDom.style.background = 'transparent url("'+Images.Data.rabbit.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
-
-            Animal.Data.rabbit[keyId].currentActionFrameCount = Sprites.Rabbit.frameCounts[1];
-            const frameDelay = Animal.CalculateWalkingAnimationFrameDelay(speciesName, data.movedTileIds.length);
-            Animal.Data.rabbit[keyId].currentActionFrameDelay = frameDelay;
-            Animal.StartAnimation(speciesName, data.id, 1);
-            data.nextActionDateTime = new Date((data.updateTimeUnix + Variables.Settings.averageRabbitProceedIntervalSeconds)*1000);
-            let timeDiff = data.nextActionDateTime.getTime() - new Date().getTime();
-            if(timeDiff < 0) { timeDiff = 0; }
-            Animal.StartAnimalMoving(speciesName, data, timeDiff);
-        }
-        else if(
-            Variables.Settings.rabbitActionStatus[data.actionId]=='mating' ||
-            Variables.Settings.rabbitActionStatus[data.actionId]=='pregnant' ||
-            Variables.Settings.rabbitActionStatus[data.actionId]=='breeding'
-        ) {
-            if(Variables.Settings.rabbitActionStatus[data.actionId]=='pregnant') {
-                animalDom.style.filter = 'brightness(110%)';
+            if(Variables.Settings.rabbitActionStatus[data.actionId]=='dead' && ifShowMoving == false) {
+                AnimationProcess.RemoveTargetDomId(keyId);
+                const boneSize = animalDomInfo.size / 2;
+                animalDom.style.background = '';
+                animalDom.style.textAlign = 'center';
+                animalDom.innerHTML = '<img style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);" src="'+Images.Data.animal_bones.src+'" width="'+boneSize+'px" height="'+boneSize+'px" />';
+                if(animalWrapDom.firstChild != null) { animalWrapDom.insertBefore(animalDom, animalWrapDom.firstChild); }
+                clearTimeout(Animal.Timeout[keyId]);
+                clearTimeout(Data.AnimalMoving.timeouts[keyId]);
             }
             else {
-                animalDom.style.filter = 'brightness(100%)';
+                let backgroundPosX = 0;
+                if(data.actionId > 5) {
+                    backgroundPosX = (data.actionId - 6) * Sprites.Rabbit.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+                }
+                const backgroundPosY = 0;
+                animalDom.style.overflow = 'hidden';
+                animalDom.style.background = 'transparent url("'+Images.Data.rabbit_etc.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
             }
-            Animal.DrawEtcBackground(keyId, data.actionId);
+                
+            if(ifShowMoving) {
+                const backgroundPosX = 0;
+                const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, 1);
+                animalDom.style.background = 'transparent url("'+Images.Data.rabbit.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
+
+                Animal.Data.rabbit[keyId].currentActionFrameCount = Sprites.Rabbit.frameCounts[1];
+                const frameDelay = Animal.CalculateWalkingAnimationFrameDelay(speciesName, data.movedTileIds.length);
+                Animal.Data.rabbit[keyId].currentActionFrameDelay = frameDelay;
+                Animal.StartAnimation(speciesName, data.id, 1);
+                data.nextActionDateTime = new Date((data.updateTimeUnix + Variables.Settings.averageRabbitProceedIntervalSeconds)*1000);
+                let timeDiff = data.nextActionDateTime.getTime() - new Date().getTime();
+                if(timeDiff < 0) { timeDiff = 0; }
+                Animal.StartAnimalMoving(speciesName, data, timeDiff);
+            }
+            else if(
+                Variables.Settings.rabbitActionStatus[data.actionId]=='mating' ||
+                Variables.Settings.rabbitActionStatus[data.actionId]=='pregnant' ||
+                Variables.Settings.rabbitActionStatus[data.actionId]=='breeding'
+            ) {
+                if(Variables.Settings.rabbitActionStatus[data.actionId]=='pregnant') {
+                    animalDom.style.filter = 'brightness(110%)';
+                }
+                else {
+                    animalDom.style.filter = 'brightness(100%)';
+                }
+                Animal.DrawEtcBackground(keyId, data.actionId);
+            }
+            else if(Variables.Settings.rabbitActionStatus[data.actionId]!='dead') {
+                Animal.Data.rabbit[keyId].currentActionFrameCount = Sprites.Rabbit.frameCounts[data.actionId];
+                Animal.Data.rabbit[keyId].currentActionFrameDelay = Sprites.Rabbit.frameDelay[data.actionId];
+                const backgroundPosX = 0;
+                const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, data.actionId);
+                animalDom.style.background = 'transparent url("'+Images.Data.rabbit.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
+                Animal.StartAnimation(speciesName, data.id, data.actionId);
+            }
         }
-        else if(Variables.Settings.rabbitActionStatus[data.actionId]!='dead') {
-            Animal.Data.rabbit[keyId].currentActionFrameCount = Sprites.Rabbit.frameCounts[data.actionId];
-            Animal.Data.rabbit[keyId].currentActionFrameDelay = Sprites.Rabbit.frameDelay[data.actionId];
-            const backgroundPosX = 0;
-            const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, data.actionId);
-            animalDom.style.background = 'transparent url("'+Images.Data.rabbit.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
-            Animal.StartAnimation(speciesName, data.id, data.actionId);
+        // Wolf
+        else if(speciesName == 'wolf') {
+            Animal.Data.wolf[keyId].width = animalDomInfo.size;
+            Animal.Data.wolf[keyId].height = animalDomInfo.size;
+            Animal.Data.wolf[keyId].left = animalDomInfo.left;
+            Animal.Data.wolf[keyId].top = animalDomInfo.top;
+
+            let ifShowMoving = false;
+            if(data.movedTileIds.length > 0) { ifShowMoving = true; }
+
+            const backgroundImageWidth = Sprites.Wolf.width / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            const backgroundImageHeight = Sprites.Wolf.height / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            
+            if(Variables.Settings.wolfActionStatus[data.actionId]=='dead' && ifShowMoving == false) {
+                AnimationProcess.RemoveTargetDomId(keyId);
+                const boneSize = animalDomInfo.size / 2;
+                animalDom.style.background = '';
+                animalDom.style.textAlign = 'center';
+                animalDom.innerHTML = '<img style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);" src="'+Images.Data.animal_bones.src+'" width="'+boneSize+'px" height="'+boneSize+'px" />';
+                if(animalWrapDom.firstChild != null) { animalWrapDom.insertBefore(animalDom, animalWrapDom.firstChild); }
+                clearTimeout(Animal.Timeout[keyId]);
+                clearTimeout(Data.AnimalMoving.timeouts[keyId]);
+            }
+            else {
+                let backgroundPosX = 0;
+                if(data.actionId > 5) {
+                    backgroundPosX = (data.actionId - 6) * Sprites.Wolf.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+                }
+                const backgroundPosY = 0;
+                animalDom.style.overflow = 'hidden';
+                animalDom.style.background = 'transparent url("'+Images.Data.wolf_etc.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
+            }
+                
+            if(ifShowMoving) {
+                const backgroundPosX = 0;
+                const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, 1);
+                animalDom.style.background = 'transparent url("'+Images.Data.wolf.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
+
+                Animal.Data.wolf[keyId].currentActionFrameCount = Sprites.Wolf.frameCounts[1];
+                const frameDelay = Animal.CalculateWalkingAnimationFrameDelay(speciesName, data.movedTileIds.length);
+                Animal.Data.wolf[keyId].currentActionFrameDelay = frameDelay;
+                Animal.StartAnimation(speciesName, data.id, 1);
+                data.nextActionDateTime = new Date((data.updateTimeUnix + Variables.Settings.averageWolfProceedIntervalSeconds)*1000);
+                let timeDiff = data.nextActionDateTime.getTime() - new Date().getTime();
+                if(timeDiff < 0) { timeDiff = 0; }
+                Animal.StartAnimalMoving(speciesName, data, timeDiff);
+            }
+            else if(
+                Variables.Settings.wolfActionStatus[data.actionId]=='mating' ||
+                Variables.Settings.wolfActionStatus[data.actionId]=='pregnant' ||
+                Variables.Settings.wolfActionStatus[data.actionId]=='breeding'
+            ) {
+                if(Variables.Settings.wolfActionStatus[data.actionId]=='pregnant') {
+                    animalDom.style.filter = 'brightness(110%)';
+                }
+                else {
+                    animalDom.style.filter = 'brightness(100%)';
+                }
+                Animal.DrawEtcBackground(keyId, data.actionId);
+            }
+            else if(Variables.Settings.wolfActionStatus[data.actionId]!='dead') {
+                Animal.Data.wolf[keyId].currentActionFrameCount = Sprites.Wolf.frameCounts[data.actionId];
+                Animal.Data.wolf[keyId].currentActionFrameDelay = Sprites.Wolf.frameDelay[data.actionId];
+                const backgroundPosX = 0;
+                const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, data.actionId);
+                animalDom.style.background = 'transparent url("'+Images.Data.wolf.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
+                Animal.StartAnimation(speciesName, data.id, data.actionId);
+            }
         }
-        animalDom.style.transform = Animal.MakeAnimalDomTrasformString(speciesName, Animal.Data.rabbit[keyId]);
+
+        let finalData;
+        if(speciesName == 'rabbit') { finalData = Animal.Data.rabbit[keyId]; }
+        else if(speciesName == 'wolf') { finalData = Animal.Data.wolf[keyId]; }
+
+        animalDom.style.transform = Animal.MakeAnimalDomTrasformString(speciesName, finalData);
     },
     CalculateWalkingAnimationFrameDelay: (speciesName, movedTilesCount) => {
-        const defaultDelay = Sprites.Rabbit.frameDelay[1];
-        const halfDelay = defaultDelay / 2;
+        let defaultDelay;
         if (speciesName === 'rabbit') {
+            defaultDelay = Sprites.Rabbit.frameDelay[1];
+            const halfDelay = defaultDelay / 2;
+            const divideFactor = Math.max(movedTilesCount, 1) / 16;
+            let newDelay = defaultDelay / divideFactor;
+            if (newDelay > defaultDelay) { newDelay = defaultDelay; }
+            else if (newDelay < halfDelay ) { newDelay = halfDelay; }
+            return newDelay;
+        }
+        else if (speciesName === 'wolf') {
+            defaultDelay = Sprites.Wolf.frameDelay[1];
+            const halfDelay = defaultDelay / 2;
             const divideFactor = Math.max(movedTilesCount, 1) / 16;
             let newDelay = defaultDelay / divideFactor;
             if (newDelay > defaultDelay) { newDelay = defaultDelay; }
@@ -145,13 +239,24 @@ const Animal = {
         return transformString;
     },
     DrawEtcBackground: (keyId, actionId) => {
-        const animalDom = document.getElementById(keyId);
-        const backgroundImageWidth = Sprites.Rabbit.etcImageWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
-        const backgroundImageHeight = Sprites.Rabbit.etcImageHeight / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
-        const backgroundPosX = (actionId - 6) * Sprites.Rabbit.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
-        const backgroundPosY = 0;
-        animalDom.style.overflow = 'hidden';
-        animalDom.style.background = 'transparent url("'+Images.Data.rabbit_etc.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
+        if(keyId.indexOf('rabbit') !== -1) {
+            const animalDom = document.getElementById(keyId);
+            const backgroundImageWidth = Sprites.Rabbit.etcImageWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            const backgroundImageHeight = Sprites.Rabbit.etcImageHeight / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            const backgroundPosX = (actionId - 6) * Sprites.Rabbit.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            const backgroundPosY = 0;
+            animalDom.style.overflow = 'hidden';
+            animalDom.style.background = 'transparent url("'+Images.Data.rabbit_etc.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
+        }
+        else if(keyId.indexOf('wolf') !== -1) {
+            const animalDom = document.getElementById(keyId);
+            const backgroundImageWidth = Sprites.Wolf.etcImageWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            const backgroundImageHeight = Sprites.Wolf.etcImageHeight / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            const backgroundPosX = (actionId - 6) * Sprites.Wolf.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            const backgroundPosY = 0;
+            animalDom.style.overflow = 'hidden';
+            animalDom.style.background = 'transparent url("'+Images.Data.wolf_etc.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
+        }
     },
     DrawAnimalBones: (speciesName, data) => {
         if(data == undefined) { return; }
@@ -214,6 +319,26 @@ const Animal = {
                 currentActionFrameDelay: Sprites.Rabbit.frameDelay[actionIdForAnimation],
             };
         }
+        else if(speciesName == 'wolf') {
+            const currentActionFrame = 0;
+            const keyId = speciesName + '-' + data.id;
+            let actionIdForAnimation = data.actionId;
+            if(data.movedTileIds.length > 0 && ( data.actionId == 2 || data.actionId == 9)) {
+                actionIdForAnimation = 1;
+            }
+            Animal.Data.wolf[keyId] = {
+                id: data.id,
+                growth: data.growth,
+                actionId: data.actionId,
+                position: data.currentPosition,
+                reservedTiles: data.reservedTiles,
+                movedTileIds: data.movedTileIds,
+                currentActionFrame: currentActionFrame,
+                actionIdForAnimation: actionIdForAnimation,
+                currentActionFrameCount: Sprites.Wolf.frameCounts[actionIdForAnimation],
+                currentActionFrameDelay: Sprites.Wolf.frameDelay[actionIdForAnimation],
+            };
+        }
     },
     RemoveWeedAfterEating: (tileId, districtId) => {
         let rabbitFecesExists = false;
@@ -238,12 +363,16 @@ const Animal = {
     StartAnimation: (speciesName, id, actionId) => {
         const keyId = speciesName + '-' + id;
         const animalDom = document.getElementById(keyId);
+        let animalData;
+        if(speciesName == 'rabbit') { animalData = Animal.Data.rabbit[keyId]; }
+        else if(speciesName == 'wolf') { animalData = Animal.Data.wolf[keyId]; }
+
         if(animalDom == null) {
             console.log('animalDom == null, speciesName: ' + speciesName + ', id: ' + id);
             return;
         }
         if(Animal.IfActionStatusIsValid(speciesName, actionId)) {
-            if(Animal.Data.rabbit[keyId] == undefined ) {
+            if(animalData == undefined ) {
                 console.log('Animal.Data[keyId] == undefined, speciesName: ' + speciesName + ', id: ' + id);
                 return;
             }
@@ -255,17 +384,28 @@ const Animal = {
         const keyId = speciesName + '-' + id;
         const animalDom = document.getElementById(keyId);
         if(animalDom == null) { return; }
-        if(Animal.Data.rabbit[keyId] == undefined ) { return; }
 
-        let data = Animal.Data.rabbit[keyId];
+        if(speciesName == 'rabbit' && Animal.Data.rabbit[keyId] == undefined ) { return; }
+        else if(speciesName == 'wolf' && Animal.Data.wolf[keyId] == undefined ) { return; }
+
+        let data;
+        if(speciesName == 'rabbit') { data = Animal.Data.rabbit[keyId]; }
+        else if(speciesName == 'wolf') { data = Animal.Data.wolf[keyId]; }
+
         data.currentActionFrame++;
         if(data.currentActionFrame >= data.currentActionFrameCount) { data.currentActionFrame = 0; }
         const previousPosX = animalDom.style.backgroundPosition.split(' ');
         const posY = parseInt(previousPosX[1], 10);
-        const oneFrameSize = Sprites.Rabbit.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
-        animalDom.style.backgroundPosition = '-' + data.currentActionFrame * oneFrameSize + 'px ' + posY + 'px';
-        Animal.Data.rabbit[keyId] = data;
-
+        if(speciesName == 'rabbit') {
+            const oneFrameSize = Sprites.Rabbit.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            animalDom.style.backgroundPosition = '-' + data.currentActionFrame * oneFrameSize + 'px ' + posY + 'px';
+            Animal.Data.rabbit[keyId] = data;
+        }
+        else if(speciesName == 'wolf') {
+            const oneFrameSize = Sprites.Wolf.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            animalDom.style.backgroundPosition = '-' + data.currentActionFrame * oneFrameSize + 'px ' + posY + 'px';
+            Animal.Data.wolf[keyId] = data;
+        }
     },
     DefineMovingDirection: (tile1, tile2) => {
         const [x1, y1] = tile1.split(':').map(Number);
@@ -303,65 +443,155 @@ const Animal = {
                 Animal.ContinueAnimalMoving(speciesName, keyId);
             }
         }
+        else if(speciesName == 'wolf') {
+            const keyId = speciesName + '-' + data.id;
+            
+            clearTimeout(Data.AnimalMoving.timeouts[keyId]);
+            Data.AnimalMoving.movingTileIds[keyId] = [];
+            if(data.movedTileIds.length > 0) {
+                DomControll.AddTargetDomId(keyId);
+                DomControll.StartAnimation();
+                const startTile = data.movedTileIds[0];
+                const endTile = data.movedTileIds[data.movedTileIds.length-1];
+                const wolfDom = document.getElementById(keyId);
+                if(wolfDom != null) {
+                    const movingDirection = Animal.DefineMovingDirection(startTile, endTile);
+                    wolfDom.setAttribute('movingDirection', movingDirection);
+                }
+                const movingSpeed = Variables.Settings.averageWolfProceedIntervalSeconds*1000 / data.movedTileIds.length / 3;
+                const targetTileIdsCount = data.movedTileIds.length;
+                let willMoveTileIds = [];
+                for(let i=0; i<targetTileIdsCount; i++) {
+                    const tileId = data.movedTileIds.pop();
+                    if(tileId == undefined) { continue; }
+                    willMoveTileIds.unshift(tileId);
+                }
+                Data.AnimalMoving.timeoutIntervals[keyId] = movingSpeed;
+                Data.AnimalMoving.movingTileIds[keyId] = willMoveTileIds;
+                Data.AnimalMoving.reservedTiles[keyId] = data.reservedTiles;
+                Animal.ContinueAnimalMoving(speciesName, keyId);
+            }
+        }
     },
     ContinueAnimalMoving: (speciesName, keyId) => {
-        if(Data.AnimalMoving.movingTileIds[keyId] == undefined || Data.AnimalMoving.movingTileIds[keyId].length == 0) {
-            DomControll.RemoveTargetDomId(keyId);
-            const animalDom = document.getElementById(keyId);
-            if(animalDom == null) { return; }
-            animalDom.style.backgroundPositionX = '0px';
+        if(speciesName == 'rabbit') {
+            if(Data.AnimalMoving.movingTileIds[keyId] == undefined || Data.AnimalMoving.movingTileIds[keyId].length == 0) {
+                DomControll.RemoveTargetDomId(keyId);
+                const animalDom = document.getElementById(keyId);
+                if(animalDom == null) { return; }
+                animalDom.style.backgroundPositionX = '0px';
 
-            let originalActionId = Animal.Data.rabbit[keyId].actionId;
-            if(Variables.Settings.rabbitActionStatus[originalActionId]=='dead') {
-                AnimationProcess.RemoveTargetDomId(keyId);
-                Animal.DrawAnimalBones(speciesName, Animal.Data.rabbit[keyId]);
-            }
-            else if(
-                Variables.Settings.rabbitActionStatus[originalActionId]=='mating' ||
-                Variables.Settings.rabbitActionStatus[originalActionId]=='pregnant' ||
-                Variables.Settings.rabbitActionStatus[originalActionId]=='breeding'
-            ) {
-                AnimationProcess.RemoveTargetDomId(keyId);
-                Animal.DrawEtcBackground(keyId, originalActionId);
-            }
-            else {
-                if(Variables.Settings.rabbitActionStatus[originalActionId]!='eating' && Variables.Settings.rabbitActionStatus[originalActionId]!='sleep') {
-                    originalActionId = 0;
+                let originalActionId = Animal.Data.rabbit[keyId].actionId;
+                if(Variables.Settings.rabbitActionStatus[originalActionId]=='dead') {
+                    AnimationProcess.RemoveTargetDomId(keyId);
+                    Animal.DrawAnimalBones(speciesName, Animal.Data.rabbit[keyId]);
                 }
-                Animal.Data.rabbit[keyId].currentActionFrameCount = Sprites.Rabbit.frameCounts[originalActionId];
-                Animal.Data.rabbit[keyId].currentActionFrameDelay = Sprites.Rabbit.frameDelay[originalActionId];
-                const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, originalActionId);
-                animalDom.style.backgroundPositionY = '-' + backgroundPosY + 'px';
+                else if(
+                    Variables.Settings.rabbitActionStatus[originalActionId]=='mating' ||
+                    Variables.Settings.rabbitActionStatus[originalActionId]=='pregnant' ||
+                    Variables.Settings.rabbitActionStatus[originalActionId]=='breeding'
+                ) {
+                    AnimationProcess.RemoveTargetDomId(keyId);
+                    Animal.DrawEtcBackground(keyId, originalActionId);
+                }
+                else {
+                    if(Variables.Settings.rabbitActionStatus[originalActionId]!='eating' && Variables.Settings.rabbitActionStatus[originalActionId]!='sleep') {
+                        originalActionId = 0;
+                    }
+                    Animal.Data.rabbit[keyId].currentActionFrameCount = Sprites.Rabbit.frameCounts[originalActionId];
+                    Animal.Data.rabbit[keyId].currentActionFrameDelay = Sprites.Rabbit.frameDelay[originalActionId];
+                    const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, originalActionId);
+                    animalDom.style.backgroundPositionY = '-' + backgroundPosY + 'px';
+                }
+                return;
             }
-            return;
-        }
-        const targetPosition = Data.AnimalMoving.movingTileIds[keyId].shift();
-        const mapPosition = Methods.GetAnimalDomInfo(targetPosition, keyId);
-        if(mapPosition == null) {
-            console.log('mapPosition == null, keyId: ' + keyId + ', targetPosition: ' + targetPosition);
-            return;
-        }
-        const animalDom = document.getElementById(keyId);
-        if(animalDom == null) {
-            clearTimeout(Data.AnimalMoving.timeouts[keyId]);
-            Data.AnimalMoving.timeoutIntervals[keyId] = null;
-            Data.AnimalMoving.movingTileIds[keyId] = null;
-            return;
-        }
+            const targetPosition = Data.AnimalMoving.movingTileIds[keyId].shift();
+            const mapPosition = Methods.GetAnimalDomInfo(targetPosition, keyId);
+            if(mapPosition == null) {
+                console.log('mapPosition == null, keyId: ' + keyId + ', targetPosition: ' + targetPosition);
+                return;
+            }
+            const animalDom = document.getElementById(keyId);
+            if(animalDom == null) {
+                clearTimeout(Data.AnimalMoving.timeouts[keyId]);
+                Data.AnimalMoving.timeoutIntervals[keyId] = null;
+                Data.AnimalMoving.movingTileIds[keyId] = null;
+                return;
+            }
 
-        animalDom.style.transform = Animal.MakeAnimalDomTrasformString(speciesName, Animal.Data.rabbit[keyId]);
+            animalDom.style.transform = Animal.MakeAnimalDomTrasformString(speciesName, Animal.Data.rabbit[keyId]);
 
-        animalDom.style.left = mapPosition.left + 'px';
-        animalDom.style.top = mapPosition.top + 'px';
+            animalDom.style.left = mapPosition.left + 'px';
+            animalDom.style.top = mapPosition.top + 'px';
 
-        Data.AnimalMoving.timeouts[keyId] = setTimeout(() => {
-            Animal.ContinueAnimalMoving(speciesName, keyId);
-        }, Data.AnimalMoving.timeoutIntervals[keyId]);
+            Data.AnimalMoving.timeouts[keyId] = setTimeout(() => {
+                Animal.ContinueAnimalMoving(speciesName, keyId);
+            }, Data.AnimalMoving.timeoutIntervals[keyId]);
+        }
+        else if(speciesName == 'wolf') {
+            if(Data.AnimalMoving.movingTileIds[keyId] == undefined || Data.AnimalMoving.movingTileIds[keyId].length == 0) {
+                DomControll.RemoveTargetDomId(keyId);
+                const animalDom = document.getElementById(keyId);
+                if(animalDom == null) { return; }
+                animalDom.style.backgroundPositionX = '0px';
+            
+                let originalActionId = Animal.Data.wolf[keyId].actionId;
+                if(Variables.Settings.wolfActionStatus[originalActionId]=='dead') {
+                    AnimationProcess.RemoveTargetDomId(keyId);
+                    Animal.DrawAnimalBones(speciesName, Animal.Data.wolf[keyId]);
+                }
+                else if(
+                    Variables.Settings.wolfActionStatus[originalActionId]=='mating' ||
+                    Variables.Settings.wolfActionStatus[originalActionId]=='pregnant' ||
+                    Variables.Settings.wolfActionStatus[originalActionId]=='breeding'
+                ) {
+                    AnimationProcess.RemoveTargetDomId(keyId);
+                    Animal.DrawEtcBackground(keyId, originalActionId);
+                }
+                else {
+                    if(Variables.Settings.wolfActionStatus[originalActionId]!='eating' && Variables.Settings.wolfActionStatus[originalActionId]!='sleep') {
+                        originalActionId = 0;
+                    }
+                    Animal.Data.wolf[keyId].currentActionFrameCount = Sprites.Wolf.frameCounts[originalActionId];
+                    Animal.Data.wolf[keyId].currentActionFrameDelay = Sprites.Wolf.frameDelay[originalActionId];
+                    const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, originalActionId);
+                    animalDom.style.backgroundPositionY = '-' + backgroundPosY + 'px';
+                }
+                return;
+            }
+            const targetPosition = Data.AnimalMoving.movingTileIds[keyId].shift();
+            const mapPosition = Methods.GetAnimalDomInfo(targetPosition, keyId);
+            if(mapPosition == null) {
+                console.log('mapPosition == null, keyId: ' + keyId + ', targetPosition: ' + targetPosition);
+                return;
+            }
+            const animalDom = document.getElementById(keyId);
+            if(animalDom == null) {
+                clearTimeout(Data.AnimalMoving.timeouts[keyId]);
+                Data.AnimalMoving.timeoutIntervals[keyId] = null;
+                Data.AnimalMoving.movingTileIds[keyId] = null;
+                return;
+            }
+            
+            animalDom.style.transform = Animal.MakeAnimalDomTrasformString(speciesName, Animal.Data.wolf[keyId]);
+            
+            animalDom.style.left = mapPosition.left + 'px';
+            animalDom.style.top = mapPosition.top + 'px';
+            
+            Data.AnimalMoving.timeouts[keyId] = setTimeout(() => {
+                Animal.ContinueAnimalMoving(speciesName, keyId);
+            }, Data.AnimalMoving.timeoutIntervals[keyId]);
+        }
     },
     IfActionStatusIsValid: (speciesName, actionId) => {
         let isValid = true;
         if(speciesName == 'rabbit') {
             if(Sprites.Rabbit.actions[actionId] == undefined) {
+                isValid = false;
+            }
+        }
+        else if(speciesName == 'wolf') {
+            if(Sprites.Wolf.actions[actionId] == undefined) {
                 isValid = false;
             }
         }
@@ -372,6 +602,11 @@ const Animal = {
         if(speciesName == 'rabbit') {
             if(actionId <= 5) {
                 yPos = Sprites.Rabbit.frameHeight / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current * actionId;
+            }
+        }
+        else if(speciesName == 'wolf') {
+            if(actionId <= 5) {
+                yPos = Sprites.Wolf.frameHeight / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current * actionId;
             }
         }
         return yPos;

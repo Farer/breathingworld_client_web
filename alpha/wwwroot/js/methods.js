@@ -53,6 +53,7 @@ const Methods = {
         Socket.GetWeedInfoByDistrictId(districtId);
         Socket.GetTreeInfoByDistrictId(districtId);
         Socket.GetRabbitInfoByDistrictId(districtId);
+        Socket.GetWolfInfoByDistrictId(districtId);
     },
     CleanPrepareWeedWrapDom: () => {
         if(Data.Weed.UserPaused == true && Variables.UserDragged == true) { return; }
@@ -150,16 +151,30 @@ const Methods = {
         let left = Variables.MapCanvasInfo.widthOfCanvas * xPercent / 100 * Variables.MapScaleInfo.current;
         let top = Variables.MapCanvasInfo.heightOfCanvas * yPercent / 100 * Variables.MapScaleInfo.current;
 
-        const size = Sprites.Rabbit.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
-        left = left - ( size / 2 );
+        
         
         const topModifier = Methods.CalculateAnimalDomTopModifier(keyId);
         top = top - topModifier;
-        if(Animal.Data.rabbit[keyId].growth < Variables.Settings.animalMaxGrowthForScale) {
-            const scale = Animal.Data.rabbit[keyId].growth / Variables.Settings.animalMaxGrowthForScale;
-            const scaledSize = size * scale;
-            const sizeDiff = size - scaledSize;
-            top += sizeDiff/2 * 0.6;
+        let size;
+        if(keyId.indexOf('rabbit') !== -1) {
+            size = Sprites.Rabbit.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            left = left - ( size / 2 );
+            if(Animal.Data.rabbit[keyId].growth < Variables.Settings.animalMaxGrowthForScale) {
+                const scale = Animal.Data.rabbit[keyId].growth / Variables.Settings.animalMaxGrowthForScale;
+                const scaledSize = size * scale;
+                const sizeDiff = size - scaledSize;
+                top += sizeDiff/2 * 0.6;
+            }
+        }
+        else if(keyId.indexOf('wolf') !== -1) {
+            size = Sprites.Wolf.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+            left = left - ( size / 2 );
+            if(Animal.Data.wolf[keyId].growth < Variables.Settings.animalMaxGrowthForScale) {
+                const scale = Animal.Data.wolf[keyId].growth / Variables.Settings.animalMaxGrowthForScale;
+                const scaledSize = size * scale;
+                const sizeDiff = size - scaledSize;
+                top += sizeDiff/2 * 0.6;
+            }
         }
 
         return {
@@ -169,7 +184,13 @@ const Methods = {
         };
     },
     CalculateAnimalDomTopModifier: (keyId) => {
-        const size = Sprites.Rabbit.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+        let size;
+        if(keyId.indexOf('rabbit') !== -1) {
+            size = Sprites.Rabbit.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+        }
+        else if(keyId.indexOf('wolf') !== -1) {
+            size = Sprites.Wolf.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
+        }
         return size * 0.8;
     },
     DefineMapPositionByAnimalPosition: (animalPosition) => {
@@ -209,6 +230,37 @@ const Methods = {
             canInterfere: rabbitArray[24],
             doingInteraction: rabbitArray[25],
             updateTimeUnix: rabbitArray[26]
+        };
+    },
+    MapWolfArrayToObject: (wolfArray) => {
+        return {
+            id: wolfArray[0],
+            motherId: wolfArray[1],
+            gender: wolfArray[2],
+            movedTileIds: wolfArray[3],
+            reservedTiles: wolfArray[4],
+            currentPosition: wolfArray[5],
+            actionId: wolfArray[6],
+            lifeStatus: wolfArray[7],
+            energy: wolfArray[8],
+            hunger: wolfArray[9],
+            growth: wolfArray[10],
+            matingCount: wolfArray[11],
+            matingMaxCount: wolfArray[12],
+            pregnantCount: wolfArray[13],
+            pregnantMaxCount: wolfArray[14],
+            femaleTargetId: wolfArray[15],
+            matingTargetId: wolfArray[16],
+            moved: wolfArray[17],
+            mapTileSightRange: wolfArray[18],
+            animalTileMovableRange: wolfArray[19],
+            concernedDistrictIds: wolfArray[20],
+            deadCount: wolfArray[21],
+            deadCountMax: wolfArray[22],
+            nextActionDateTime: wolfArray[23],
+            canInterfere: wolfArray[24],
+            doingInteraction: wolfArray[25],
+            updateTimeUnix: wolfArray[26]
         };
     },
     DefineDistrictIdByTileId: (tilePosX, tilePosY) => {
