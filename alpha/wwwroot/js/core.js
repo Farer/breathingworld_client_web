@@ -28,6 +28,9 @@ const Core = {
     
         let html = '';
         html += '<div class="external-links-container" style="position: fixed; top: 20px; right: 20px; display: flex; gap: 25px;">';
+            html += '<a href="https://api.breathingworld.com/" target="_blank" style="display: block;">';
+                html += '<img src="' + window.cdnPrefix + '/img/graph-bar.svg" alt="Dashboard" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
+            html += '</a>';
             html += '<a href="https://blog.breathingworld.com/" target="_blank" style="display: block;">';
                 html += '<img src="' + window.cdnPrefix + '/img/icon_blog.svg" alt="Blog" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
             html += '</a>';
