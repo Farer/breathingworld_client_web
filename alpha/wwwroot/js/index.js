@@ -2,7 +2,7 @@
 window.onload = async function () {
     const urlParams = new URLSearchParams(window.location.search);
     Variables.ApiUrl = urlParams.get('api') || 'https://api.breathingworld.com';
-    Variables.SocketUrl = urlParams.get('api') || 'https://api.breathingworld.com';
+    Variables.SocketUrl = urlParams.get('socket') || 'https://api.breathingworld.com';
 
     const origin = window.location.origin;
     if (origin === "https://us-alpha.breathingworld.com") { Variables.SocketUrl = "https://us-api.breathingworld.com"; }
