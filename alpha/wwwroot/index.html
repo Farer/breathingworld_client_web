@@ -30,7 +30,7 @@
             "/js/lib/msgpack.min.js",
             "/js/lib/signalr.min.js",
             "/js/sprites.js?5",
-            "/js/variables.js?5",
+            "/js/variables.js?6",
             "/js/data.js?5",
             "/js/animal.js?8",
             "/js/tree.js?8",
@@ -38,10 +38,10 @@
             "/js/domControll.js?3",
             "/js/methods.js?7",
             "/js/draggable.js?3",
-            "/js/socket.js?16",
+            "/js/socket.js?17",
             "/js/chat.js?6",
             "/js/core.js?22",
-            "/js/index.js?4"
+            "/js/index.js?5"
         ];
         function updateProgress() { completedTasks++; const percent = Math.round((completedTasks / totalTasks) * 100); document.getElementById("progress-bar").style.width = percent + "%"; }
         function loadScriptsSequentially(index = 0) { if (index < scripts.length) { loadScript(scripts[index], () => { updateProgress(); loadScriptsSequentially(index + 1); }); } }

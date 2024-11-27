@@ -2,7 +2,7 @@
 const Socket = {
     WebsocketConnection: null,
     PrepareWebsocketCommunication: () => {
-        Socket.WebsocketConnection = new signalR.HubConnectionBuilder().withUrl(Variables.ApiUrl+"/nodeHub").build();
+        Socket.WebsocketConnection = new signalR.HubConnectionBuilder().withUrl(Variables.SocketUrl+"/nodeHub").build();
         Socket.WebsocketConnection.start().then(function () {
             console.log("Datahub connection started.");
             Socket.SendMessage('Welcome', 'to Breathing World!');
