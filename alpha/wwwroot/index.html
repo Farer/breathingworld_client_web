@@ -9,6 +9,7 @@
         const origin = window.location.origin;
         if (origin === "https://us-alpha.breathingworld.com") { window.cdnPrefix = "https://us-alpha-bw.b-cdn.net"; }
         else if (origin === "https://eu-alpha.breathingworld.com") { window.cdnPrefix = "https://eu-alpha-bw.b-cdn.net"; }
+        else if (origin === "https://ap-alpha.breathingworld.com") { window.cdnPrefix = "https://ap-alpha-bw.b-cdn.net"; }
         function loadCSS(href) {
             const link = document.createElement("link");
             link.rel = "stylesheet";
@@ -39,7 +40,7 @@
             "/js/draggable.js?3",
             "/js/socket.js?16",
             "/js/chat.js?6",
-            "/js/core.js?21",
+            "/js/core.js?22",
             "/js/index.js?4"
         ];
         function updateProgress() { completedTasks++; const percent = Math.round((completedTasks / totalTasks) * 100); document.getElementById("progress-bar").style.width = percent + "%"; }
