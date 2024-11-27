@@ -589,11 +589,11 @@ const Core = {
         Core.DrawDirtFloorOnTile(ctx, posX, posY, viewSize, [rabbitFecesExists, wolfFecesExists]);
         
         if( proceedId != -1) {
-            const weedWidthHeight = Images.Data.grass.height;
+            const weedWidthHeight = Images.Data.weed.height;
             const weedImagePosX = proceedId * weedWidthHeight;
             const weedImagePosY = 0;
             ctx.drawImage(
-                Images.Data.grass,
+                Images.Data.weed,
                 weedImagePosX,
                 weedImagePosY,
                 weedWidthHeight,
