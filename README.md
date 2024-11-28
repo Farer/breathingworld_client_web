@@ -33,7 +33,7 @@ Once connected, you will see that it is linked to the current data of the alpha 
 - [x] WEED
 - [x] RABBIT
 - [x] TREE
-- [ ] WOLF
+- [x] WOLF
 - [ ] EAGLE
 
 
@@ -75,7 +75,7 @@ https://learn.microsoft.com/en-us/dotnet/core/install/
 - [x] 잡초
 - [x] 토끼
 - [x] 나무
-- [ ] 늑대
+- [x] 늑대
 - [ ] 독수리
 
 ## 커뮤니티
