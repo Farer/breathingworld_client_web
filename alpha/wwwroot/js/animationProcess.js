@@ -1,6 +1,6 @@
 'use strict';
 const AnimationProcess = {
-    TargetDomIds: [],
+    TargetDomIds: new Set(),
     AnimateId: 0,
     MoveId: 0,
     FrameDiff: 20,
@@ -15,15 +15,10 @@ const AnimationProcess = {
         cancelAnimationFrame(AnimationProcess.AnimateId);
     },
     AddTargetDomId: (id) => {
-        if(!AnimationProcess.TargetDomIds.includes(id)) {
-            AnimationProcess.TargetDomIds.push(id);
-        }
+        AnimationProcess.TargetDomIds.add(id);
     },
     RemoveTargetDomId: (id) => {
-        if(AnimationProcess.TargetDomIds.includes(id)) {
-            const valueIndex = AnimationProcess.TargetDomIds.indexOf(id);
-            if (valueIndex !== -1) { AnimationProcess.TargetDomIds.splice(valueIndex, 1); }
-        }
+        AnimationProcess.TargetDomIds.delete(id);
     },
     DefineTargetKindByDomId: (domId) => {
         let targetKind = '';
@@ -34,7 +29,7 @@ const AnimationProcess = {
         return targetKind;
     },
     Animate: () => {
-        if(AnimationProcess.TargetDomIds.length == 0) {
+        if(AnimationProcess.TargetDomIds.size === 0) {
             AnimationProcess.CancelAnimation();
             return;
         }
@@ -55,12 +50,5 @@ const AnimationProcess = {
             }
         });
         AnimationProcess.AnimateId = requestAnimationFrame(AnimationProcess.Animate);
-    },
-    Move: () => {
-        if(AnimationProcess.TargetDomIds.length == 0) {
-            cancelAnimationFrame(AnimationProcess.MoveId);
-            return;
-        }
-        AnimationProcess.MoveId = requestAnimationFrame(AnimationProcess.Move);
     },
 };

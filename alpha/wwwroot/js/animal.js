@@ -72,7 +72,19 @@ const Animal = {
                 const boneSize = animalDomInfo.size / 2;
                 animalDom.style.background = '';
                 animalDom.style.textAlign = 'center';
-                animalDom.innerHTML = '<img style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);" src="'+Images.Data.animal_bones.src+'" width="'+boneSize+'px" height="'+boneSize+'px" />';
+
+                const newImg = document.createElement("img");
+                newImg.style.position = "absolute";
+                newImg.style.left = "50%";
+                newImg.style.top = "50%";
+                newImg.style.transform = "translate(-50%, -50%)";
+                newImg.src = Images.Data.animal_bones.src;
+                newImg.width = boneSize;
+                newImg.height = boneSize;
+                const oldImg = animalDom.querySelector("img");
+                if (oldImg) { animalDom.replaceChild(newImg, oldImg); }
+                else { animalDom.appendChild(newImg); }
+
                 if(animalWrapDom.firstChild != null) { animalWrapDom.insertBefore(animalDom, animalWrapDom.firstChild); }
                 clearTimeout(Animal.Timeout[keyId]);
                 clearTimeout(Data.AnimalMoving.timeouts[keyId]);
@@ -141,7 +153,19 @@ const Animal = {
                 const boneSize = animalDomInfo.size / 2;
                 animalDom.style.background = '';
                 animalDom.style.textAlign = 'center';
-                animalDom.innerHTML = '<img style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);" src="'+Images.Data.animal_bones.src+'" width="'+boneSize+'px" height="'+boneSize+'px" />';
+
+                const newImg = document.createElement("img");
+                newImg.style.position = "absolute";
+                newImg.style.left = "50%";
+                newImg.style.top = "50%";
+                newImg.style.transform = "translate(-50%, -50%)";
+                newImg.src = Images.Data.animal_bones.src;
+                newImg.width = boneSize;
+                newImg.height = boneSize;
+                const oldImg = animalDom.querySelector("img");
+                if (oldImg) { animalDom.replaceChild(newImg, oldImg); }
+                else { animalDom.appendChild(newImg); }
+
                 if(animalWrapDom.firstChild != null) { animalWrapDom.insertBefore(animalDom, animalWrapDom.firstChild); }
                 clearTimeout(Animal.Timeout[keyId]);
                 clearTimeout(Data.AnimalMoving.timeouts[keyId]);
@@ -197,7 +221,7 @@ const Animal = {
         if(speciesName == 'rabbit') { finalData = Animal.Data.rabbit[keyId]; }
         else if(speciesName == 'wolf') { finalData = Animal.Data.wolf[keyId]; }
 
-        animalDom.style.transform = Animal.MakeAnimalDomTrasformString(speciesName, finalData);
+        Animal.ApplyAnimalDomTransform(animalDom, finalData);
     },
     CalculateWalkingAnimationFrameDelay: (speciesName, movedTilesCount) => {
         let defaultDelay;
@@ -221,22 +245,27 @@ const Animal = {
         }
         return defaultDelay;
     },
-    MakeAnimalDomTrasformString: (speciesName, data) => {
-        let transformString = '';
+    ApplyAnimalDomTransform: (animalDom, data) => {
+        // let transformString = '';
+        // const scale = (1/maxGrowth * animalGrowth);
+        // transformString += ' scale('+scale+')';
+
         const maxGrowth = Variables.Settings.animalMaxGrowthForScale;
         let animalGrowth = data.growth;
         if(animalGrowth < 5) { animalGrowth = 5; }
         else if(animalGrowth > maxGrowth) { animalGrowth = maxGrowth; }
         const scale = (1/maxGrowth * animalGrowth);
-        transformString += ' scale('+scale+')';
+        DomControll.ApplyTransform(animalDom, 'scale', scale);
 
-        const keyId = speciesName + '-' + data.id;
-        const animalDom = document.getElementById(keyId);
         const movingDirection = animalDom.getAttribute('movingDirection');
-        if(movingDirection == 'left') { transformString += ''; }
-        else if(movingDirection == 'right') { transformString += ' scaleX(-1)'; }
-
-        return transformString;
+        if(movingDirection == 'left') {
+            // transformString += '';
+        }
+        else if(movingDirection == 'right') {
+            DomControll.ApplyTransform(animalDom, 'scaleX', -1);
+            // transformString += ' scaleX(-1)';
+        }
+        // return transformString;
     },
     DrawEtcBackground: (keyId, actionId) => {
         if(keyId.indexOf('rabbit') !== -1) {
@@ -276,7 +305,19 @@ const Animal = {
         let animalDom = document.getElementById(keyId);
         animalDom.style.background = '';
         animalDom.style.textAlign = 'center';
-        animalDom.innerHTML = '<img style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);" src="' + window.cdnPrefix + '/img/animal_bones_tiny.png" width="'+boneSize+'px" height="'+boneSize+'px" />';
+
+        const newImg = document.createElement("img");
+        newImg.style.position = "absolute";
+        newImg.style.left = "50%";
+        newImg.style.top = "50%";
+        newImg.style.transform = "translate(-50%, -50%)";
+        newImg.src = window.cdnPrefix + '/img/animal_bones_tiny.png';
+        newImg.width = boneSize;
+        newImg.height = boneSize;
+        const oldImg = animalDom.querySelector("img");
+        if (oldImg) { animalDom.replaceChild(newImg, oldImg); }
+        else { animalDom.appendChild(newImg); }
+        
         if(animalWrapDom.firstChild != null) { animalWrapDom.insertBefore(animalDom, animalWrapDom.firstChild); }
         clearTimeout(Animal.Timeout[keyId]);
         clearTimeout(Data.AnimalMoving.timeouts[keyId]);
@@ -317,6 +358,8 @@ const Animal = {
                 actionIdForAnimation: actionIdForAnimation,
                 currentActionFrameCount: Sprites.Rabbit.frameCounts[actionIdForAnimation],
                 currentActionFrameDelay: Sprites.Rabbit.frameDelay[actionIdForAnimation],
+                currentMoveFrameDelay: Sprites.Rabbit.frameDelay[actionIdForAnimation],
+
             };
         }
         else if(speciesName == 'wolf') {
@@ -519,7 +562,7 @@ const Animal = {
                 return;
             }
 
-            animalDom.style.transform = Animal.MakeAnimalDomTrasformString(speciesName, Animal.Data.rabbit[keyId]);
+            Animal.ApplyAnimalDomTransform(animalDom, Animal.Data.rabbit[keyId]);
 
             animalDom.style.left = mapPosition.left + 'px';
             animalDom.style.top = mapPosition.top + 'px';
@@ -573,7 +616,7 @@ const Animal = {
                 return;
             }
             
-            animalDom.style.transform = Animal.MakeAnimalDomTrasformString(speciesName, Animal.Data.wolf[keyId]);
+            Animal.ApplyAnimalDomTransform(animalDom, Animal.Data.wolf[keyId]);
             
             animalDom.style.left = mapPosition.left + 'px';
             animalDom.style.top = mapPosition.top + 'px';

@@ -477,7 +477,7 @@ const Core = {
         const newLeftTop = -Variables.MapScaleInfo.zoomPosX + '|' + -Variables.MapScaleInfo.zoomPosY;
         mapDom.setAttribute('leftTop', newLeftTop);
 
-        AnimationProcess.TargetDomIds = [];
+        AnimationProcess.TargetDomIds.clear();
 
         Core.ChangeMapScale(newScale);
         Variables.ScrollInfo.isScrolling = false;

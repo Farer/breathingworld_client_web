@@ -1,5 +1,6 @@
 const DomControll = {
-    TargetDomIds: [],
+    TransformCache: new WeakMap(),
+    TargetDomIds: new Set(),
     AnimateId: 0,
     frameCount: 0,
     DoingAnimation: false,
@@ -14,13 +15,10 @@ const DomControll = {
         cancelAnimationFrame(DomControll.AnimateId);
     },
     AddTargetDomId: (id) => {
-        if (!DomControll.TargetDomIds.includes(id)) {
-            DomControll.TargetDomIds.push(id);
-        }
+        DomControll.TargetDomIds.add(id);
     },
     RemoveTargetDomId: (id) => {
-        const index = DomControll.TargetDomIds.indexOf(id);
-        if (index !== -1) { DomControll.TargetDomIds.splice(index, 1); }
+        DomControll.TargetDomIds.delete(id);
     },
     DefineTargetKindByDomId: (domId) => {
         const splits = domId.split('-');
@@ -29,7 +27,7 @@ const DomControll = {
         else if(splits[0] === 'tree') { return 'tree'; }
     },
     Control: () => {
-        if (DomControll.TargetDomIds.length === 0) {
+        if (DomControll.TargetDomIds.size === 0) {
             DomControll.CancelAnimation();
             return;
         }
@@ -78,5 +76,29 @@ const DomControll = {
             }
         });
         DomControll.AnimateId = requestAnimationFrame(DomControll.Control);
+    },
+    ApplyTransform: (element, property, value) => {
+        if (!element) { return; }
+        let transforms = DomControll.TransformCache.get(element) || new Map();
+        const stringValue = typeof value === "number" ? value.toString() : value;
+        transforms.set(property, stringValue);
+        let transformString = "";
+        transforms.forEach((val, key) => {
+            transformString += `${key}(${val}) `;
+        });
+        element.style.transform = transformString.trim();
+        DomControll.TransformCache.set(element, transforms);
+    },
+    RemoveTransform: (element, property) => {
+        if (!element) { return; }
+        let transforms = DomControll.TransformCache.get(element);
+        if (!transforms) return;
+        transforms.delete(property);
+        let transformString = "";
+        transforms.forEach((val, key) => {
+            transformString += `${key}(${val}) `;
+        });
+        element.style.transform = transformString.trim();
+        DomControll.TransformCache.set(element, transforms);
     }
 };
