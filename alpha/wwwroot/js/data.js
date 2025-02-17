@@ -17,9 +17,6 @@ const Data = {
         DistrictData: [],
     },
     AnimalMoving: {
-        timeouts: [],
-        timeoutIntervals: [],
-        movingTileIds: [],
         reservedTiles: [],
     },
 };

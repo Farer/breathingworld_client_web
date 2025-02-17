@@ -385,7 +385,7 @@ const Core = {
         animalWrapDom.style.left = newLeft + 'px';
         animalWrapDom.style.top = newTop + 'px';
         
-        for(let i in Data.AnimalMoving.timeouts) { clearTimeout(Data.AnimalMoving.timeouts[i]); }
+        MovementProcess.TargetDomIds.clear();
     },
     TryScroll: (event) => {
         const chatLogDom = document.getElementById('chat_log');

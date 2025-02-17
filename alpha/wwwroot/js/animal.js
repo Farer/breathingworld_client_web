@@ -4,7 +4,6 @@ const Animal = {
         rabbit: [],
         wolf: [],
     },
-    Timeout: [],
     DecodeRabbitBytes: (rabbitsBytes) => {
         const base64Data = rabbitsBytes;
         const decodedData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
@@ -86,8 +85,7 @@ const Animal = {
                 else { animalDom.appendChild(newImg); }
 
                 if(animalWrapDom.firstChild != null) { animalWrapDom.insertBefore(animalDom, animalWrapDom.firstChild); }
-                clearTimeout(Animal.Timeout[keyId]);
-                clearTimeout(Data.AnimalMoving.timeouts[keyId]);
+                MovementProcess.RemoveTargetDomId(keyId);
             }
             else {
                 let backgroundPosX = 0;
@@ -167,8 +165,7 @@ const Animal = {
                 else { animalDom.appendChild(newImg); }
 
                 if(animalWrapDom.firstChild != null) { animalWrapDom.insertBefore(animalDom, animalWrapDom.firstChild); }
-                clearTimeout(Animal.Timeout[keyId]);
-                clearTimeout(Data.AnimalMoving.timeouts[keyId]);
+                MovementProcess.RemoveTargetDomId(keyId);
             }
             else {
                 let backgroundPosX = 0;
@@ -319,8 +316,7 @@ const Animal = {
         else { animalDom.appendChild(newImg); }
         
         if(animalWrapDom.firstChild != null) { animalWrapDom.insertBefore(animalDom, animalWrapDom.firstChild); }
-        clearTimeout(Animal.Timeout[keyId]);
-        clearTimeout(Data.AnimalMoving.timeouts[keyId]);
+        MovementProcess.RemoveTargetDomId(keyId);
     },
     DefineActionId: (speciesName, data) => {
         if(speciesName == 'rabbit') {
@@ -460,11 +456,11 @@ const Animal = {
         if(speciesName == 'rabbit') {
             const keyId = speciesName + '-' + data.id;
             
-            clearTimeout(Data.AnimalMoving.timeouts[keyId]);
-            Data.AnimalMoving.movingTileIds[keyId] = [];
+            MovementProcess.RemoveTargetDomId(keyId);
             if(data.movedTileIds.length > 0) {
                 DomControll.AddTargetDomId(keyId);
                 DomControll.StartAnimation();
+                MovementProcess.TriggerMovement(keyId, 100, 100, [ [200,150], [350,300], [500,450] ], 5);
                 const startTile = data.movedTileIds[0];
                 const endTile = data.movedTileIds[data.movedTileIds.length-1];
                 const rabbitDom = document.getElementById(keyId);
@@ -480,17 +476,14 @@ const Animal = {
                     if(tileId == undefined) { continue; }
                     willMoveTileIds.unshift(tileId);
                 }
-                Data.AnimalMoving.timeoutIntervals[keyId] = movingSpeed;
                 Data.AnimalMoving.movingTileIds[keyId] = willMoveTileIds;
                 Data.AnimalMoving.reservedTiles[keyId] = data.reservedTiles;
-                Animal.ContinueAnimalMoving(speciesName, keyId);
             }
         }
         else if(speciesName == 'wolf') {
             const keyId = speciesName + '-' + data.id;
             
-            clearTimeout(Data.AnimalMoving.timeouts[keyId]);
-            Data.AnimalMoving.movingTileIds[keyId] = [];
+            MovementProcess.RemoveTargetDomId(keyId);
             if(data.movedTileIds.length > 0) {
                 DomControll.AddTargetDomId(keyId);
                 DomControll.StartAnimation();
@@ -509,121 +502,9 @@ const Animal = {
                     if(tileId == undefined) { continue; }
                     willMoveTileIds.unshift(tileId);
                 }
-                Data.AnimalMoving.timeoutIntervals[keyId] = movingSpeed;
                 Data.AnimalMoving.movingTileIds[keyId] = willMoveTileIds;
                 Data.AnimalMoving.reservedTiles[keyId] = data.reservedTiles;
-                Animal.ContinueAnimalMoving(speciesName, keyId);
             }
-        }
-    },
-    ContinueAnimalMoving: (speciesName, keyId) => {
-        if(speciesName == 'rabbit') {
-            if(Data.AnimalMoving.movingTileIds[keyId] == undefined || Data.AnimalMoving.movingTileIds[keyId].length == 0) {
-                DomControll.RemoveTargetDomId(keyId);
-                const animalDom = document.getElementById(keyId);
-                if(animalDom == null) { return; }
-                animalDom.style.backgroundPositionX = '0px';
-
-                let originalActionId = Animal.Data.rabbit[keyId].actionId;
-                if(Variables.Settings.rabbitActionStatus[originalActionId]=='dead') {
-                    AnimationProcess.RemoveTargetDomId(keyId);
-                    Animal.DrawAnimalBones(speciesName, Animal.Data.rabbit[keyId]);
-                }
-                else if(
-                    Variables.Settings.rabbitActionStatus[originalActionId]=='mating' ||
-                    Variables.Settings.rabbitActionStatus[originalActionId]=='pregnant' ||
-                    Variables.Settings.rabbitActionStatus[originalActionId]=='breeding'
-                ) {
-                    AnimationProcess.RemoveTargetDomId(keyId);
-                    Animal.DrawEtcBackground(keyId, originalActionId);
-                }
-                else {
-                    if(Variables.Settings.rabbitActionStatus[originalActionId]!='eating' && Variables.Settings.rabbitActionStatus[originalActionId]!='sleep') {
-                        originalActionId = 0;
-                    }
-                    Animal.Data.rabbit[keyId].currentActionFrameCount = Sprites.Rabbit.frameCounts[originalActionId];
-                    Animal.Data.rabbit[keyId].currentActionFrameDelay = Sprites.Rabbit.frameDelay[originalActionId];
-                    const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, originalActionId);
-                    animalDom.style.backgroundPositionY = '-' + backgroundPosY + 'px';
-                }
-                return;
-            }
-            const targetPosition = Data.AnimalMoving.movingTileIds[keyId].shift();
-            const mapPosition = Methods.GetAnimalDomInfo(targetPosition, keyId);
-            if(mapPosition == null) {
-                console.log('mapPosition == null, keyId: ' + keyId + ', targetPosition: ' + targetPosition);
-                return;
-            }
-            const animalDom = document.getElementById(keyId);
-            if(animalDom == null) {
-                clearTimeout(Data.AnimalMoving.timeouts[keyId]);
-                Data.AnimalMoving.timeoutIntervals[keyId] = null;
-                Data.AnimalMoving.movingTileIds[keyId] = null;
-                return;
-            }
-
-            Animal.ApplyAnimalDomTransform(animalDom, Animal.Data.rabbit[keyId]);
-
-            animalDom.style.left = mapPosition.left + 'px';
-            animalDom.style.top = mapPosition.top + 'px';
-
-            Data.AnimalMoving.timeouts[keyId] = setTimeout(() => {
-                Animal.ContinueAnimalMoving(speciesName, keyId);
-            }, Data.AnimalMoving.timeoutIntervals[keyId]);
-        }
-        else if(speciesName == 'wolf') {
-            if(Data.AnimalMoving.movingTileIds[keyId] == undefined || Data.AnimalMoving.movingTileIds[keyId].length == 0) {
-                DomControll.RemoveTargetDomId(keyId);
-                const animalDom = document.getElementById(keyId);
-                if(animalDom == null) { return; }
-                animalDom.style.backgroundPositionX = '0px';
-            
-                let originalActionId = Animal.Data.wolf[keyId].actionId;
-                if(Variables.Settings.wolfActionStatus[originalActionId]=='dead') {
-                    AnimationProcess.RemoveTargetDomId(keyId);
-                    Animal.DrawAnimalBones(speciesName, Animal.Data.wolf[keyId]);
-                }
-                else if(
-                    Variables.Settings.wolfActionStatus[originalActionId]=='mating' ||
-                    Variables.Settings.wolfActionStatus[originalActionId]=='pregnant' ||
-                    Variables.Settings.wolfActionStatus[originalActionId]=='breeding'
-                ) {
-                    AnimationProcess.RemoveTargetDomId(keyId);
-                    Animal.DrawEtcBackground(keyId, originalActionId);
-                }
-                else {
-                    if(Variables.Settings.wolfActionStatus[originalActionId]!='eating' && Variables.Settings.wolfActionStatus[originalActionId]!='sleep') {
-                        originalActionId = 0;
-                    }
-                    Animal.Data.wolf[keyId].currentActionFrameCount = Sprites.Wolf.frameCounts[originalActionId];
-                    Animal.Data.wolf[keyId].currentActionFrameDelay = Sprites.Wolf.frameDelay[originalActionId];
-                    const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, originalActionId);
-                    animalDom.style.backgroundPositionY = '-' + backgroundPosY + 'px';
-                }
-                return;
-            }
-            const targetPosition = Data.AnimalMoving.movingTileIds[keyId].shift();
-            const mapPosition = Methods.GetAnimalDomInfo(targetPosition, keyId);
-            if(mapPosition == null) {
-                console.log('mapPosition == null, keyId: ' + keyId + ', targetPosition: ' + targetPosition);
-                return;
-            }
-            const animalDom = document.getElementById(keyId);
-            if(animalDom == null) {
-                clearTimeout(Data.AnimalMoving.timeouts[keyId]);
-                Data.AnimalMoving.timeoutIntervals[keyId] = null;
-                Data.AnimalMoving.movingTileIds[keyId] = null;
-                return;
-            }
-            
-            Animal.ApplyAnimalDomTransform(animalDom, Animal.Data.wolf[keyId]);
-            
-            animalDom.style.left = mapPosition.left + 'px';
-            animalDom.style.top = mapPosition.top + 'px';
-            
-            Data.AnimalMoving.timeouts[keyId] = setTimeout(() => {
-                Animal.ContinueAnimalMoving(speciesName, keyId);
-            }, Data.AnimalMoving.timeoutIntervals[keyId]);
         }
     },
     IfActionStatusIsValid: (speciesName, actionId) => {
