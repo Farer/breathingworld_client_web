@@ -4,7 +4,7 @@ const DomControll = {
     AnimateId: 0,
     frameCount: 0,
     DoingAnimation: false,
-    StartAnimation: () => {
+    StartProcess: () => {
         if (DomControll.DoingAnimation) { return; }
         DomControll.DoingAnimation = true;
         DomControll.AnimateId = requestAnimationFrame(DomControll.Control);
@@ -92,7 +92,7 @@ const DomControll = {
     RemoveTransform: (element, property) => {
         if (!element) { return; }
         let transforms = DomControll.TransformCache.get(element);
-        if (!transforms) return;
+        if (!transforms) { return; }
         transforms.delete(property);
         let transformString = "";
         transforms.forEach((val, key) => {
