@@ -50,8 +50,9 @@ const Animal = {
         animalDom.style.width = animalDomInfo.size + 'px';
         animalDom.style.height = animalDomInfo.size + 'px';
 
-        animalDom.style.left = animalDomInfo.left + 'px';
-        animalDom.style.top = animalDomInfo.top + 'px';
+        // animalDom.style.left = animalDomInfo.left + 'px';
+        // animalDom.style.top = animalDomInfo.top + 'px';
+        DomControll.ApplyTransform(animalDom, 'translate3d', animalDomInfo.left + 'px, ' + animalDomInfo.top + 'px, 0px');
 
         // Rabbit
         if(speciesName == 'rabbit') {
@@ -74,12 +75,14 @@ const Animal = {
 
                 const newImg = document.createElement("img");
                 newImg.style.position = "absolute";
-                newImg.style.left = "50%";
-                newImg.style.top = "50%";
-                newImg.style.transform = "translate(-50%, -50%)";
                 newImg.src = Images.Data.animal_bones.src;
                 newImg.width = boneSize;
                 newImg.height = boneSize;
+                // newImg.style.left = "50%";
+                // newImg.style.top = "50%";
+                // newImg.style.transform = "translate(-50%, -50%)";
+                DomControll.ApplyTransform(newImg, 'translate', '-50%, -50%');
+                DomControll.ApplyTransform(newImg, 'translate3d', '50%, 50%, 0px');
                 const oldImg = animalDom.querySelector("img");
                 if (oldImg) { animalDom.replaceChild(newImg, oldImg); }
                 else { animalDom.appendChild(newImg); }
@@ -151,12 +154,14 @@ const Animal = {
 
                 const newImg = document.createElement("img");
                 newImg.style.position = "absolute";
-                newImg.style.left = "50%";
-                newImg.style.top = "50%";
-                newImg.style.transform = "translate(-50%, -50%)";
                 newImg.src = Images.Data.animal_bones.src;
                 newImg.width = boneSize;
                 newImg.height = boneSize;
+                // newImg.style.left = "50%";
+                // newImg.style.top = "50%";
+                // newImg.style.transform = "translate(-50%, -50%)";
+                DomControll.ApplyTransform(newImg, 'translate', '-50%, -50%');
+                DomControll.ApplyTransform(newImg, 'translate3d', '50%, 50%, 0px');
                 const oldImg = animalDom.querySelector("img");
                 if (oldImg) { animalDom.replaceChild(newImg, oldImg); }
                 else { animalDom.appendChild(newImg); }
@@ -293,12 +298,14 @@ const Animal = {
 
         const newImg = document.createElement("img");
         newImg.style.position = "absolute";
-        newImg.style.left = "50%";
-        newImg.style.top = "50%";
-        newImg.style.transform = "translate(-50%, -50%)";
         newImg.src = window.cdnPrefix + '/img/animal_bones_tiny.png';
         newImg.width = boneSize;
         newImg.height = boneSize;
+        // newImg.style.left = "50%";
+        // newImg.style.top = "50%";
+        // newImg.style.transform = "translate(-50%, -50%)";
+        DomControll.ApplyTransform(newImg, 'translate', '-50%, -50%');
+        DomControll.ApplyTransform(newImg, 'translate3d', '50%, 50%, 0px');
         const oldImg = animalDom.querySelector("img");
         if (oldImg) { animalDom.replaceChild(newImg, oldImg); }
         else { animalDom.appendChild(newImg); }
@@ -522,8 +529,9 @@ const Animal = {
                 console.log('mapPosition == null, keyId: ' + keyId + ', targetPosition: ' + targetPosition);
                 return;
             }
-            animalDom.style.left = mapPosition.left + 'px';
-            animalDom.style.top = mapPosition.top + 'px';
+            // animalDom.style.left = mapPosition.left + 'px';
+            // animalDom.style.top = mapPosition.top + 'px';
+            DomControll.ApplyTransform(animalDom, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0px`);
             
         }
         else if(speciesName == 'wolf') {
@@ -573,8 +581,9 @@ const Animal = {
             
             Animal.ApplyAnimalDomTransform(animalDom, Animal.Data.wolf[keyId]);
             
-            animalDom.style.left = mapPosition.left + 'px';
-            animalDom.style.top = mapPosition.top + 'px';
+            // animalDom.style.left = mapPosition.left + 'px';
+            // animalDom.style.top = mapPosition.top + 'px';
+            DomControll.ApplyTransform(animalDom, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0px`);
             
             Data.AnimalMoving.timeouts[keyId] = setTimeout(() => {
                 Animal.UpdateAnimalDomAfterMoving(speciesName, keyId);

@@ -82,9 +82,17 @@ const DomControll = {
         let transforms = DomControll.TransformCache.get(element) || new Map();
         const stringValue = typeof value === "number" ? value.toString() : value;
         transforms.set(property, stringValue);
+        const order = ["translate3d", "translate", "scale", "scaleX"];
         let transformString = "";
+        order.forEach(key => {
+            if (transforms.has(key)) {
+                transformString += `${key}(${transforms.get(key)}) `;
+            }
+        });
         transforms.forEach((val, key) => {
-            transformString += `${key}(${val}) `;
+            if (!order.includes(key)) {
+                transformString += `${key}(${val}) `;
+            }
         });
         element.style.transform = transformString.trim();
         DomControll.TransformCache.set(element, transforms);
@@ -94,9 +102,17 @@ const DomControll = {
         let transforms = DomControll.TransformCache.get(element);
         if (!transforms) { return; }
         transforms.delete(property);
+        const order = ["translate3d", "translate", "scale", "scaleX"];
         let transformString = "";
+        order.forEach(key => {
+            if (transforms.has(key)) {
+                transformString += `${key}(${transforms.get(key)}) `;
+            }
+        });
         transforms.forEach((val, key) => {
-            transformString += `${key}(${val}) `;
+            if (!order.includes(key)) {
+                transformString += `${key}(${val}) `;
+            }
         });
         element.style.transform = transformString.trim();
         DomControll.TransformCache.set(element, transforms);
