@@ -455,8 +455,6 @@ const Animal = {
     StartAnimalMoving: (speciesName, data) => {
         if(speciesName == 'rabbit') {
             const keyId = speciesName + '-' + data.id;
-            
-            MovementProcess.RemoveTargetDomId(keyId);
             if(data.movedTileIds.length > 0) {
                 DomControll.AddTargetDomId(keyId);
                 DomControll.StartProcess();
@@ -467,7 +465,10 @@ const Animal = {
                     const movingDirection = Animal.DefineMovingDirection(startTile, endTile);
                     rabbitDom.setAttribute('movingDirection', movingDirection);
                 }
-                MovementProcess.TriggerMovement(keyId, data.movedTileIds[0], data.movedTileIds, 30);
+                MovementProcess.TriggerMovement(keyId, data.movedTileIds[0], data.movedTileIds, 35);
+            }
+            else {
+                console.log('rabbitDom == null, speciesName: ' + speciesName + ', id: ' + data.id);
             }
         }
         else if(speciesName == 'wolf') {

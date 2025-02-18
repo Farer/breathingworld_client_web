@@ -51,7 +51,6 @@ const MovementProcess = {
         data.speed = speed;
 
         // Store waypoints as an array (each element is an object {x, y})
-        waypoints.shift();
         data.waypoints = waypoints.map(point => {
             const split = point.split(':').map(Number);
             return { x: split[0], y: split[1] };
@@ -80,8 +79,6 @@ const MovementProcess = {
         MovementProcess.StartMovement();
         var targetDom = document.getElementById(domId);
         Animal.ApplyAnimalDomTransform(targetDom, Animal.Data.rabbit[domId]);
-        targetDom.style.top = '';
-        targetDom.style.left = '';
         const mapPosition = Methods.GetAnimalDomInfo(`${data.x}:${data.y}`, domId);
         DomControll.ApplyTransform(targetDom, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0`);
     },
@@ -94,42 +91,38 @@ const MovementProcess = {
         if (!MovementProcess.lastTimestamp) {
             MovementProcess.lastTimestamp = timestamp;
         }
-        const delta = (timestamp - MovementProcess.lastTimestamp) / 1000; // Convert ms to seconds
+        let delta = (timestamp - MovementProcess.lastTimestamp) / 1000;
+        const clampedDelta = Math.min(delta, 0.01);
         MovementProcess.lastTimestamp = timestamp;
-
+    
         if (MovementProcess.TargetDomIds.size === 0) {
             MovementProcess.CancelMovement();
             return;
         }
-
+    
         MovementProcess.TargetDomIds.forEach((domId) => {
             const data = MovementProcess.MovementData[domId];
             if (data) {
                 const element = document.getElementById(domId);
                 if (element) {
-                    var finishedMoving = false;
-                    // Update position based on delta time
-                    data.x += data.moveDx * delta;
-                    data.y += data.moveDy * delta;
-
-                    // Check if the current target waypoint has been reached.
-                    // Here we compare the remaining distance to the distance we would cover in this frame.
+                    let finishedMoving = false;
+                    data.x += data.moveDx * clampedDelta;
+                    data.y += data.moveDy * clampedDelta;
+    
                     const remainingDist = Math.sqrt(
                         (data.targetX - data.x) ** 2 + (data.targetY - data.y) ** 2
                     );
-                    if (remainingDist < data.speed * delta) {
-                        // Snap to the target position
+                    if (remainingDist < data.speed * clampedDelta) {
+                        finishedMoving = true;
                         data.x = data.targetX;
                         data.y = data.targetY;
-                        // Remove the reached waypoint from the queue
                         data.waypoints.shift();
-
+    
                         if (data.waypoints.length > 0) {
-                            // Set the next waypoint as the new target
+                            finishedMoving = false;
                             const nextTarget = data.waypoints[0];
                             data.targetX = nextTarget.x;
                             data.targetY = nextTarget.y;
-
                             const dx = data.targetX - data.x;
                             const dy = data.targetY - data.y;
                             const distance = Math.sqrt(dx * dx + dy * dy);
@@ -140,25 +133,23 @@ const MovementProcess = {
                                 data.moveDx = (dx / distance) * data.speed;
                                 data.moveDy = (dy / distance) * data.speed;
                             }
-                        } else {
-                            // If no more waypoints, remove the DOM element from the movement targets
+                        }
+    
+                        if (finishedMoving) {
                             MovementProcess.RemoveTargetDomId(domId);
-                            finishedMoving = true;
                         }
                     }
                     
-                    if(!finishedMoving) {
+                    if (!finishedMoving) {
                         const mapPosition = Methods.GetAnimalDomInfo(`${data.x}:${data.y}`, domId);
-                        // Apply transform for GPU acceleration
                         DomControll.ApplyTransform(element, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0`);
-                    }
-                    else {
+                    } else {
                         Animal.UpdateAnimalDomAfterMoving(MovementProcess.DefineTargetKindByDomId(domId), domId, data);
                     }
                 }
             }
         });
-
+    
         MovementProcess.MoveId = requestAnimationFrame(MovementProcess.Move);
     },
 };
