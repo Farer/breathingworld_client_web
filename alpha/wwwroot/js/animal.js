@@ -419,26 +419,31 @@ const Animal = {
         const animalDom = document.getElementById(keyId);
         if(animalDom == null) { return; }
 
-        if(speciesName == 'rabbit' && Animal.Data.rabbit[keyId] == undefined ) { return; }
-        else if(speciesName == 'wolf' && Animal.Data.wolf[keyId] == undefined ) { return; }
+        let animalData;
+        if(speciesName == 'rabbit') { animalData = Animal.Data.rabbit[keyId]; }
+        else if(speciesName == 'wolf') { animalData = Animal.Data.wolf[keyId]; }
+        if(animalData == undefined ) {
+            console.log('Animal.Data[keyId] == undefined, speciesName: ' + speciesName + ', id: ' + id);
+            return;
+        }
+        if(!Animal.IfActionStatusIsValid(speciesName, actionId)) {
+            AnimationProcess.RemoveTargetDomId(keyId);
+            return;
+        }
 
-        let data;
-        if(speciesName == 'rabbit') { data = Animal.Data.rabbit[keyId]; }
-        else if(speciesName == 'wolf') { data = Animal.Data.wolf[keyId]; }
-
-        data.currentActionFrame++;
-        if(data.currentActionFrame >= data.currentActionFrameCount) { data.currentActionFrame = 0; }
+        animalData.currentActionFrame++;
+        if(animalData.currentActionFrame >= animalData.currentActionFrameCount) { animalData.currentActionFrame = 0; }
         const previousPosX = animalDom.style.backgroundPosition.split(' ');
         const posY = parseInt(previousPosX[1], 10);
         if(speciesName == 'rabbit') {
             const oneFrameSize = Sprites.Rabbit.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
-            animalDom.style.backgroundPosition = '-' + data.currentActionFrame * oneFrameSize + 'px ' + posY + 'px';
-            Animal.Data.rabbit[keyId] = data;
+            animalDom.style.backgroundPosition = '-' + animalData.currentActionFrame * oneFrameSize + 'px ' + posY + 'px';
+            Animal.Data.rabbit[keyId] = animalData;
         }
         else if(speciesName == 'wolf') {
             const oneFrameSize = Sprites.Wolf.frameWidth / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
-            animalDom.style.backgroundPosition = '-' + data.currentActionFrame * oneFrameSize + 'px ' + posY + 'px';
-            Animal.Data.wolf[keyId] = data;
+            animalDom.style.backgroundPosition = '-' + animalData.currentActionFrame * oneFrameSize + 'px ' + posY + 'px';
+            Animal.Data.wolf[keyId] = animalData;
         }
     },
     DefineMovingDirection: (tile1, tile2) => {
