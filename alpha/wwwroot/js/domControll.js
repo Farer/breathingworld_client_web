@@ -1,5 +1,6 @@
 const DomControll = {
     TransformCache: new WeakMap(),
+    TransformOrder: ["translate3d", "translate", "scale", "scaleX"],
     TargetDomIds: new Set(),
     AnimateId: 0,
     frameCount: 0,
@@ -82,15 +83,14 @@ const DomControll = {
         let transforms = DomControll.TransformCache.get(element) || new Map();
         const stringValue = typeof value === "number" ? value.toString() : value;
         transforms.set(property, stringValue);
-        const order = ["translate3d", "translate", "scale", "scaleX"];
         let transformString = "";
-        order.forEach(key => {
+        DomControll.TransformOrder.forEach(key => {
             if (transforms.has(key)) {
                 transformString += `${key}(${transforms.get(key)}) `;
             }
         });
         transforms.forEach((val, key) => {
-            if (!order.includes(key)) {
+            if (!DomControll.TransformOrder.includes(key)) {
                 transformString += `${key}(${val}) `;
             }
         });
@@ -102,15 +102,14 @@ const DomControll = {
         let transforms = DomControll.TransformCache.get(element);
         if (!transforms) { return; }
         transforms.delete(property);
-        const order = ["translate3d", "translate", "scale", "scaleX"];
         let transformString = "";
-        order.forEach(key => {
+        DomControll.TransformOrder.forEach(key => {
             if (transforms.has(key)) {
                 transformString += `${key}(${transforms.get(key)}) `;
             }
         });
         transforms.forEach((val, key) => {
-            if (!order.includes(key)) {
+            if (!DomControll.TransformOrder.includes(key)) {
                 transformString += `${key}(${val}) `;
             }
         });
