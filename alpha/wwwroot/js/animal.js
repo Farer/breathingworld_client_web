@@ -465,7 +465,7 @@ const Animal = {
                     const movingDirection = Animal.DefineMovingDirection(startTile, endTile);
                     rabbitDom.setAttribute('movingDirection', movingDirection);
                 }
-                MovementProcess.TriggerMovement(keyId, data.movedTileIds[0], data.movedTileIds, 35);
+                MovementProcess.TriggerMovement(keyId, data.movedTileIds, 30);
             }
             else {
                 console.log('rabbitDom == null, speciesName: ' + speciesName + ', id: ' + data.id);
@@ -503,7 +503,7 @@ const Animal = {
             DomControll.RemoveTargetDomId(keyId);
             const animalDom = document.getElementById(keyId);
             if(animalDom == null) { return; }
-            DomControll.RemoveTransform(animalDom, 'translate3d');
+            // DomControll.RemoveTransform(animalDom, 'translate3d');
             animalDom.style.backgroundPositionX = '0px';
 
             let originalActionId = Animal.Data.rabbit[keyId].actionId;
@@ -590,10 +590,6 @@ const Animal = {
             // animalDom.style.left = mapPosition.left + 'px';
             // animalDom.style.top = mapPosition.top + 'px';
             DomControll.ApplyTransform(animalDom, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0px`);
-            
-            Data.AnimalMoving.timeouts[keyId] = setTimeout(() => {
-                Animal.UpdateAnimalDomAfterMoving(speciesName, keyId);
-            }, Data.AnimalMoving.timeoutIntervals[keyId]);
         }
     },
     IfActionStatusIsValid: (speciesName, actionId) => {

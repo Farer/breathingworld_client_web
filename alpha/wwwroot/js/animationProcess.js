@@ -2,7 +2,6 @@
 const AnimationProcess = {
     TargetDomIds: new Set(),
     AnimateId: 0,
-    MoveId: 0,
     FrameDiff: 60,
     DoingAnimation: false,
     frameCount: 0,

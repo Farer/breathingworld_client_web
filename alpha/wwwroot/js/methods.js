@@ -150,8 +150,6 @@ const Methods = {
 
         let left = Variables.MapCanvasInfo.widthOfCanvas * xPercent / 100 * Variables.MapScaleInfo.current;
         let top = Variables.MapCanvasInfo.heightOfCanvas * yPercent / 100 * Variables.MapScaleInfo.current;
-
-        
         
         const topModifier = Methods.CalculateAnimalDomTopModifier(keyId);
         top = top - topModifier;

@@ -3,13 +3,13 @@ const MovementProcess = {
     TargetDomIds: new Set(),
     MoveId: 0,
     DoingMovement: false,
-    lastTimestamp: null, // For delta time calculation
     MovementData: {},
+    FrameRateAdjustment: 0,
+    LastFrameTime: 0,
     StartMovement: () => {
         if (MovementProcess.DoingMovement) return;
         MovementProcess.DoingMovement = true;
-        MovementProcess.lastTimestamp = null; // Reset timestamp
-        MovementProcess.Move(); // Starts the animation loop
+        MovementProcess.Move();
     },
     CancelMovement: () => {
         MovementProcess.DoingMovement = false;
@@ -26,130 +26,141 @@ const MovementProcess = {
         if (domId.startsWith('wolf')) return 'wolf';
         return '';
     },
-    /**
-     * Previously, only a single start and destination was handled,
-     * but now it accepts an array of waypoints (e.g., [ "324:5322", "5344:55645", ... ])
-     * and stores them as a queue in Animal.Data for the given domId,
-     * then sequentially moves towards each waypoint.
-     *
-     * @param {string} domId - The id of the DOM element to move
-     * @param {string} fromPos - The starting position in the format "x:y"
-     * @param {Array} waypoints - An array of coordinates in the format "x:y"
-     * @param {number} speed - The movement speed in pixels per second
-     */
-    TriggerMovement: (domId, fromPos, waypoints, speed) => {
+    TriggerMovement: (domId, waypoints, speed) => {
         const targetKind = MovementProcess.DefineTargetKindByDomId(domId);
-        if (!targetKind) { return; }
-
-        if (!MovementProcess.MovementData[domId]) { MovementProcess.MovementData[domId] = {}; }
+        if (!targetKind || waypoints.length < 2 || !MovementProcess.PrepareMove(domId, waypoints, speed)) { MovementProcess.RemoveTargetDomId(domId); return; }
+        MovementProcess.AddTargetDomId(domId);
+        MovementProcess.StartMovement();
+    },
+    PrepareMove: (domId, waypoints, speed) => {
+        MovementProcess.MovementData[domId] = {};
         const data = MovementProcess.MovementData[domId];
-        const fromPosSplit = fromPos.split(':').map(Number);
-
-        // Set the current position
-        data.x = fromPosSplit[0];
-        data.y = fromPosSplit[1];
-        data.speed = speed;
-
-        // Store waypoints as an array (each element is an object {x, y})
+        data.domId = domId;
+        data.originalWayPoints = [...waypoints];
+        data.speed = speed / 100;
         data.waypoints = waypoints.map(point => {
             const split = point.split(':').map(Number);
             return { x: split[0], y: split[1] };
         });
 
-        // Set the first waypoint as the current target
-        if (data.waypoints.length > 0) {
-            const currentTarget = data.waypoints[0];
-            data.targetX = currentTarget.x;
-            data.targetY = currentTarget.y;
+        if(!MovementProcess.PrepareData(data)) { return false; }
 
-            const dx = data.targetX - data.x;
-            const dy = data.targetY - data.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance === 0) {
-                data.moveDx = 0;
-                data.moveDy = 0;
-            } else {
-                // Compute directional speed (pixels per second)
-                data.moveDx = (dx / distance) * speed;
-                data.moveDy = (dy / distance) * speed;
-            }
-        }
-
-        MovementProcess.AddTargetDomId(domId);
-        MovementProcess.StartMovement();
         var targetDom = document.getElementById(domId);
         Animal.ApplyAnimalDomTransform(targetDom, Animal.Data.rabbit[domId]);
         const mapPosition = Methods.GetAnimalDomInfo(`${data.x}:${data.y}`, domId);
         DomControll.ApplyTransform(targetDom, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0`);
+        return true;
     },
-    /**
-     * The Move function now uses delta time to update movement,
-     * making the speed consistent regardless of frame rate.
-     * This should slow down the movement if speed is reduced.
-     */
-    Move: (timestamp) => {
-        if (!MovementProcess.lastTimestamp) {
-            MovementProcess.lastTimestamp = timestamp;
+    PrepareData: (data) => {
+        const fromPos = data.waypoints.shift();
+        data.x = fromPos.x;
+        data.y = fromPos.y;
+
+        data.fromX = fromPos.x;
+        data.fromY = fromPos.y;
+
+        const toPos = data.waypoints.shift();
+        data.toX = toPos.x;
+        data.toY = toPos.y;
+        
+        data.toXDirection = data.fromX < data.toX ? '+' : data.fromX > data.toX ? '-' : '';
+        data.toYDirection = data.fromY < data.toY ? '+' : data.fromY > data.toY ? '-' : '';
+
+        const dx = data.toX - data.fromX;
+        const dy = data.toY - data.fromY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance === 0) {
+            console.log('distance is 0');
+            if(data.waypoints.length > 0) {
+                data.waypoints.unshift(toPos);
+                console.log('continue next point');
+                return MovementProcess.PrepareData(data);
+            }
+            else {
+                console.log('finish moving');
+                MovementProcess.RemoveTargetDomId(data.domId);
+                return false;
+            }
         }
-        let delta = (timestamp - MovementProcess.lastTimestamp) / 1000;
-        const clampedDelta = Math.min(delta, 0.01);
-        MovementProcess.lastTimestamp = timestamp;
-    
+        else {
+            data.movingDx = (dx / distance) * data.speed;
+            data.movingDy = (dy / distance) * data.speed;
+        }
+        return true;
+    },
+    Move: () => {
         if (MovementProcess.TargetDomIds.size === 0) {
             MovementProcess.CancelMovement();
             return;
         }
+    
+        const now = performance.now();
+        if (now - MovementProcess.LastFrameTime < MovementProcess.FrameRateAdjustment) {
+            requestAnimationFrame(MovementProcess.Move);
+            return;
+        }
+        MovementProcess.LastFrameTime = now;
     
         MovementProcess.TargetDomIds.forEach((domId) => {
             const data = MovementProcess.MovementData[domId];
             if (data) {
                 const element = document.getElementById(domId);
                 if (element) {
-                    let finishedMoving = false;
-                    data.x += data.moveDx * clampedDelta;
-                    data.y += data.moveDy * clampedDelta;
-    
-                    const remainingDist = Math.sqrt(
-                        (data.targetX - data.x) ** 2 + (data.targetY - data.y) ** 2
-                    );
-                    if (remainingDist < data.speed * clampedDelta) {
-                        finishedMoving = true;
-                        data.x = data.targetX;
-                        data.y = data.targetY;
-                        data.waypoints.shift();
-    
-                        if (data.waypoints.length > 0) {
-                            finishedMoving = false;
-                            const nextTarget = data.waypoints[0];
-                            data.targetX = nextTarget.x;
-                            data.targetY = nextTarget.y;
-                            const dx = data.targetX - data.x;
-                            const dy = data.targetY - data.y;
-                            const distance = Math.sqrt(dx * dx + dy * dy);
-                            if (distance === 0) {
-                                data.moveDx = 0;
-                                data.moveDy = 0;
-                            } else {
-                                data.moveDx = (dx / distance) * data.speed;
-                                data.moveDy = (dy / distance) * data.speed;
-                            }
-                        }
-    
-                        if (finishedMoving) {
-                            MovementProcess.RemoveTargetDomId(domId);
-                        }
-                    }
-                    
+                    const isArrivedToPos = MovementProcess.IfArrivedAtNextPoint(data);
+                    const finishedMoving = isArrivedToPos && data.waypoints.length == 0;
                     if (!finishedMoving) {
                         const mapPosition = Methods.GetAnimalDomInfo(`${data.x}:${data.y}`, domId);
                         DomControll.ApplyTransform(element, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0`);
+                        if (isArrivedToPos) {
+                            if (!MovementProcess.PrepareData(data)) {
+                                console.log('MovementProcess.Move : data error ! Cancel movement of this.');
+                                console.log(data);
+                                MovementProcess.RemoveTargetDomId(domId);
+                                return;
+                            }
+                        }
                     } else {
+                        MovementProcess.RemoveTargetDomId(domId);
                         Animal.UpdateAnimalDomAfterMoving(MovementProcess.DefineTargetKindByDomId(domId), domId, data);
                     }
+                } else {
+                    MovementProcess.RemoveTargetDomId(domId);
+                    return;
                 }
             }
         });
     
         MovementProcess.MoveId = requestAnimationFrame(MovementProcess.Move);
     },
+    IfArrivedAtNextPoint: (data) => {
+        data.x += data.movingDx;
+        data.y += data.movingDy;
+
+        let arrivedX = (data.toXDirection === '' || 
+            (data.toXDirection === '+' && data.x >= data.toX) ||
+            (data.toXDirection === '-' && data.x <= data.toX));
+
+        let arrivedY = (data.toYDirection === '' || 
+            (data.toYDirection === '+' && data.y >= data.toY) ||
+            (data.toYDirection === '-' && data.y <= data.toY));
+
+        if (arrivedX && arrivedY) {
+            data.x = data.toX;
+            data.y = data.toY;
+            return true;
+        }
+        return false;
+    },
+    AdjustFrameRate: () => {
+        const totalTargets = MovementProcess.TargetDomIds.size;
+        const averageSpeed = Array.from(MovementProcess.TargetDomIds).reduce((sum, domId) => {
+            return sum + MovementProcess.MovementData[domId].speed;
+        }, 0) / totalTargets;
+    
+        if (totalTargets <= 5) { MovementProcess.FrameRateAdjustment = Math.max(1000 / (averageSpeed * 2), 16); }
+        else {
+            if (averageSpeed > 1) { MovementProcess.FrameRateAdjustment = Math.max(1000 / (averageSpeed * 1.5), 16); }
+            else { MovementProcess.FrameRateAdjustment = Math.max(1000 / (averageSpeed * 1), 16); }
+        }
+    }
 };
