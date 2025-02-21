@@ -1,148 +1,149 @@
 'use strict';
 const MovementProcess = {
     TargetDomIds: new Set(),
-    MoveId: 0,
-    DoingMovement: false,
     MovementData: {},
     FrameRateAdjustment: 16,
-    LastFrameTime: 0,
-    StartMovement: () => {
-        if (MovementProcess.DoingMovement) return;
-        MovementProcess.DoingMovement = true;
-        MovementProcess.Move();
+
+    StartMovement: () => {},
+
+    CancelMovement: (domId) => {
+        const data = MovementProcess.MovementData[domId];
+        if (data && data.animation) {
+            data.animation.cancel();
+            MovementProcess.RemoveTargetDomId(domId);
+        }
     },
-    CancelMovement: () => {
-        MovementProcess.DoingMovement = false;
-        cancelAnimationFrame(MovementProcess.MoveId);
-    },
+
     AddTargetDomId: (id) => {
         MovementProcess.TargetDomIds.add(id);
     },
+
     RemoveTargetDomId: (id) => {
         MovementProcess.TargetDomIds.delete(id);
         delete MovementProcess.MovementData[id];
     },
+
     DefineTargetKindByDomId: (domId) => {
         if (domId.startsWith('rabbit')) return 'rabbit';
         if (domId.startsWith('wolf')) return 'wolf';
         return '';
     },
+
     TriggerMovement: (domId, waypoints, speed) => {
         const targetKind = MovementProcess.DefineTargetKindByDomId(domId);
-        if (!targetKind || waypoints.length < 2 || !MovementProcess.PrepareMove(domId, waypoints, speed)) { MovementProcess.RemoveTargetDomId(domId); return; }
-        MovementProcess.AddTargetDomId(domId);
-        MovementProcess.StartMovement();
-    },
-    PrepareMove: (domId, waypoints, speed) => {
-        MovementProcess.MovementData[domId] = {};
-        const data = MovementProcess.MovementData[domId];
-        data.domId = domId;
-        data.element = document.getElementById(domId);
-        data.originalWayPoints = [...waypoints];
-        data.speed = speed / 1000;
-        data.waypoints = waypoints.map(point => {
-            const split = point.split(':').map(Number);
-            return { x: split[0], y: split[1] };
-        });
-
-        if(!MovementProcess.PrepareData(data)) { return false; }
-
-        var targetDom = document.getElementById(domId);
-        Animal.ApplyAnimalDomTransform(targetDom, Animal.Data.rabbit[domId]);
-        const mapPosition = Methods.GetAnimalDomInfo(`${data.x}:${data.y}`, domId);
-        DomControll.ApplyTransform(targetDom, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0`);
-        return true;
-    },
-    PrepareData: (data) => {
-        const fromPos = data.waypoints.shift();
-        data.x = fromPos.x;
-        data.y = fromPos.y;
-
-        data.fromX = fromPos.x;
-        data.fromY = fromPos.y;
-
-        const toPos = data.waypoints.shift();
-        data.toX = toPos.x;
-        data.toY = toPos.y;
-        
-        data.toXDirection = data.fromX < data.toX ? '+' : data.fromX > data.toX ? '-' : '';
-        data.toYDirection = data.fromY < data.toY ? '+' : data.fromY > data.toY ? '-' : '';
-
-        const dx = data.toX - data.fromX;
-        const dy = data.toY - data.fromY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance === 0) {
-            console.log('distance is 0');
-            if(data.waypoints.length > 0) {
-                data.waypoints.unshift(toPos);
-                console.log('continue next point');
-                return MovementProcess.PrepareData(data);
-            }
-            else {
-                console.log('finish moving');
-                MovementProcess.RemoveTargetDomId(data.domId);
-                return false;
-            }
-        }
-        else {
-            data.movingDx = (dx / distance) * data.speed;
-            data.movingDy = (dy / distance) * data.speed;
-        }
-        return true;
-    },
-    Move: () => {
-        if (MovementProcess.TargetDomIds.size === 0) {
-            MovementProcess.CancelMovement();
+        if (!targetKind || waypoints.length < 2) {
+            MovementProcess.RemoveTargetDomId(domId);
             return;
         }
-    
-        const now = performance.now();
-        MovementProcess.LastFrameTime = now;
-    
-        for (const domId of MovementProcess.TargetDomIds) {
-            const data = MovementProcess.MovementData[domId];
-            if (data && data.element) {
-                const isArrivedToPos = MovementProcess.IfArrivedAtNextPoint(data);
-                const finishedMoving = isArrivedToPos && data.waypoints.length === 0;
-                if (!finishedMoving) {
-                    const mapPosition = Methods.GetAnimalDomInfo(`${data.x}:${data.y}`, domId);
-                    DomControll.ApplyTransform(data.element, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0`);
-                    if (isArrivedToPos) {
-                        if (!MovementProcess.PrepareData(data)) {
-                            console.log('MovementProcess.Move : data error ! Cancel movement of this.');
-                            console.log(data);
-                            MovementProcess.RemoveTargetDomId(domId);
-                            continue;
-                        }
-                    }
-                } else {
-                    MovementProcess.RemoveTargetDomId(domId);
-                    Animal.UpdateAnimalDomAfterMoving(MovementProcess.DefineTargetKindByDomId(domId), domId, data);
+
+        const element = document.getElementById(domId);
+        if (!element) {
+            MovementProcess.RemoveTargetDomId(domId);
+            return;
+        }
+
+        if (MovementProcess.MovementData[domId] && MovementProcess.MovementData[domId].animation) {
+            MovementProcess.CancelMovement(domId);
+        }
+
+        MovementProcess.MovementData[domId] = {
+            domId,
+            element,
+            originalWayPoints: [...waypoints],
+            speed: speed,
+        };
+
+        let transforms = DomControll.TransformCache.get(element) || new Map();
+
+        const animalData = Animal.Data[targetKind][domId];
+        if (animalData && !transforms.has('scale')) {
+            const maxGrowth = Variables.Settings.animalMaxGrowthForScale;
+            const growth = Math.min(Math.max(animalData.growth || 5, 5), maxGrowth);
+            const scale = (1 / maxGrowth * growth);
+            DomControll.ApplyTransform(element, 'scale', scale);
+            transforms = DomControll.TransformCache.get(element);
+        }
+
+        const direction = element.getAttribute('movingDirection');
+        if (!transforms.has('scaleX') || transforms.get('scaleX') !== (direction === 'right' ? '-1' : '1')) {
+            const scaleX = direction === 'right' ? -1 : (direction === 'left' ? 1 : transforms.get('scaleX') || 1);
+            DomControll.ApplyTransform(element, 'scaleX', scaleX);
+            transforms = DomControll.TransformCache.get(element);
+        }
+
+        if (!transforms.has('translate3d')) {
+            const initialPos = Methods.GetAnimalDomInfo(waypoints[0], domId);
+            DomControll.ApplyTransform(element, 'translate3d', `${initialPos.left}px, ${initialPos.top}px, 0`);
+            transforms = DomControll.TransformCache.get(element);
+        }
+
+        let totalDistance = 0;
+        for (let i = 1; i < waypoints.length; i++) {
+            const [x1, y1] = waypoints[i - 1].split(':').map(Number);
+            const [x2, y2] = waypoints[i].split(':').map(Number);
+            const distance = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+            totalDistance += distance;
+        }
+
+        const keyframes = waypoints.map(point => {
+            const [x, y] = point.split(':').map(Number);
+            const mapPosition = Methods.GetAnimalDomInfo(`${x}:${y}`, domId);
+            if (!mapPosition || typeof mapPosition.left === 'undefined' || typeof mapPosition.top === 'undefined') {
+                console.error('Invalid mapPosition for', point, mapPosition);
+                return { transform: transforms.get('translate3d') || 'translate3d(0px, 0px, 0)' };
+            }
+
+            const updatedTransforms = new Map(transforms);
+            updatedTransforms.set('translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0`);
+
+            let transformString = "";
+            DomControll.TransformOrder.forEach(key => {
+                if (updatedTransforms.has(key)) {
+                    transformString += `${key}(${updatedTransforms.get(key)}) `;
                 }
-            } else {
+            });
+            updatedTransforms.forEach((val, key) => {
+                if (!DomControll.TransformOrder.includes(key)) {
+                    transformString += `${key}(${val}) `;
+                }
+            });
+
+            const result = { transform: transformString.trim() };
+            return result;
+        });
+
+        const speedValue = MovementProcess.MovementData[domId].speed;
+        const totalDuration = Math.max(totalDistance / speedValue * 1000, 100); // ms 단위, 최소 100ms
+
+        const animation = element.animate(keyframes, {
+            duration: totalDuration,
+            easing: 'linear',
+            fill: 'forwards',
+        });
+
+        MovementProcess.MovementData[domId].animation = animation;
+        MovementProcess.AddTargetDomId(domId);
+
+        animation.onfinish = () => {
+            const data = MovementProcess.MovementData[domId];
+            if (data) {
+                const finalMapPosition = Methods.GetAnimalDomInfo(waypoints[waypoints.length - 1], domId);
+                DomControll.ApplyTransform(element, 'translate3d', `${finalMapPosition.left}px, ${finalMapPosition.top}px, 0`);
+                const finalDirection = element.getAttribute('movingDirection');
+                if (finalDirection) {
+                    const scaleX = finalDirection === 'right' ? -1 : 1;
+                    DomControll.ApplyTransform(element, 'scaleX', scaleX);
+                }
+                Animal.UpdateAnimalDomAfterMoving(targetKind, domId, {
+                    x: parseInt(waypoints[waypoints.length - 1].split(':')[0]),
+                    y: parseInt(waypoints[waypoints.length - 1].split(':')[1]),
+                });
                 MovementProcess.RemoveTargetDomId(domId);
             }
-        }
-    
-        MovementProcess.MoveId = requestAnimationFrame(MovementProcess.Move);
+        };
+
+        animation.oncancel = () => {
+            MovementProcess.RemoveTargetDomId(domId);
+        };
     },
-    IfArrivedAtNextPoint: (data) => {
-        data.x += data.movingDx;
-        data.y += data.movingDy;
-
-        let arrivedX = (data.toXDirection === '' || 
-            (data.toXDirection === '+' && data.x >= data.toX) ||
-            (data.toXDirection === '-' && data.x <= data.toX));
-
-        let arrivedY = (data.toYDirection === '' || 
-            (data.toYDirection === '+' && data.y >= data.toY) ||
-            (data.toYDirection === '-' && data.y <= data.toY));
-
-        if (arrivedX && arrivedY) {
-            data.x = data.toX;
-            data.y = data.toY;
-            return true;
-        }
-        return false;
-    }
 };
