@@ -99,11 +99,11 @@ const MovementProcess = {
         const now = performance.now();
         MovementProcess.LastFrameTime = now;
     
-        MovementProcess.TargetDomIds.forEach((domId) => {
+        for (const domId of MovementProcess.TargetDomIds) {
             const data = MovementProcess.MovementData[domId];
             if (data && data.element) {
                 const isArrivedToPos = MovementProcess.IfArrivedAtNextPoint(data);
-                const finishedMoving = isArrivedToPos && data.waypoints.length == 0;
+                const finishedMoving = isArrivedToPos && data.waypoints.length === 0;
                 if (!finishedMoving) {
                     const mapPosition = Methods.GetAnimalDomInfo(`${data.x}:${data.y}`, domId);
                     DomControll.ApplyTransform(data.element, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0`);
@@ -112,7 +112,7 @@ const MovementProcess = {
                             console.log('MovementProcess.Move : data error ! Cancel movement of this.');
                             console.log(data);
                             MovementProcess.RemoveTargetDomId(domId);
-                            return;
+                            continue;
                         }
                     }
                 } else {
@@ -121,9 +121,8 @@ const MovementProcess = {
                 }
             } else {
                 MovementProcess.RemoveTargetDomId(domId);
-                return;
             }
-        });
+        }
     
         MovementProcess.MoveId = requestAnimationFrame(MovementProcess.Move);
     },
