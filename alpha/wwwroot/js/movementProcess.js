@@ -4,7 +4,7 @@ const MovementProcess = {
     MoveId: 0,
     DoingMovement: false,
     MovementData: {},
-    FrameRateAdjustment: 0,
+    FrameRateAdjustment: 16,
     LastFrameTime: 0,
     StartMovement: () => {
         if (MovementProcess.DoingMovement) return;
@@ -20,6 +20,7 @@ const MovementProcess = {
     },
     RemoveTargetDomId: (id) => {
         MovementProcess.TargetDomIds.delete(id);
+        delete MovementProcess.MovementData[id];
     },
     DefineTargetKindByDomId: (domId) => {
         if (domId.startsWith('rabbit')) return 'rabbit';
@@ -36,8 +37,9 @@ const MovementProcess = {
         MovementProcess.MovementData[domId] = {};
         const data = MovementProcess.MovementData[domId];
         data.domId = domId;
+        data.element = document.getElementById(domId);
         data.originalWayPoints = [...waypoints];
-        data.speed = speed / 100;
+        data.speed = speed / 1000;
         data.waypoints = waypoints.map(point => {
             const split = point.split(':').map(Number);
             return { x: split[0], y: split[1] };
@@ -95,38 +97,31 @@ const MovementProcess = {
         }
     
         const now = performance.now();
-        if (now - MovementProcess.LastFrameTime < MovementProcess.FrameRateAdjustment) {
-            requestAnimationFrame(MovementProcess.Move);
-            return;
-        }
         MovementProcess.LastFrameTime = now;
     
         MovementProcess.TargetDomIds.forEach((domId) => {
             const data = MovementProcess.MovementData[domId];
-            if (data) {
-                const element = document.getElementById(domId);
-                if (element) {
-                    const isArrivedToPos = MovementProcess.IfArrivedAtNextPoint(data);
-                    const finishedMoving = isArrivedToPos && data.waypoints.length == 0;
-                    if (!finishedMoving) {
-                        const mapPosition = Methods.GetAnimalDomInfo(`${data.x}:${data.y}`, domId);
-                        DomControll.ApplyTransform(element, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0`);
-                        if (isArrivedToPos) {
-                            if (!MovementProcess.PrepareData(data)) {
-                                console.log('MovementProcess.Move : data error ! Cancel movement of this.');
-                                console.log(data);
-                                MovementProcess.RemoveTargetDomId(domId);
-                                return;
-                            }
+            if (data && data.element) {
+                const isArrivedToPos = MovementProcess.IfArrivedAtNextPoint(data);
+                const finishedMoving = isArrivedToPos && data.waypoints.length == 0;
+                if (!finishedMoving) {
+                    const mapPosition = Methods.GetAnimalDomInfo(`${data.x}:${data.y}`, domId);
+                    DomControll.ApplyTransform(data.element, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0`);
+                    if (isArrivedToPos) {
+                        if (!MovementProcess.PrepareData(data)) {
+                            console.log('MovementProcess.Move : data error ! Cancel movement of this.');
+                            console.log(data);
+                            MovementProcess.RemoveTargetDomId(domId);
+                            return;
                         }
-                    } else {
-                        MovementProcess.RemoveTargetDomId(domId);
-                        Animal.UpdateAnimalDomAfterMoving(MovementProcess.DefineTargetKindByDomId(domId), domId, data);
                     }
                 } else {
                     MovementProcess.RemoveTargetDomId(domId);
-                    return;
+                    Animal.UpdateAnimalDomAfterMoving(MovementProcess.DefineTargetKindByDomId(domId), domId, data);
                 }
+            } else {
+                MovementProcess.RemoveTargetDomId(domId);
+                return;
             }
         });
     
@@ -150,17 +145,5 @@ const MovementProcess = {
             return true;
         }
         return false;
-    },
-    AdjustFrameRate: () => {
-        const totalTargets = MovementProcess.TargetDomIds.size;
-        const averageSpeed = Array.from(MovementProcess.TargetDomIds).reduce((sum, domId) => {
-            return sum + MovementProcess.MovementData[domId].speed;
-        }, 0) / totalTargets;
-    
-        if (totalTargets <= 5) { MovementProcess.FrameRateAdjustment = Math.max(1000 / (averageSpeed * 2), 16); }
-        else {
-            if (averageSpeed > 1) { MovementProcess.FrameRateAdjustment = Math.max(1000 / (averageSpeed * 1.5), 16); }
-            else { MovementProcess.FrameRateAdjustment = Math.max(1000 / (averageSpeed * 1), 16); }
-        }
     }
 };
