@@ -473,8 +473,6 @@ const Animal = {
         }
         else if(speciesName == 'wolf') {
             const keyId = speciesName + '-' + data.id;
-            
-            MovementProcess.RemoveTargetDomId(keyId);
             if(data.movedTileIds.length > 0) {
                 DomControll.AddTargetDomId(keyId);
                 DomControll.StartProcess();
@@ -485,16 +483,10 @@ const Animal = {
                     const movingDirection = Animal.DefineMovingDirection(startTile, endTile);
                     wolfDom.setAttribute('movingDirection', movingDirection);
                 }
-                const movingSpeed = Variables.Settings.averageWolfProceedIntervalSeconds*1000 / data.movedTileIds.length / 3;
-                const targetTileIdsCount = data.movedTileIds.length;
-                let willMoveTileIds = [];
-                for(let i=0; i<targetTileIdsCount; i++) {
-                    const tileId = data.movedTileIds.pop();
-                    if(tileId == undefined) { continue; }
-                    willMoveTileIds.unshift(tileId);
-                }
-                Data.AnimalMoving.movingTileIds[keyId] = willMoveTileIds;
-                Data.AnimalMoving.reservedTiles[keyId] = data.reservedTiles;
+                MovementProcess.TriggerMovement(keyId, data.movedTileIds, 100);
+            }
+            else {
+                console.log('wolfDom == null, speciesName: ' + speciesName + ', id: ' + data.id);
             }
         }
     },
@@ -541,55 +533,45 @@ const Animal = {
             
         }
         else if(speciesName == 'wolf') {
-            if(Data.AnimalMoving.movingTileIds[keyId] == undefined || Data.AnimalMoving.movingTileIds[keyId].length == 0) {
-                DomControll.RemoveTargetDomId(keyId);
-                const animalDom = document.getElementById(keyId);
-                if(animalDom == null) { return; }
-                animalDom.style.backgroundPositionX = '0px';
-            
-                let originalActionId = Animal.Data.wolf[keyId].actionId;
-                if(Variables.Settings.wolfActionStatus[originalActionId]=='dead') {
-                    AnimationProcess.RemoveTargetDomId(keyId);
-                    Animal.DrawAnimalBones(speciesName, Animal.Data.wolf[keyId]);
-                }
-                else if(
-                    Variables.Settings.wolfActionStatus[originalActionId]=='mating' ||
-                    Variables.Settings.wolfActionStatus[originalActionId]=='pregnant' ||
-                    Variables.Settings.wolfActionStatus[originalActionId]=='breeding'
-                ) {
-                    AnimationProcess.RemoveTargetDomId(keyId);
-                    Animal.DrawEtcBackground(keyId, originalActionId);
-                }
-                else {
-                    if(Variables.Settings.wolfActionStatus[originalActionId]!='eating' && Variables.Settings.wolfActionStatus[originalActionId]!='sleep') {
-                        originalActionId = 0;
-                    }
-                    Animal.Data.wolf[keyId].currentActionFrameCount = Sprites.Wolf.frameCounts[originalActionId];
-                    Animal.Data.wolf[keyId].currentActionFrameDelay = Sprites.Wolf.frameDelay[originalActionId];
-                    const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, originalActionId);
-                    animalDom.style.backgroundPositionY = '-' + backgroundPosY + 'px';
-                }
-                return;
+            DomControll.RemoveTargetDomId(keyId);
+            const animalDom = document.getElementById(keyId);
+            if(animalDom == null) { return; }
+            // DomControll.RemoveTransform(animalDom, 'translate3d');
+            animalDom.style.backgroundPositionX = '0px';
+
+            let originalActionId = Animal.Data.wolf[keyId].actionId;
+            if(Variables.Settings.wolfActionStatus[originalActionId]=='dead') {
+                AnimationProcess.RemoveTargetDomId(keyId);
+                Animal.DrawAnimalBones(speciesName, Animal.Data.wolf[keyId]);
             }
-            const targetPosition = Data.AnimalMoving.movingTileIds[keyId].shift();
+            else if(
+                Variables.Settings.wolfActionStatus[originalActionId]=='mating' ||
+                Variables.Settings.wolfActionStatus[originalActionId]=='pregnant' ||
+                Variables.Settings.wolfActionStatus[originalActionId]=='breeding'
+            ) {
+                AnimationProcess.RemoveTargetDomId(keyId);
+                Animal.DrawEtcBackground(keyId, originalActionId);
+            }
+            else {
+                if(Variables.Settings.wolfActionStatus[originalActionId]!='eating' && Variables.Settings.wolfActionStatus[originalActionId]!='sleep') {
+                    originalActionId = 0;
+                }
+                Animal.Data.wolf[keyId].currentActionFrameCount = Sprites.Wolf.frameCounts[originalActionId];
+                Animal.Data.wolf[keyId].currentActionFrameDelay = Sprites.Wolf.frameDelay[originalActionId];
+                const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, originalActionId);
+                animalDom.style.backgroundPositionY = '-' + backgroundPosY + 'px';
+            }
+
+            const targetPosition = `${movementData.x}:${movementData.y}`;
             const mapPosition = Methods.GetAnimalDomInfo(targetPosition, keyId);
             if(mapPosition == null) {
                 console.log('mapPosition == null, keyId: ' + keyId + ', targetPosition: ' + targetPosition);
                 return;
             }
-            const animalDom = document.getElementById(keyId);
-            if(animalDom == null) {
-                clearTimeout(Data.AnimalMoving.timeouts[keyId]);
-                Data.AnimalMoving.timeoutIntervals[keyId] = null;
-                Data.AnimalMoving.movingTileIds[keyId] = null;
-                return;
-            }
-            
-            Animal.ApplyAnimalDomTransform(animalDom, Animal.Data.wolf[keyId]);
-            
             // animalDom.style.left = mapPosition.left + 'px';
             // animalDom.style.top = mapPosition.top + 'px';
             DomControll.ApplyTransform(animalDom, 'translate3d', `${mapPosition.left}px, ${mapPosition.top}px, 0px`);
+            
         }
     },
     IfActionStatusIsValid: (speciesName, actionId) => {
