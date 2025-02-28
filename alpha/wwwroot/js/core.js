@@ -27,7 +27,10 @@ const Core = {
         const filterShadowStyle = ' filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));';
     
         let html = '';
-        html += '<div class="external-links-container" style="position: fixed; top: 20px; right: 20px; display: flex; gap: 25px;">';
+        html += '<div class="external-links-container" id="externalLinksContainer" style="position: fixed; top: 20px; right: 20px; display: flex; gap: 25px;">';
+            html += '<div id="locationIcon" style="cursor: pointer; display: block;">'; // 기본적으로 보이도록 설정
+                html += '<img src="' + window.cdnPrefix + '/img/icon_location.svg" alt="Location" style="width: 30px; height: 30px; ' + filterShadowStyle + '">';
+            html += '</div>';
             html += '<a href="https://api.breathingworld.com/" target="_blank" style="display: block;">';
                 html += '<img src="' + window.cdnPrefix + '/img/graph-bar.svg" alt="Dashboard" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
             html += '</a>';
@@ -41,6 +44,7 @@ const Core = {
                 html += '<img src="' + window.cdnPrefix + '/img/icon_clyde_white_RGB.svg" alt="Discord" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
             html += '</a>';
         html += '</div>';
+        
         discordDom.innerHTML = html;
         document.body.appendChild(discordDom);
     
@@ -55,6 +59,20 @@ const Core = {
         html += '</a>';
         mainLinkDom.innerHTML = html;
         document.body.appendChild(mainLinkDom);
+
+        const selectLocationDom = document.createElement('div');
+        selectLocationDom.id = 'selectLocationDom';
+        selectLocationDom.style.position = 'absolute';
+        selectLocationDom.style.display = 'none';
+        selectLocationDom.style.textAlign = 'right';
+        html = '';
+        html += '<select id="locationSelect" style="position: absolute; background-color: #333; color: #FFF; border: 1px solid #555; padding: 5px; font-size: 16px; ' + filterShadowStyle + '">'; // 기본적으로 숨김
+            html += '<option value="ap" selected>Asia</option>';
+            html += '<option value="eu">Europe</option>';
+            html += '<option value="us">United States</option>';
+        html += '</select>';
+        selectLocationDom.innerHTML = html;
+        document.body.appendChild(selectLocationDom);
     
         const moreButton = document.createElement('div');
         moreButton.id = 'more_button';
@@ -66,7 +84,8 @@ const Core = {
         document.body.appendChild(moreButton);
     
         const externalLinksContainer = document.querySelector('.external-links-container');
-    
+        const locationIcon = document.getElementById('locationIcon');
+
         const updateVisibility = () => {
             if (window.innerWidth <= 768) {
                 externalLinksContainer.style.display = 'none';
@@ -79,11 +98,15 @@ const Core = {
                 externalLinksContainer.style.flexDirection = 'row';
                 externalLinksContainer.style.top = '20px';
                 moreButton.style.display = 'none';
+                selectLocationDom.style.display = 'none';
             }
         };
-    
+
         updateVisibility();
-        window.addEventListener('resize', updateVisibility);
+        window.addEventListener('resize', () => {
+            updateVisibility();
+            selectLocationDom.style.display = 'none';
+        });
     
         moreButton.addEventListener('click', () => {
             if (externalLinksContainer.style.display === 'none') {
@@ -93,6 +116,25 @@ const Core = {
                 externalLinksContainer.style.display = 'none';
                 moreButton.innerHTML = '<img src="' + window.cdnPrefix + '/img/more-horizontal-svgrepo-com.svg" alt="more" style="width: 34px; height: 34px; '+filterShadowStyle+'">';
             }
+        });
+
+        locationIcon.addEventListener('click', (event) => {
+                event.stopPropagation();
+                selectLocationDom.style.display = 'block';
+                const locationIconRect = locationIcon.getBoundingClientRect();
+                const selectLocationWidth = document.getElementById('locationSelect').offsetWidth;
+                selectLocationDom.style.left = (locationIconRect.right - selectLocationWidth) + 'px';
+                selectLocationDom.style.top = locationIconRect.top + 'px';
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!selectLocationDom.contains(event.target)) {
+                selectLocationDom.style.display = 'none';
+            }
+        });
+
+        selectLocationDom.addEventListener('change', () => {
+            selectLocationDom.style.display = 'none';
         });
     },
     DrawUsersCountDom: () => {

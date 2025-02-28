@@ -68,3 +68,14 @@ body {
     background-color: #FFF;
     transition: width 0.2s;
 }
+
+#locationIcon {
+    margin-right: -5px;
+}
+
+@media (max-width: 768px) {
+    #locationIcon {
+        margin-right: 0;
+        margin-bottom: -3px;
+    }
+}
