@@ -3,7 +3,7 @@ const Core = {
     SetUrls: (selectedRegion) => {
         const urlPrefix = selectedRegion != 'kr' ? selectedRegion+'-' : '';
         const urlParams = new URLSearchParams(window.location.search);
-        Variables.ApiUrl = urlParams.get('api') || 'https://'+urlPrefix+'api.breathingworld.com';
+        Variables.ApiUrl = urlParams.get('api') || 'https://api.breathingworld.com';
         Variables.SocketUrl = urlParams.get('socket') || 'https://'+urlPrefix+'api.breathingworld.com';
         Variables.ChatUrl = urlParams.get('chat') || 'https://chat.breathingworld.com';
     },
