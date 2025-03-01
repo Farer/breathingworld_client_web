@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Breathing World - Alpha Test</title>
     <script>
-        window.cdnPrefix = ''; let totalTasks = 0; let completedTasks = 0;
-        const origin = window.location.origin;
-        if (origin === "https://us-alpha.breathingworld.com") { window.cdnPrefix = "https://us-alpha-bw.b-cdn.net"; }
-        else if (origin === "https://eu-alpha.breathingworld.com") { window.cdnPrefix = "https://eu-alpha-bw.b-cdn.net"; }
-        else if (origin === "https://ap-alpha.breathingworld.com") { window.cdnPrefix = "https://ap-alpha-bw.b-cdn.net"; }
+        const selectedRegion = localStorage.getItem('selectedRegion');
+        window.cdnPrefix = selectedRegion != 'kr' ? 'https://'+selectedRegion+'-alpha-bw.b-cdn.net' : '';
+        let totalTasks = 0; let completedTasks = 0;
         function loadCSS(href) {
             const link = document.createElement("link");
             link.rel = "stylesheet";
