@@ -51,7 +51,6 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 999999999;
-    display: none;
 }
 
 #progress-bar-container {

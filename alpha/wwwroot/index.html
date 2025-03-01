@@ -22,7 +22,7 @@
             script.onerror = () => { console.error(`Failed to load script: ${script.src}`); };
             document.body.appendChild(script);
         }
-        loadCSS("/css/common.css?5");
+        loadCSS("/css/common.css?6");
         const scripts = [
             "/js/images.js?9",
             "/js/lib/msgpack.min.js",
@@ -40,7 +40,7 @@
             "/js/socket.js?19",
             "/js/chat.js?7",
             "/js/core.js?25",
-            "/js/index.js?7"
+            "/js/index.js?8"
         ];
         function updateProgress() { completedTasks++; const percent = Math.round((completedTasks / totalTasks) * 100); document.getElementById("progress-bar").style.width = percent + "%"; }
         function loadScriptsSequentially(index = 0) { if (index < scripts.length) { loadScript(scripts[index], () => { updateProgress(); loadScriptsSequentially(index + 1); }); } }

@@ -2,6 +2,7 @@
 window.onload = async function () {
     const selectedRegion = localStorage.getItem('selectedRegion');
     if (!selectedRegion) {
+        document.getElementById('loading-screen').style.display = 'none';
         Core.DrawLocationSelectionMenu();
         return;
     }
