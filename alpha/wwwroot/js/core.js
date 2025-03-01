@@ -1,7 +1,7 @@
 'use strict';
 const Core = {
     SetUrls: (selectedRegion) => {
-        const urlPrefix = selectedRegion != 'ap' ? selectedRegion+'-' : '';
+        const urlPrefix = selectedRegion != 'kr' ? selectedRegion+'-' : '';
         const urlParams = new URLSearchParams(window.location.search);
         Variables.ApiUrl = urlParams.get('api') || 'https://'+urlPrefix+'api.breathingworld.com';
         Variables.SocketUrl = urlParams.get('socket') || 'https://'+urlPrefix+'api.breathingworld.com';
@@ -37,7 +37,7 @@ const Core = {
         title.style.marginBottom = '20px';
         menuBox.appendChild(title);
 
-        const regions = ['North America', 'Europe', 'Asia Pacific'];
+        const regions = ['North America', 'Europe', 'Asia Pacific', 'South Korea'];
         const buttonContainer = document.createElement('div');
         buttonContainer.id = 'buttonContainer';
         menuBox.appendChild(buttonContainer);
@@ -52,6 +52,7 @@ const Core = {
                     case 'North America': regionValue = 'us'; break;
                     case 'Europe': regionValue = 'eu'; break;
                     case 'Asia Pacific': regionValue = 'ap'; break;
+                    case 'South Korea': regionValue = 'kr'; break;
                 }
                 localStorage.setItem('selectedRegion', regionValue);
                 menuContainer.style.display = 'none';
@@ -133,6 +134,7 @@ const Core = {
             html += '<option value="us">North America</option>';
             html += '<option value="eu">Europe</option>';
             html += '<option value="ap">Asia Pacific</option>';
+            html += '<option value="kr">South Korea</option>';
         html += '</select>';
         selectLocationDom.innerHTML = html;
         document.body.appendChild(selectLocationDom);
