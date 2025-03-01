@@ -24,7 +24,7 @@ https://learn.microsoft.com/en-us/dotnet/core/install/
 ### Execution
 Run `dotnet run` in the **"alpha"** folder of the project
 ### Access
-Open http://localhost:8090 in your browser
+Open http://localhost:9000 in your browser
 
 ## Connected Data
 Once connected, you will see that it is linked to the current data of the alpha test.
@@ -66,7 +66,7 @@ https://learn.microsoft.com/en-us/dotnet/core/install/
 ### 실행
 프로젝트 alpha 폴더에서 dotnet run 실행
 ### 접속
-브라우저에서 http://localhost:8090 접속
+브라우저에서 http://localhost:9000 접속
 
 ## 연동 데이터
 접속이 되면 현재 alpha test 의 데이터와 연동되는 것을 확인하실 수 있습니다.
