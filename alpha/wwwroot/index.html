@@ -6,7 +6,7 @@
     <title>Breathing World - Alpha Test</title>
     <script>
         const selectedRegion = localStorage.getItem('selectedRegion');
-        window.cdnPrefix = selectedRegion != 'kr' ? 'https://'+selectedRegion+'-alpha-bw.b-cdn.net' : '';
+        window.cdnPrefix = selectedRegion === null || selectedRegion == 'kr' ? '' : 'https://'+selectedRegion+'-alpha-bw.b-cdn.net';
         let totalTasks = 0; let completedTasks = 0;
         function loadCSS(href) {
             const link = document.createElement("link");
