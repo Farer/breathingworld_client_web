@@ -35,7 +35,6 @@ const AnimationProcess = {
             return;
         }
         
-        // 매 프레임마다 카운터 증가
         AnimationProcess.frameCount++;
 
         AnimationProcess.TargetDomIds.forEach((domId) => {

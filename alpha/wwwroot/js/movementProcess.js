@@ -113,7 +113,7 @@ const MovementProcess = {
         });
 
         const speedValue = MovementProcess.MovementData[domId].speed;
-        const totalDuration = Math.max(totalDistance / speedValue * 1000, 100); // ms 단위, 최소 100ms
+        const totalDuration = Math.max(totalDistance / speedValue * 1000, 100);
 
         const animation = element.animate(keyframes, {
             duration: totalDuration,

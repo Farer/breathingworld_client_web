@@ -51,6 +51,7 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 999999999;
+    display: none;
 }
 
 #progress-bar-container {
@@ -77,5 +78,79 @@ body {
     #locationIcon {
         margin-right: 0;
         margin-bottom: -3px;
+    }
+}
+
+#locationSelectionMenu {
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+#menuBox {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 300px;
+}
+
+#menuBox h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.regionButton {
+    width: 100%;
+    padding: 20px;
+    margin: 0;
+    font-size: 18px;
+    cursor: pointer;
+    border: none;
+    background-color: #aadaff;
+    color: white;
+    transition: background-color 0.3s ease;
+}
+
+.regionButton:hover {
+    background-color: #99c2ff;
+}
+
+#buttonContainer .regionButton:first-child {
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+#buttonContainer .regionButton:last-child {
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+#buttonContainer .regionButton:not(:first-child):not(:last-child) {
+    border-radius: 0;
+}
+
+#buttonContainer .regionButton:not(:last-child) {
+    border-bottom: 1px solid #ccc;
+}
+
+@media (max-width: 768px) {
+    #menuBox {
+        width: 90%;
+    }
+
+    #menuBox h2 {
+        font-size: 20px;
+    }
+
+    .regionButton {
+        font-size: 16px;
+        padding: 16px 8px;
     }
 }

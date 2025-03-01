@@ -24,25 +24,25 @@
             script.onerror = () => { console.error(`Failed to load script: ${script.src}`); };
             document.body.appendChild(script);
         }
-        loadCSS("/css/common.css?4");
+        loadCSS("/css/common.css?5");
         const scripts = [
             "/js/images.js?9",
             "/js/lib/msgpack.min.js",
             "/js/lib/signalr.min.js",
-            "/js/sprites.js?7",
-            "/js/variables.js?6",
-            "/js/data.js?5",
-            "/js/animal.js?10",
-            "/js/tree.js?8",
-            "/js/animationProcess.js?4",
-            "/js/movementProcess.js?1",
-            "/js/domControll.js?4",
-            "/js/methods.js?8",
-            "/js/draggable.js?3",
-            "/js/socket.js?18",
-            "/js/chat.js?6",
-            "/js/core.js?23",
-            "/js/index.js?6"
+            "/js/sprites.js?8",
+            "/js/variables.js?7",
+            "/js/data.js?4",
+            "/js/animal.js?11",
+            "/js/tree.js?9",
+            "/js/animationProcess.js?5",
+            "/js/movementProcess.js?2",
+            "/js/domControll.js?5",
+            "/js/methods.js?9",
+            "/js/draggable.js?4",
+            "/js/socket.js?19",
+            "/js/chat.js?7",
+            "/js/core.js?24",
+            "/js/index.js?7"
         ];
         function updateProgress() { completedTasks++; const percent = Math.round((completedTasks / totalTasks) * 100); document.getElementById("progress-bar").style.width = percent + "%"; }
         function loadScriptsSequentially(index = 0) { if (index < scripts.length) { loadScript(scripts[index], () => { updateProgress(); loadScriptsSequentially(index + 1); }); } }

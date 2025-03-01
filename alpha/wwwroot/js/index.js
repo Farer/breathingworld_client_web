@@ -1,16 +1,12 @@
 'use strict';
 window.onload = async function () {
-    const urlParams = new URLSearchParams(window.location.search);
-    Variables.ApiUrl = urlParams.get('api') || 'https://api.breathingworld.com';
-    Variables.SocketUrl = urlParams.get('socket') || 'https://api.breathingworld.com';
-
-    const origin = window.location.origin;
-    if (origin === "https://us-alpha.breathingworld.com") { Variables.SocketUrl = "https://us-api.breathingworld.com"; }
-    else if (origin === "https://eu-alpha.breathingworld.com") { Variables.SocketUrl = "https://eu-api.breathingworld.com"; }
-    else if (origin === "https://ap-alpha.breathingworld.com") { Variables.SocketUrl = "https://ap-api.breathingworld.com"; }
-
-    Variables.ChatUrl = urlParams.get('chat') || 'https://chat.breathingworld.com';
-
+    const selectedRegion = localStorage.getItem('selectedRegion');
+    if (!selectedRegion) {
+        Core.DrawLocationSelectionMenu();
+        return;
+    }
+    document.getElementById('loading-screen').style.display = '';
+    Core.SetUrls(selectedRegion);
     await Core.GetSettings();
     Socket.PrepareWebsocketCommunication();
     Chat.PrepareWebsocketCommunication();

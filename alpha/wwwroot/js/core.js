@@ -1,5 +1,68 @@
 'use strict';
 const Core = {
+    SetUrls: (selectedRegion) => {
+        const urlPrefix = selectedRegion != 'ap' ? selectedRegion+'-' : '';
+        const urlParams = new URLSearchParams(window.location.search);
+        Variables.ApiUrl = urlParams.get('api') || 'https://'+urlPrefix+'api.breathingworld.com';
+        Variables.SocketUrl = urlParams.get('socket') || 'https://'+urlPrefix+'api.breathingworld.com';
+        Variables.ChatUrl = urlParams.get('chat') || 'https://chat.breathingworld.com';
+    },
+    DrawLocationSelectionMenu: () => {
+        const menuContainer = document.createElement('div');
+        menuContainer.id = 'locationSelectionMenu';
+        menuContainer.style.position = 'fixed';
+        menuContainer.style.top = '0';
+        menuContainer.style.left = '0';
+        menuContainer.style.width = '100%';
+        menuContainer.style.height = '100%';
+        menuContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        menuContainer.style.display = 'flex';
+        menuContainer.style.justifyContent = 'center';
+        menuContainer.style.alignItems = 'center';
+        menuContainer.style.zIndex = '10000';
+
+        const menuBox = document.createElement('div');
+        menuBox.id = 'menuBox';
+        menuBox.style.backgroundColor = '#fff';
+        menuBox.style.padding = '20px';
+        menuBox.style.borderRadius = '10px';
+        menuBox.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+        menuBox.style.display = 'flex';
+        menuBox.style.flexDirection = 'column';
+        menuBox.style.alignItems = 'center';
+        menuBox.style.width = '300px';
+
+        const title = document.createElement('h2');
+        title.textContent = 'Select Your Region';
+        title.style.marginBottom = '20px';
+        menuBox.appendChild(title);
+
+        const regions = ['North America', 'Europe', 'Asia Pacific'];
+        const buttonContainer = document.createElement('div');
+        buttonContainer.id = 'buttonContainer';
+        menuBox.appendChild(buttonContainer);
+
+        regions.forEach(region => {
+            const button = document.createElement('button');
+            button.textContent = region;
+            button.className = 'regionButton';
+            button.addEventListener('click', () => {
+                var regionValue = '';
+                switch(region) {
+                    case 'North America': regionValue = 'us'; break;
+                    case 'Europe': regionValue = 'eu'; break;
+                    case 'Asia Pacific': regionValue = 'ap'; break;
+                }
+                localStorage.setItem('selectedRegion', regionValue);
+                menuContainer.style.display = 'none';
+                window.location.reload();
+            });
+            buttonContainer.appendChild(button);
+        });
+
+        menuContainer.appendChild(menuBox);
+        document.body.appendChild(menuContainer);
+    },
     PrepareMapWrap: () => {
         document.body.style.overflow = 'hidden';
         const wrap = document.createElement('div');
@@ -28,7 +91,7 @@ const Core = {
     
         let html = '';
         html += '<div class="external-links-container" id="externalLinksContainer" style="position: fixed; top: 20px; right: 20px; display: flex; gap: 25px;">';
-            html += '<div id="locationIcon" style="cursor: pointer; display: block;">'; // 기본적으로 보이도록 설정
+            html += '<div id="locationIcon" style="cursor: pointer; display: block;">';
                 html += '<img src="' + window.cdnPrefix + '/img/icon_location.svg" alt="Location" style="width: 30px; height: 30px; ' + filterShadowStyle + '">';
             html += '</div>';
             html += '<a href="https://api.breathingworld.com/" target="_blank" style="display: block;">';
@@ -66,10 +129,10 @@ const Core = {
         selectLocationDom.style.display = 'none';
         selectLocationDom.style.textAlign = 'right';
         html = '';
-        html += '<select id="locationSelect" style="position: absolute; background-color: #333; color: #FFF; border: 1px solid #555; padding: 5px; font-size: 16px; ' + filterShadowStyle + '">'; // 기본적으로 숨김
-            html += '<option value="ap" selected>Asia</option>';
+        html += '<select id="locationSelect" style="position: absolute; background-color: #333; color: #FFF; border: 1px solid #555; padding: 5px; font-size: 16px; ' + filterShadowStyle + '">';
+            html += '<option value="us">North America</option>';
             html += '<option value="eu">Europe</option>';
-            html += '<option value="us">United States</option>';
+            html += '<option value="ap">Asia Pacific</option>';
         html += '</select>';
         selectLocationDom.innerHTML = html;
         document.body.appendChild(selectLocationDom);
@@ -118,13 +181,22 @@ const Core = {
             }
         });
 
+        
         locationIcon.addEventListener('click', (event) => {
-                event.stopPropagation();
-                selectLocationDom.style.display = 'block';
-                const locationIconRect = locationIcon.getBoundingClientRect();
-                const selectLocationWidth = document.getElementById('locationSelect').offsetWidth;
-                selectLocationDom.style.left = (locationIconRect.right - selectLocationWidth) + 'px';
-                selectLocationDom.style.top = locationIconRect.top + 'px';
+            event.stopPropagation();
+            selectLocationDom.style.display = 'block';
+            const locationIconRect = locationIcon.getBoundingClientRect();
+            const selectLocationWidth = document.getElementById('locationSelect').offsetWidth;
+            selectLocationDom.style.left = (locationIconRect.right - selectLocationWidth) + 'px';
+            selectLocationDom.style.top = locationIconRect.top + 'px';
+        });
+        
+        var locationSelectDom = document.getElementById('locationSelect');
+        locationSelectDom.value = localStorage.getItem('selectedRegion');
+        locationSelectDom.addEventListener('change', (event) => {
+            var selectedValue = event.target.value;
+            localStorage.setItem('selectedRegion', selectedValue);
+            document.location.reload();
         });
 
         document.addEventListener('click', (event) => {
