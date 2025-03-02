@@ -5,7 +5,7 @@
 ## Project Introduction
 - I am a developer from South Korea, working on the Breathing World project ( https://breathingworld.com ).
 - I am developing a world where everything moves and interacts in real-time.
-- Currently, weeds and rabbits can interact with each other in real-time.
+- Currently, weeds and rabbits, wolves can interact with each other in real-time.
 - You can check it out at https://alpha.breathingworld.com
 
 ## Repository Description
@@ -46,7 +46,7 @@ Once connected, you will see that it is linked to the current data of the alpha 
 ## 프로젝트 소개
 - 저는 Breathing World ( https://breathingworld.com ) 프로젝트를 개발하고 있는 대한민국의 개발자입니다.
 - 실시간으로 모든 것들이 살아 움직이는 그런 세계를 구현하고자 개발을 진행하고 있습니다.
-- 현재 잡초와 토끼가 실시간으로 상호작용을 할 수 있게 되었습니다.
+- 현재 잡초와 토끼, 늑대가 실시간으로 상호작용을 할 수 있게 되었습니다.
 - https://alpha.breathingworld.com
 - 위 페이지에서 확인할 수 있습니다.
 
