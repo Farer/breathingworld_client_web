@@ -76,6 +76,17 @@ const Methods = {
 
         document.getElementById('mapWrap').appendChild(weedWrapDom);
     },
+    CleanPrepareShadowWrapDom: () => {
+        let shadowWrapDom = document.getElementById('shadowWrapDom');
+        if(shadowWrapDom != null) { shadowWrapDom.parentNode.removeChild(shadowWrapDom); }
+        shadowWrapDom = document.createElement('div');
+        shadowWrapDom.id = 'shadowWrapDom';
+        shadowWrapDom.style.position = 'absolute';
+        shadowWrapDom.style.left = '0px';
+        shadowWrapDom.style.top = '0px';
+
+        document.getElementById('mapWrap').appendChild(shadowWrapDom);
+    },
     CleanPrepareAnimalWrapDom: () => {
         let animalWrapDom = document.getElementById('animalWrapDom');
         if(animalWrapDom != null) { animalWrapDom.parentNode.removeChild(animalWrapDom); }
@@ -97,6 +108,12 @@ const Methods = {
         treeWrapDom.style.top = '0px';
 
         document.getElementById('mapWrap').appendChild(treeWrapDom);
+    },
+    RemoveShadowWrapDom: () => {
+        const shadowWrapDom = document.getElementById('shadowWrapDom');
+        if(shadowWrapDom != null) {
+            shadowWrapDom.parentNode.removeChild(shadowWrapDom);
+        }
     },
     RemoveWeedWrapDom: () => {
         const weedWrapDom = document.getElementById('weedWrapDom');

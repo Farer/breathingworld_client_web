@@ -212,6 +212,7 @@ const Socket = {
             Methods.RemoveWeedWrapDom();
             Methods.RemoveTreeWrapDom();
             Methods.RemoveAnimalWrapDom();
+            Methods.RemoveShadowWrapDom();
         }
         else if(Variables.MapInfo.viewDistrictIds.length == 0) {
             return;
@@ -237,6 +238,7 @@ const Socket = {
             Methods.PrepareDistrictIdsToGet();
             if(Data.Weed.UserPaused == false && Variables.UserDragged == true) { return; }
             Methods.CleanPrepareWeedWrapDom();
+            Methods.CleanPrepareShadowWrapDom();
             Methods.CleanPrepareAnimalWrapDom();
             Methods.CleanPrepareTreeWrapDom();
             Methods.GetDistrictDataOneByOneByFromBucket();

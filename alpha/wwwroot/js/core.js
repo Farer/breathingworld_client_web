@@ -503,6 +503,16 @@ const Core = {
         
         MovementProcess.TargetDomIds.clear();
     },
+    RelocateShadowWrapWhenDrag: (movedX, movedY) => {
+        const shadowWrapDom = document.getElementById('shadowWrapDom');
+        const newLeft = -movedX;
+        const newTop = -movedY;
+        if (shadowWrapDom == null) { return; }
+        shadowWrapDom.style.left = newLeft + 'px';
+        shadowWrapDom.style.top = newTop + 'px';
+        
+        MovementProcess.TargetDomIds.clear();
+    },
     TryScroll: (event) => {
         const chatLogDom = document.getElementById('chat_log');
         const chatUsernameDom = document.getElementById('chat_username');

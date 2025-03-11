@@ -54,8 +54,12 @@ const Animal = {
         // animalDom.style.top = animalDomInfo.top + 'px';
         DomControll.ApplyTransform(animalDom, 'translate3d', animalDomInfo.left + 'px, ' + animalDomInfo.top + 'px, 0px');
 
+        let currentActionStatus = '';
+
         // Rabbit
         if(speciesName == 'rabbit') {
+            currentActionStatus = Variables.Settings.rabbitActionStatus[data.actionId];
+
             Animal.Data.rabbit[keyId].width = animalDomInfo.size;
             Animal.Data.rabbit[keyId].height = animalDomInfo.size;
             Animal.Data.rabbit[keyId].left = animalDomInfo.left;
@@ -67,8 +71,9 @@ const Animal = {
             const backgroundImageWidth = Sprites.Rabbit.width / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
             const backgroundImageHeight = Sprites.Rabbit.height / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
             
-            if(Variables.Settings.rabbitActionStatus[data.actionId]=='dead' && ifShowMoving == false) {
+            if(currentActionStatus =='dead' && ifShowMoving == false) {
                 AnimationProcess.RemoveTargetDomId(keyId);
+                ShadowControll.RemoveShadow(keyId);
                 const boneSize = animalDomInfo.size / 2;
                 animalDom.style.background = '';
                 animalDom.style.textAlign = 'center';
@@ -100,6 +105,8 @@ const Animal = {
                 animalDom.style.background = 'transparent url("'+Images.Data.rabbit_etc.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
             }
                 
+            ShadowControll.CreateShadow(keyId);
+
             if(ifShowMoving) {
                 const backgroundPosX = 0;
                 const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, 1);
@@ -135,6 +142,8 @@ const Animal = {
         }
         // Wolf
         else if(speciesName == 'wolf') {
+            currentActionStatus = Variables.Settings.wolfActionStatus[data.actionId];
+
             Animal.Data.wolf[keyId].width = animalDomInfo.size;
             Animal.Data.wolf[keyId].height = animalDomInfo.size;
             Animal.Data.wolf[keyId].left = animalDomInfo.left;
@@ -146,8 +155,9 @@ const Animal = {
             const backgroundImageWidth = Sprites.Wolf.width / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
             const backgroundImageHeight = Sprites.Wolf.height / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
             
-            if(Variables.Settings.wolfActionStatus[data.actionId]=='dead' && ifShowMoving == false) {
+            if(currentActionStatus == 'dead' && ifShowMoving == false) {
                 AnimationProcess.RemoveTargetDomId(keyId);
+                ShadowControll.RemoveShadow(keyId);
                 const boneSize = animalDomInfo.size / 2;
                 animalDom.style.background = '';
                 animalDom.style.textAlign = 'center';
@@ -178,7 +188,9 @@ const Animal = {
                 animalDom.style.overflow = 'hidden';
                 animalDom.style.background = 'transparent url("'+Images.Data.wolf_etc.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
             }
-                
+
+            
+
             if(ifShowMoving) {
                 const backgroundPosX = 0;
                 const backgroundPosY = Animal.GetBackgroundYPositionByStatus(speciesName, 1);
@@ -218,6 +230,10 @@ const Animal = {
         else if(speciesName == 'wolf') { finalData = Animal.Data.wolf[keyId]; }
 
         Animal.ApplyAnimalDomTransform(animalDom, finalData);
+        if(currentActionStatus != 'dead') {
+            ShadowControll.UpdateShadowSize(keyId);
+            ShadowControll.UpdateShadowPosition(keyId);
+        }
     },
     CalculateWalkingAnimationFrameDelay: (speciesName, movedTilesCount) => {
         let defaultDelay;
@@ -501,6 +517,7 @@ const Animal = {
             let originalActionId = Animal.Data.rabbit[keyId].actionId;
             if(Variables.Settings.rabbitActionStatus[originalActionId]=='dead') {
                 AnimationProcess.RemoveTargetDomId(keyId);
+                ShadowControll.RemoveShadow(keyId);
                 Animal.DrawAnimalBones(speciesName, Animal.Data.rabbit[keyId]);
             }
             else if(
@@ -542,6 +559,7 @@ const Animal = {
             let originalActionId = Animal.Data.wolf[keyId].actionId;
             if(Variables.Settings.wolfActionStatus[originalActionId]=='dead') {
                 AnimationProcess.RemoveTargetDomId(keyId);
+                ShadowControll.RemoveShadow(keyId);
                 Animal.DrawAnimalBones(speciesName, Animal.Data.wolf[keyId]);
             }
             else if(

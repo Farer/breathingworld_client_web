@@ -52,6 +52,7 @@ function AddDragMapEvent() {
         Core.RelocateWeedWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
         Core.RelocateTreeWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
         Core.RelocateAnimalWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
+        Core.RelocateShadowWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
         AnimationProcess.TargetDomIds.clear();
 
         element.setAttribute('leftTop', newLeft + '|' + newTop);
@@ -76,6 +77,7 @@ function AddDragMapEvent() {
             Core.RelocateWeedWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
             Core.RelocateTreeWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
             Core.RelocateAnimalWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
+            Core.RelocateShadowWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
             AnimationProcess.TargetDomIds.clear();
 
             element.setAttribute('leftTop', newLeft + '|' + newTop);
