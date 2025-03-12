@@ -21,14 +21,6 @@ const AnimationProcess = {
     RemoveTargetDomId: (id) => {
         AnimationProcess.TargetDomIds.delete(id);
     },
-    DefineTargetKindByDomId: (domId) => {
-        let targetKind = '';
-        const splits = domId.split('-');
-        if (splits[0] === 'weedTile') { targetKind = 'weed'; }
-        else if (splits[0] === 'rabbit') { targetKind = 'rabbit'; }
-        else if (splits[0] === 'wolf') { targetKind = 'wolf'; }
-        return targetKind;
-    },
     Animate: () => {
         if (AnimationProcess.TargetDomIds.size === 0) {
             AnimationProcess.CancelAnimation();
@@ -38,7 +30,7 @@ const AnimationProcess = {
         AnimationProcess.frameCount++;
 
         AnimationProcess.TargetDomIds.forEach((domId) => {
-            const targetKind = AnimationProcess.DefineTargetKindByDomId(domId);
+            const targetKind = DomControll.DefineTargetKindByDomId(domId);
             if (targetKind === 'rabbit' && Animal.Data.rabbit[domId] !== undefined) {
                 let divideAmount = parseInt(Animal.Data.rabbit[domId].currentActionFrameDelay / AnimationProcess.FrameDiff, 10);
                 if (!divideAmount) { divideAmount = 1; }

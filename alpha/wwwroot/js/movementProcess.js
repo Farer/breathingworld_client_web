@@ -28,14 +28,8 @@ const MovementProcess = {
         delete MovementProcess.MovementData[id];
     },
 
-    DefineTargetKindByDomId: (domId) => {
-        if (domId.startsWith('rabbit')) return 'rabbit';
-        if (domId.startsWith('wolf')) return 'wolf';
-        return '';
-    },
-
     TriggerMovement: (domId, waypoints, speed) => {
-        const targetKind = MovementProcess.DefineTargetKindByDomId(domId);
+        const targetKind = DomControll.DefineTargetKindByDomId(domId);
         if (!targetKind || waypoints.length < 2) {
             MovementProcess.RemoveTargetDomId(domId);
             return;

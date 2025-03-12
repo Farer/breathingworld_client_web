@@ -26,7 +26,7 @@ const ShadowControll = {
         const shadowDomId = `shadow-${domId}`;
         const shadowElement = ShadowControll.ShadowElements[shadowDomId];
         if(shadowElement) {
-            const domKind = MovementProcess.DefineTargetKindByDomId(domId);
+            const domKind = DomControll.DefineTargetKindByDomId(domId);
             const animalData = Animal.Data[domKind][domId];
             const targetDom = document.getElementById(domId);
             const transform = DomControll.TransformCache.get(targetDom);
@@ -44,11 +44,11 @@ const ShadowControll = {
         const shadowElement = ShadowControll.ShadowElements[shadowDomId];
         if (!targetDom || !shadowElement) { return; }
 
-        const speciesName = MovementProcess.DefineTargetKindByDomId(domId);
+        const speciesName = DomControll.DefineTargetKindByDomId(domId);
         const animalData = Animal.Data[speciesName][domId];
         if (!animalData) { return; }
 
-        const currentPosition = animalData.position; // 동물의 현재 위치 가져오기
+        const currentPosition = animalData.position;
         const positionInfo = ShadowControll.CalculateShadowPositionInfo(domId, currentPosition);
         shadowElement.style.transform = `translate3d(${positionInfo.x}px, ${positionInfo.y}px, 0)`;
     },
@@ -58,7 +58,7 @@ const ShadowControll = {
         const shadowElement = ShadowControll.ShadowElements[shadowDomId];
         if (!targetDom || !shadowElement) { return; }
 
-        const animalData = Animal.Data[MovementProcess.DefineTargetKindByDomId(domId)][domId];
+        const animalData = Animal.Data[DomControll.DefineTargetKindByDomId(domId)][domId];
 
         const transform = DomControll.TransformCache.get(targetDom);
         const scale = transform.has('scale') ? transform.get('scale') : 1;

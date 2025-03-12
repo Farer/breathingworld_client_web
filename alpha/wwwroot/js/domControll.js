@@ -22,10 +22,11 @@ const DomControll = {
         DomControll.TargetDomIds.delete(id);
     },
     DefineTargetKindByDomId: (domId) => {
-        const splits = domId.split('-');
-        if(splits[0] === 'rabbit') { return 'rabbit'; }
-        else if(splits[0] === 'wolf') { return 'wolf'; }
-        else if(splits[0] === 'tree') { return 'tree'; }
+        if (domId.startsWith('weed')) return 'weed';
+        if (domId.startsWith('rabbit')) return 'rabbit';
+        if (domId.startsWith('wolf')) return 'wolf';
+        if (domId.startsWith('tree')) return 'tree';
+        return '';
     },
     Control: () => {
         if (DomControll.TargetDomIds.size === 0) {
