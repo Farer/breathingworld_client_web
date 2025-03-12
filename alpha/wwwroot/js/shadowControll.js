@@ -27,13 +27,23 @@ const ShadowControll = {
         const shadowElement = ShadowControll.ShadowElements[shadowDomId];
         if(shadowElement) {
             const domKind = DomControll.DefineTargetKindByDomId(domId);
-            const animalData = Animal.Data[domKind][domId];
+            
             const targetDom = document.getElementById(domId);
             const transform = DomControll.TransformCache.get(targetDom);
             const scale = transform && transform.has('scale') ? transform.get('scale') : 1;
-            let width = ( animalData.width - animalData.width / 10 * 6 ) * scale ;
-            if(domKind=='wolf') { width *= 1.8; }
-            const height = width / 5 * 2;
+            let width = 0;
+            let height = 0;;
+            if(domKind=='rabbit' || domKind=='wolf') {
+                const animalData = Animal.Data[domKind][domId];
+                width = ( animalData.width - animalData.width / 10 * 5 ) * scale ;
+                if(domKind=='wolf') { width *= 1.8; }
+            }
+            else if(domKind == 'tree') {
+                const treeData = Tree.Data[domId];
+                const treeSize = treeData.size[0];
+                width = treeData.width / 100 * 8 * treeSize;
+            }
+            height = width / 5 * 2;
             shadowElement.style.width = width+'px';
             shadowElement.style.height = height+'px';
         }
@@ -44,12 +54,18 @@ const ShadowControll = {
         const shadowElement = ShadowControll.ShadowElements[shadowDomId];
         if (!targetDom || !shadowElement) { return; }
 
-        const speciesName = DomControll.DefineTargetKindByDomId(domId);
-        const animalData = Animal.Data[speciesName][domId];
-        if (!animalData) { return; }
-
-        const currentPosition = animalData.position;
-        const positionInfo = ShadowControll.CalculateShadowPositionInfo(domId, currentPosition);
+        const targetDomKind = DomControll.DefineTargetKindByDomId(domId);
+        let data = null;
+        let positionInfo = null;
+        if(targetDomKind=='rabbit' || targetDomKind=='wolf') {
+            data = Animal.Data[targetDomKind][domId];
+            if (!data) { return; }
+            positionInfo = ShadowControll.CalculateShadowPositionInfo(domId, data.position);
+        }
+        else if(targetDomKind == 'tree') {
+            positionInfo = ShadowControll.CalculateShadowPositionInfo(domId);
+        }
+        
         shadowElement.style.transform = `translate3d(${positionInfo.x}px, ${positionInfo.y}px, 0)`;
     },
     CalculateShadowPositionInfo: (domId, point) => {
@@ -58,37 +74,48 @@ const ShadowControll = {
         const shadowElement = ShadowControll.ShadowElements[shadowDomId];
         if (!targetDom || !shadowElement) { return; }
 
-        const animalData = Animal.Data[DomControll.DefineTargetKindByDomId(domId)][domId];
+        let domData = null;
+        const domKind = DomControll.DefineTargetKindByDomId(domId);
+        if(domKind=='rabbit' || domKind=='wolf') { domData = Animal.Data[domKind][domId]; }
+        else if(domKind == 'tree') { domData = Tree.Data[domId]; }
 
         const transform = DomControll.TransformCache.get(targetDom);
-        const scale = transform.has('scale') ? transform.get('scale') : 1;
+        const scale = transform && transform.has('scale') ? transform.get('scale') : 1;
 
-        let animalDomWidth, animalDomHeight, animalDomLeft, animalDomTop;
+        let domWidth, domHeight, domLeft, domTop;
         if(point == undefined) {
-            animalDomWidth = animalData.width;
-            animalDomHeight = animalData.height;
-            animalDomLeft = animalData.left;
-            animalDomTop = animalData.top;
+            domWidth = domData.width;
+            domHeight = domData.height;
+            domLeft = domData.left;
+            domTop = domData.top;
         }
         else {
-            const animalDomPosition = Methods.GetAnimalDomInfo(point, domId);
-            animalDomWidth = animalDomPosition.size;
-            animalDomHeight = animalDomPosition.size;
-            animalDomLeft = animalDomPosition.left;
-            animalDomTop = animalDomPosition.top;
+            const domPosition = Methods.GetAnimalDomInfo(point, domId);
+            domWidth = domPosition.size;
+            domHeight = domPosition.size;
+            domLeft = domPosition.left;
+            domTop = domPosition.top;
         }
         
-        const animalDomRealWidth = animalDomWidth * scale;
-        const animalDomRealHeight = animalDomHeight * scale;
+        const domRealWidth = domWidth * scale;
+        const domRealHeight = domHeight * scale;
 
-        const animalDomWidthDiff = animalDomWidth - animalDomRealWidth;
-        const animalDomHeightDiff = animalDomWidth - animalDomRealHeight;
+        const domWidthDiff = domWidth - domRealWidth;
+        const domHeightDiff = domWidth - domRealHeight;
 
         const shadowWidth = parseFloat(shadowElement.style.width);
         const shadowHeight = parseFloat(shadowElement.style.height);
 
-        const shadowX = animalDomLeft + animalDomWidthDiff / 2 + animalDomRealWidth / 2 - shadowWidth / 2;
-        const shadowY = animalDomTop + animalDomHeightDiff /2 + animalDomRealHeight - shadowHeight;
+        const shadowX = domLeft + domWidthDiff / 2 + domRealWidth / 2 - shadowWidth / 2;
+        let shadowY = domTop + domHeightDiff /2 + domRealHeight - shadowHeight;
+
+        if(domKind == 'tree') {
+            if(domData.size[0] == 3) { shadowY += shadowHeight / 100 * 15; }
+            else if(domData.size[0] == 5) { shadowY += shadowHeight / 100 * 25; }
+            else if(domData.size[0] == 7) { shadowY += shadowHeight / 100 * 15; }
+            else if(domData.size[0] == 9) { shadowY += shadowHeight / 100 * 15; }
+            else if(domData.size[0] == 11) { shadowY += shadowHeight / 100 * 15; }
+        }
 
         return {x: shadowX, y: shadowY};
     },

@@ -137,6 +137,11 @@ const Tree = {
         Tree.Data[treeDomId].height = imageInfo.height;
         Tree.Data[treeDomId].left = imageInfo.left;
         Tree.Data[treeDomId].top = imageInfo.top;
+
+        ShadowControll.CreateShadow(treeDomId);
+        ShadowControll.UpdateShadowSize(treeDomId);
+        ShadowControll.UpdateShadowPosition(treeDomId);
+
     },
     RemoveDom: (id) => {
         const treeDomId = 'tree-' + id;
