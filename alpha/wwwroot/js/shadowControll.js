@@ -20,17 +20,19 @@ const ShadowControll = {
         }
         ShadowControll.ShadowElements[shadowDomId] = shadowElement;
         ShadowControll.UpdateShadowSize(domId);
-        // ShadowControll.UpdateShadowPosition(domId);
+        ShadowControll.UpdateShadowPosition(domId);
     },
     UpdateShadowSize: (domId) => {
         const shadowDomId = `shadow-${domId}`;
         const shadowElement = ShadowControll.ShadowElements[shadowDomId];
         if(shadowElement) {
-            const animalData = Animal.Data[MovementProcess.DefineTargetKindByDomId(domId)][domId];
+            const domKind = MovementProcess.DefineTargetKindByDomId(domId);
+            const animalData = Animal.Data[domKind][domId];
             const targetDom = document.getElementById(domId);
             const transform = DomControll.TransformCache.get(targetDom);
             const scale = transform && transform.has('scale') ? transform.get('scale') : 1;
-            const width = ( animalData.width - animalData.width / 10 * 6 ) * scale ;
+            let width = ( animalData.width - animalData.width / 10 * 6 ) * scale ;
+            if(domKind=='wolf') { width *= 1.8; }
             const height = width / 5 * 2;
             shadowElement.style.width = width+'px';
             shadowElement.style.height = height+'px';
@@ -42,11 +44,13 @@ const ShadowControll = {
         const shadowElement = ShadowControll.ShadowElements[shadowDomId];
         if (!targetDom || !shadowElement) { return; }
 
-        const transforms = DomControll.TransformCache.get(targetDom);
-        if (transforms && transforms.has('translate3d')) {
-            var positionInfo = ShadowControll.CalculateShadowPositionInfo(domId);
-            shadowElement.style.transform = `translate3d(${positionInfo.x}px, ${positionInfo.y}px, 0)`;
-        }
+        const speciesName = MovementProcess.DefineTargetKindByDomId(domId);
+        const animalData = Animal.Data[speciesName][domId];
+        if (!animalData) { return; }
+
+        const currentPosition = animalData.position; // 동물의 현재 위치 가져오기
+        const positionInfo = ShadowControll.CalculateShadowPositionInfo(domId, currentPosition);
+        shadowElement.style.transform = `translate3d(${positionInfo.x}px, ${positionInfo.y}px, 0)`;
     },
     CalculateShadowPositionInfo: (domId, point) => {
         const targetDom = document.getElementById(domId);

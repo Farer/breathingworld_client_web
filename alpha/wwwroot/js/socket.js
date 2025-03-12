@@ -241,6 +241,7 @@ const Socket = {
             Methods.CleanPrepareShadowWrapDom();
             Methods.CleanPrepareAnimalWrapDom();
             Methods.CleanPrepareTreeWrapDom();
+            MovementProcess.ResetMovementData();
             Methods.GetDistrictDataOneByOneByFromBucket();
         })
         .catch(function (err) {

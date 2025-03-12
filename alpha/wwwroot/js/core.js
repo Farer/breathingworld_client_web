@@ -571,6 +571,7 @@ const Core = {
             Methods.CleanPrepareWeedWrapDom();
             Methods.CleanPrepareTreeWrapDom();
         }
+        MovementProcess.ResetMovementData();
 
         let newIndex = 0;
         if (scrollDirection == 'up') {

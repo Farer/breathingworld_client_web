@@ -53,6 +53,7 @@ function AddDragMapEvent() {
         Core.RelocateTreeWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
         Core.RelocateAnimalWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
         Core.RelocateShadowWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
+        MovementProcess.ResetMovementData();
         AnimationProcess.TargetDomIds.clear();
 
         element.setAttribute('leftTop', newLeft + '|' + newTop);

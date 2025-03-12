@@ -103,9 +103,10 @@ const Animal = {
                 const backgroundPosY = 0;
                 animalDom.style.overflow = 'hidden';
                 animalDom.style.background = 'transparent url("'+Images.Data.rabbit_etc.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
+                ShadowControll.CreateShadow(keyId);
             }
                 
-            ShadowControll.CreateShadow(keyId);
+            
 
             if(ifShowMoving) {
                 const backgroundPosX = 0;
@@ -187,6 +188,7 @@ const Animal = {
                 const backgroundPosY = 0;
                 animalDom.style.overflow = 'hidden';
                 animalDom.style.background = 'transparent url("'+Images.Data.wolf_etc.src+'") no-repeat -' + backgroundPosX + 'px -' + backgroundPosY + 'px / '+backgroundImageWidth+'px '+backgroundImageHeight+'px';
+                ShadowControll.CreateShadow(keyId);
             }
 
             

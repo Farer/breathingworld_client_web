@@ -5,7 +5,11 @@ const MovementProcess = {
     ShadowMovementData: {},
     FrameRateAdjustment: 16,
 
-    StartMovement: () => {},
+    ResetMovementData: () => {
+        MovementProcess.TargetDomIds.clear();
+        MovementProcess.MovementData = {};
+        MovementProcess.ShadowMovementData = {};
+    },
 
     CancelMovement: (domId) => {
         const data = MovementProcess.MovementData[domId];
@@ -157,6 +161,7 @@ const MovementProcess = {
             // Finish shadow animation
             if (MovementProcess.ShadowMovementData[domId]) {
                 ShadowControll.UpdateShadowSize(domId);
+                ShadowControll.UpdateShadowPosition(domId);
                 MovementProcess.ShadowMovementData[domId].finish();
                 delete MovementProcess.ShadowMovementData[domId];
             }
