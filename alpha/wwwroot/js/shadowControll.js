@@ -109,7 +109,10 @@ const ShadowControll = {
         const shadowX = domLeft + domWidthDiff / 2 + domRealWidth / 2 - shadowWidth / 2;
         let shadowY = domTop + domHeightDiff /2 + domRealHeight - shadowHeight;
 
-        if(domKind == 'tree') {
+        if(domKind == 'wolf') {
+            shadowY += shadowHeight / 100 * 20;
+        }
+        else if(domKind == 'tree') {
             if(domData.size[0] == 3) { shadowY += shadowHeight / 100 * 15; }
             else if(domData.size[0] == 5) { shadowY += shadowHeight / 100 * 25; }
             else if(domData.size[0] == 7) { shadowY += shadowHeight / 100 * 15; }
