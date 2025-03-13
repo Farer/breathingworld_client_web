@@ -12,9 +12,12 @@ const ShadowControll = {
             shadowElement.id = shadowDomId;
             shadowElement.className = 'shadow';
             shadowElement.style.position = 'absolute';
-            shadowElement.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+            shadowElement.style.backgroundColor = 'rgba(0, 0, 0, 0.08)';
             shadowElement.style.borderRadius = '50%';
             shadowElement.style.pointerEvents = 'none';
+            const domKind = DomControll.DefineTargetKindByDomId(domId)
+            if(domKind == 'rabbit' || domKind == 'wolf') { shadowElement.style.boxShadow = '0 0 7px 3px rgba(0, 0, 0, 0.08)'; }
+            else if(domKind == 'tree') { shadowElement.style.boxShadow = '0 0 10px 7px rgba(0, 0, 0, 0.08)'; }
             const container = document.getElementById('shadowWrapDom');
             container.appendChild(shadowElement);
         }
