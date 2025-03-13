@@ -278,5 +278,23 @@ const Chat = {
                 style="width: 32px; height: 32px; vertical-align: middle; cursor: pointer;" 
                 onclick="location.reload();" />
         `;
+        Chat.ShowReconnectModal();
+    },
+    ShowReconnectModal() {
+        const loadingScreen = document.getElementById('loading-screen');
+        if(loadingScreen != null) { loadingScreen.style.display = 'none'; }
+        const modalId = 'modal';
+        let modal = document.getElementById(modalId);
+        if(modal == null) {
+            modal = document.createElement('div');
+            modal.id = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `<div class="modal-content"><img src="/img/icon-shadow-550x550.png" alt="사이트 아이콘" class="reconnectIcon"><p>Hello! The connection was briefly interrupted.<br>Don't worry, I'll reconnect you!</p><button id="reconnectBtn">Connect</button></div>`;
+            document.body.appendChild(modal);
+            const reconnectBtn = document.getElementById('reconnectBtn');
+            reconnectBtn.addEventListener('click', function() {
+                location.reload();
+            });
+        }
     }
 };
