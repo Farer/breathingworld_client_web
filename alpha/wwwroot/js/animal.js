@@ -55,6 +55,7 @@ const Animal = {
         DomControll.ApplyTransform(animalDom, 'translate3d', animalDomInfo.left + 'px, ' + animalDomInfo.top + 'px, 0px');
 
         let currentActionStatus = '';
+        let ifShowMoving = false;
 
         // Rabbit
         if(speciesName == 'rabbit') {
@@ -65,7 +66,6 @@ const Animal = {
             Animal.Data.rabbit[keyId].left = animalDomInfo.left;
             Animal.Data.rabbit[keyId].top = animalDomInfo.top;
 
-            let ifShowMoving = false;
             if(data.movedTileIds.length > 0) { ifShowMoving = true; }
 
             const backgroundImageWidth = Sprites.Rabbit.width / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
@@ -117,7 +117,6 @@ const Animal = {
                 const frameDelay = Animal.CalculateWalkingAnimationFrameDelay(speciesName, data.movedTileIds.length);
                 Animal.Data.rabbit[keyId].currentActionFrameDelay = frameDelay;
                 Animal.StartAnimation(speciesName, data.id, 1);
-                Animal.StartAnimalMoving(speciesName, data);
             }
             else if(
                 Variables.Settings.rabbitActionStatus[data.actionId]=='mating' ||
@@ -150,7 +149,6 @@ const Animal = {
             Animal.Data.wolf[keyId].left = animalDomInfo.left;
             Animal.Data.wolf[keyId].top = animalDomInfo.top;
 
-            let ifShowMoving = false;
             if(data.movedTileIds.length > 0) { ifShowMoving = true; }
 
             const backgroundImageWidth = Sprites.Wolf.width / Variables.MapScaleInfo.maxScale * Variables.MapScaleInfo.current;
@@ -202,7 +200,6 @@ const Animal = {
                 const frameDelay = Animal.CalculateWalkingAnimationFrameDelay(speciesName, data.movedTileIds.length);
                 Animal.Data.wolf[keyId].currentActionFrameDelay = frameDelay;
                 Animal.StartAnimation(speciesName, data.id, 1);
-                Animal.StartAnimalMoving(speciesName, data);
             }
             else if(
                 Variables.Settings.wolfActionStatus[data.actionId]=='mating' ||
@@ -235,6 +232,10 @@ const Animal = {
         if(currentActionStatus != 'dead') {
             ShadowControll.UpdateShadowSize(keyId);
             ShadowControll.UpdateShadowPosition(keyId);
+        }
+
+        if(ifShowMoving) {
+            Animal.StartAnimalMoving(speciesName, data);
         }
     },
     CalculateWalkingAnimationFrameDelay: (speciesName, movedTilesCount) => {
