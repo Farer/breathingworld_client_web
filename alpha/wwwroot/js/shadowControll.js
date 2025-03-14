@@ -16,13 +16,16 @@ const ShadowControll = {
             shadowElement.style.borderRadius = '50%';
             shadowElement.style.pointerEvents = 'none';
             const domKind = DomControll.DefineTargetKindByDomId(domId)
+            let opacity = '0.1';
             if(domKind == 'rabbit' || domKind == 'wolf') {
-                shadowElement.style.backgroundColor = 'rgba(0, 0, 0, 0.085)';
-                shadowElement.style.boxShadow = '0 0 7px 3px rgba(0, 0, 0, 0.085)';
+                opacity = '0.15';
+                shadowElement.style.backgroundColor = 'rgba(0, 0, 0, '+opacity+')';
+                shadowElement.style.boxShadow = '0 0 5px 3px rgba(0, 0, 0, '+opacity+')';
             }
             else if(domKind == 'tree') {
-                shadowElement.style.backgroundColor = 'rgba(0, 0, 0, 0.08)';
-                shadowElement.style.boxShadow = '0 0 10px 7px rgba(0, 0, 0, 0.08)';
+                opacity = '0.2';
+                shadowElement.style.backgroundColor = 'rgba(0, 0, 0, '+opacity+')';
+                shadowElement.style.boxShadow = '0 0 10px 7px rgba(0, 0, 0, '+opacity+')';
             }
             const container = document.getElementById('shadowWrapDom');
             container.appendChild(shadowElement);
@@ -50,7 +53,7 @@ const ShadowControll = {
             else if(domKind == 'tree') {
                 const treeData = Tree.Data[domId];
                 const treeSize = treeData.size[0];
-                width = treeData.width / 100 * 8 * treeSize;
+                width = treeData.width / 100 * 7 * treeSize;
             }
             height = width / 5 * 2;
             shadowElement.style.width = width+'px';
@@ -122,11 +125,12 @@ const ShadowControll = {
             shadowY += shadowHeight / 100 * 20;
         }
         else if(domKind == 'tree') {
-            if(domData.size[0] == 3) { shadowY += shadowHeight / 100 * 15; }
-            else if(domData.size[0] == 5) { shadowY += shadowHeight / 100 * 25; }
-            else if(domData.size[0] == 7) { shadowY += shadowHeight / 100 * 15; }
-            else if(domData.size[0] == 9) { shadowY += shadowHeight / 100 * 15; }
-            else if(domData.size[0] == 11) { shadowY += shadowHeight / 100 * 15; }
+            if(domData.size[0] == 1) { shadowY -= shadowHeight / 100 * 85; }
+            else if(domData.size[0] == 3) { shadowY += shadowHeight / 100 * 8; }
+            else if(domData.size[0] == 5) { shadowY += shadowHeight / 100 * 18; }
+            else if(domData.size[0] == 7) { shadowY += shadowHeight / 100 * 8; }
+            else if(domData.size[0] == 9) { shadowY += shadowHeight / 100 * 8; }
+            else if(domData.size[0] == 11) { shadowY += shadowHeight / 100 * 8; }
         }
 
         return {x: shadowX, y: shadowY};
