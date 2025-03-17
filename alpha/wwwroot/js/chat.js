@@ -213,7 +213,7 @@ const Chat = {
             modalBackground.style.display = 'flex';
             modalBackground.style.alignItems = 'center';
             modalBackground.style.justifyContent = 'center';
-            modalBackground.style.zIndex = '999';
+            modalBackground.style.zIndex = '9999';
             document.body.appendChild(modalBackground);
         }
         let modal = document.getElementById('modal');
