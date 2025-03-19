@@ -278,4 +278,9 @@ const Socket = {
             return console.error(err.toString());
         });
     },
+    FoundTrashDataOfRabbit: (rabbitId) => {
+        Socket.WebsocketConnection.invoke("FoundTrashDataOfRabbit", rabbitId).catch(function (err) {
+            return console.error(err.toString());
+        });
+    },
 };

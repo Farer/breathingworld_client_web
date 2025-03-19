@@ -23,7 +23,21 @@ const Animal = {
             animalDom.parentNode.removeChild(animalDom);
         }
     },
+    IfTrashAnimalData: (speciesName, data) => {
+        if(speciesName == 'rabbit') {
+            if (data.updateTimeUnix !== undefined) {
+                const now = Math.floor(Date.now() / 1000);
+                if (now - updateTimeUnix > 60) { return true; }
+                else { return false; }
+            } 
+            else { return false; }
+        }
+        return false;
+    },
     DrawDom: (speciesName, data) => {
+        if(IfTrashAnimalData(speciesName, data)) {
+            if(speciesName == 'rabbit') { Socket.FoundTrashDataOfRabbit(data.id); }
+        }
         if(data.actionId == undefined) { data.actionId = 0; }
         const keyId = speciesName + '-' + data.id;
         let animalDom = document.getElementById(keyId);
