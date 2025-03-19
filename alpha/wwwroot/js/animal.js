@@ -36,7 +36,7 @@ const Animal = {
     },
     DrawDom: (speciesName, data) => {
         if(Animal.IfTrashAnimalData(speciesName, data)) {
-            if(speciesName == 'rabbit') { Socket.FoundTrashDataOfRabbit(data.id); }
+            if(speciesName == 'rabbit') { Socket.FoundTrashDataOfRabbit(data.id); return; }
         }
         if(data.actionId == undefined) { data.actionId = 0; }
         const keyId = speciesName + '-' + data.id;
