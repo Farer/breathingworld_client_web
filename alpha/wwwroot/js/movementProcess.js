@@ -13,9 +13,11 @@ const MovementProcess = {
 
     CancelMovement: (domId) => {
         const data = MovementProcess.MovementData[domId];
-        if (data && data.animation) {
-            data.animation.cancel();
-            MovementProcess.RemoveTargetDomId(domId);
+        if (data && data.animation) { data.animation.cancel(); }
+        
+        if (MovementProcess.ShadowMovementData[domId]) {
+            MovementProcess.ShadowMovementData[domId].cancel();
+            delete MovementProcess.ShadowMovementData[domId];
         }
     },
 
