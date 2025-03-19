@@ -27,7 +27,7 @@ const Animal = {
         if(speciesName == 'rabbit') {
             if (data.updateTimeUnix !== undefined) {
                 const now = Math.floor(Date.now() / 1000);
-                if (now - updateTimeUnix > 60) { return true; }
+                if (now - data.updateTimeUnix > 60) { return true; }
                 else { return false; }
             } 
             else { return false; }
