@@ -104,6 +104,9 @@ const Core = {
             html += '<a href="https://github.com/Farer/breathingworld_client_web" target="_blank" style="display: block;">';
                 html += '<img src="' + window.cdnPrefix + '/img/github-mark-white.svg" alt="Github" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
             html += '</a>';
+            html += '<a href="https://www.reddit.com/r/BreathingWorld/" target="_blank" style="display: block;">';
+                html += '<img src="' + window.cdnPrefix + '/img/icon_reddit_950_tiny.png" alt="Reddit" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
+            html += '</a>';
             html += '<a href="https://discord.gg/4Y2TpWDtJm" target="_blank" style="display: block;">';
                 html += '<img src="' + window.cdnPrefix + '/img/icon_clyde_white_RGB.svg" alt="Discord" style="width: 30px; height: 30px; '+filterShadowStyle+'">';
             html += '</a>';
