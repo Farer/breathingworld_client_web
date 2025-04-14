@@ -233,6 +233,7 @@ const Core = {
     PrepareImageSources: () => {
         Images.PreloadData.unshift('environmentMap|'+Variables.ApiUrl + '/maps/' + Variables.Settings.mapId + '/live/' + Variables.Settings.mapImageUpdateId);
         Core.PrepareTreeImages();
+        Core.PrepareSeasonDirtImages();
         totalTasks = scripts.length + Images.PreloadData.length;
         Images.PreloadData.forEach((item) => {
             const splits = item.split('|');
@@ -256,6 +257,11 @@ const Core = {
     PrepareTreeImages: () => {
         for (let i = 0; i < 12; i++) {
             Images.PreloadData.push('tree' + i + '|/img/tree_' + i + '_tiny.png');
+        }
+    },
+    PrepareSeasonDirtImages: () => {
+        for (let i = 1; i <= 12; i++) {
+            Images.PreloadData.push('|/img/sprites/sprite_dirt_droppings_128_tiny_' + i + '.png');
         }
     },
     IfAllImagesLoaded: () => {
