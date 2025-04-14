@@ -236,7 +236,7 @@ const Core = {
     PrepareImageSources: () => {
         Images.PreloadData.unshift('environmentMap|'+Variables.ApiUrl + '/maps/' + Variables.Settings.mapId + '/live/' + Variables.Settings.mapImageUpdateId);
         Core.PrepareTreeImages();
-        Core.PrepareSeasonDirtImages();
+        Core.PrepareSeasonImages();
         totalTasks = scripts.length + Images.PreloadData.length;
         Images.PreloadData.forEach((item) => {
             const splits = item.split('|');
@@ -262,9 +262,10 @@ const Core = {
             Images.PreloadData.push('tree' + i + '|/img/tree_' + i + '_tiny.png');
         }
     },
-    PrepareSeasonDirtImages: () => {
+    PrepareSeasonImages: () => {
         for (let i = 1; i <= 12; i++) {
-            Images.PreloadData.push('|/img/sprites/sprite_dirt_droppings_128_tiny_' + i + '.png');
+            Images.PreloadData.push('dirt_droppings_' + i + '|/img/sprites/sprite_dirt_droppings_128_tiny_' + i + '.png');
+            Images.PreloadData.push('map_' + i + '|/img/map1_' + i + '.svg');
         }
     },
     IfAllImagesLoaded: () => {
@@ -347,7 +348,7 @@ const Core = {
         document.getElementById('mapWrap').appendChild(canvas);
     },
     LoadMap: () => {
-        Variables.MapInfo.mapImage.src = Images.Data['mapSvg'].src;
+        Variables.MapInfo.mapImage.src = Images.Data['map_'+Variables.Settings.seasonId].src;
         Variables.MapInfo.mapImage.onload = function () {
             Variables.MapInfo.mapMaxWidth = Variables.MapInfo.mapImage.width;
             Variables.MapInfo.mapMaxHeight = Variables.MapInfo.mapImage.height;
@@ -748,9 +749,9 @@ const Core = {
         const weedWrapDom = document.getElementById('weedWrapDom');
         if (weedWrapDom == null) { return; }
         const imagePosInfo = Core.DefineDirtDroppingImagePos(fecesData);
-        const dirtFloorWidthHeight = Images.Data.dirt_droppings.height;
+        const dirtFloorWidthHeight = Images.Data['dirt_droppings_'+Variables.Settings.seasonId].height;
         ctx.drawImage(
-            Images.Data.dirt_droppings,
+            Images.Data['dirt_droppings_'+Variables.Settings.seasonId],
             imagePosInfo.posX,
             imagePosInfo.posY,
             dirtFloorWidthHeight,
@@ -762,7 +763,7 @@ const Core = {
         );
     },
     DefineDirtDroppingImagePos: (fecesData) => {
-        const imageSize = Images.Data.dirt_droppings.height;
+        const imageSize = Images.Data['dirt_droppings_'+Variables.Settings.seasonId].height;
         const rabbitFecesExists = fecesData[0];
         const wolfFecesExists = fecesData[1];
         let caseId = 0;

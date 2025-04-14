@@ -34,6 +34,14 @@ const Socket = {
                 console.error(error);
             }
         });
+        Socket.WebsocketConnection.on("ReceiveSeasonIdUpdated", function (seasonId) {
+            try {
+                Variables.Settings.seasonId = seasonId;
+                Core.LoadMap();
+            } catch (error) {
+                console.error(error);
+            }
+        });
         Socket.WebsocketConnection.on("ReceivePlantProceedAccelerated", function (plantProceedAccelerated) {
             try {
                 Variables.Settings.plantProceedAccelerated = plantProceedAccelerated;
