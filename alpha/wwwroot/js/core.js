@@ -345,6 +345,7 @@ const Core = {
         canvas.id = 'mapCanvas';
         canvas.width = windowWidth;
         canvas.height = windowHeight;
+        canvas.style.cursor = 'grab';
         document.getElementById('mapWrap').appendChild(canvas);
     },
     LoadMap: () => {
