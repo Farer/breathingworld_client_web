@@ -1,3 +1,4 @@
+'use strict'
 const DomControll = {
     TransformCache: new WeakMap(),
     TransformOrder: ["translate3d", "translate", "scale", "scaleX"],
