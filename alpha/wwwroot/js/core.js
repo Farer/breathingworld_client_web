@@ -65,6 +65,7 @@ const Core = {
         document.body.appendChild(menuContainer);
     },
     PrepareMapWrap: () => {
+        document.body.style.backgroundColor = '#aadaff';
         document.body.style.overflow = 'hidden';
         const wrap = document.createElement('div');
         const wrapId = 'mapWrap';

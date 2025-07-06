@@ -12,11 +12,12 @@ window.onload = async function () {
     Socket.PrepareWebsocketCommunication();
     Chat.PrepareWebsocketCommunication();
     Core.PrepareMapWrap();
-    AddDragMapEvent();
-    Core.AddEvents();
     Core.PrepareCanvas();
     Core.PrepareImageSources();
     Core.UpdatePlantProceedAccelerated();
+    MapControl.Prepare();
+    // AddDragMapEvent();
+    // Core.AddEvents();
 }
 window.onresize = function () {
     Core.DrawMap(true, false);

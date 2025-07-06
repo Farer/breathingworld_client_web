@@ -1,11 +1,11 @@
 'use strict'
-MapControll = {
+const MapControl = {
     current: { scale: 1, x: 0, y: 0 },
     target: { scale: 1, x: 0, y: 0 },
     EASING_FACTOR: 0.15,
     MIN_MOVEMENT: 0.01,
     animationFrameId: null,
-    ZOOM_LEVELS: [1, 2, 4, 8, 16, 32, 64, 128],
+    ZOOM_LEVELS: [],
     BASE_VIEWPORT: { width: 1920, height: 1080 },
     currentZoomIndex: 0,
     baseScale: 1,
@@ -19,206 +19,220 @@ MapControll = {
     WHEEL_THROTTLE_MS: 200,
     canvas: null, ctx: null, mapImage: null,
     Prepare: () => {
-        canvas = document.getElementById('map-canvas');
-        ctx = canvas.getContext('2d');
-        mapImage = new Image(),
-        mapImage.src = 'map1.svg';
+        MapControl.ZOOM_LEVELS = Variables.MapScaleInfo.list;
+        MapControl.canvas = document.getElementById('mapCanvas');
+        MapControl.ctx = MapControl.canvas.getContext('2d');
+        MapControl.mapImage = new Image(),
+        MapControl.mapImage.src = Images.Data['map_'+Variables.Settings.seasonId].src;
+        MapControl.mapImage.onload = () => {
+            MapControl.setupInitialView();
+            MapControl.addEventListeners();
+            MapControl.requestRender();
+        };
     },
-    requestRender: () => { if (!animationFrameId) { animationFrameId = requestAnimationFrame(renderLoop); } },
+    requestRender: () => {
+        if (!MapControl.animationFrameId) { MapControl.animationFrameId = requestAnimationFrame(MapControl.renderLoop); }
+    },
     renderLoop: () => {
-        current.x += (target.x - current.x) * EASING_FACTOR;
-        current.y += (target.y - current.y) * EASING_FACTOR;
-        current.scale += (target.scale - current.scale) * EASING_FACTOR;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        ctx.translate(current.x, current.y);
-        ctx.scale(current.scale, current.scale);
-        ctx.drawImage(mapImage, 0, 0);
-        ctx.restore();
-        const dx = Math.abs(target.x - current.x);
-        const dy = Math.abs(target.y - current.y);
-        const ds = Math.abs(target.scale - current.scale);
-        if (dx < MIN_MOVEMENT && dy < MIN_MOVEMENT && ds < MIN_MOVEMENT) {
-            current = { ...target };
-            animationFrameId = null;
+        MapControl.current.x += (MapControl.target.x - MapControl.current.x) * MapControl.EASING_FACTOR;
+        MapControl.current.y += (MapControl.target.y - MapControl.current.y) * MapControl.EASING_FACTOR;
+        MapControl.current.scale += (MapControl.target.scale - MapControl.current.scale) * MapControl.EASING_FACTOR;
+        MapControl.ctx.clearRect(0, 0, MapControl.canvas.width, MapControl.canvas.height);
+        MapControl.ctx.save();
+        MapControl.ctx.translate(MapControl.current.x, MapControl.current.y);
+        MapControl.ctx.scale(MapControl.current.scale, MapControl.current.scale);
+        MapControl.ctx.drawImage(MapControl.mapImage, 0, 0);
+        MapControl.ctx.restore();
+        const dx = Math.abs(MapControl.target.x - MapControl.current.x);
+        const dy = Math.abs(MapControl.target.y - MapControl.current.y);
+        const ds = Math.abs(MapControl.target.scale - MapControl.current.scale);
+        if (dx < MapControl.MIN_MOVEMENT && dy < MapControl.MIN_MOVEMENT && ds < MapControl.MIN_MOVEMENT) {
+            MapControl.current = { ...MapControl.target };
+            MapControl.animationFrameId = null;
         } else {
-            animationFrameId = requestAnimationFrame(renderLoop);
+            MapControl.animationFrameId = requestAnimationFrame(MapControl.renderLoop);
         }
     },
     setupInitialView: () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        baseScale = Math.min(BASE_VIEWPORT.width / mapImage.width, BASE_VIEWPORT.height / mapImage.height);
-        setZoomLevel(0);
-        target.x = (canvas.width - mapImage.width * target.scale) / 2;
-        target.y = (canvas.height - mapImage.height * target.scale) / 2;
-        current = { ...target };
-        clampTargetPosition();
+        MapControl.canvas.width = window.innerWidth;
+        MapControl.canvas.height = window.innerHeight;
+        MapControl.baseScale = Math.min(MapControl.BASE_VIEWPORT.width / MapControl.mapImage.width, MapControl.BASE_VIEWPORT.height / MapControl.mapImage.height);
+        MapControl.setZoomLevel(0);
+        MapControl.target.x = (MapControl.canvas.width - MapControl.mapImage.width * MapControl.target.scale) / 2;
+        MapControl.target.y = (MapControl.canvas.height - MapControl.mapImage.height * MapControl.target.scale) / 2;
+        MapControl.current = { ...MapControl.target };
+        MapControl.clampTargetPosition();
     },
     addEventListeners: () => {
-        canvas.addEventListener('mousedown', handleMouseDown);
-        canvas.addEventListener('mousemove', handleMouseMove);
-        canvas.addEventListener('mouseup', handleMouseUp);
-        canvas.addEventListener('mouseleave', handleMouseLeave);
-        canvas.addEventListener('wheel', handleWheel, { passive: false });
-        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-        canvas.addEventListener('touchend', handleTouchEnd);
-        canvas.addEventListener('touchcancel', handleTouchEnd);
-        window.addEventListener('resize', handleResize);
+        MapControl.canvas.addEventListener('mousedown', MapControl.handleMouseDown);
+        MapControl.canvas.addEventListener('mousemove', MapControl.handleMouseMove);
+        MapControl.canvas.addEventListener('mouseup', MapControl.handleMouseUp);
+        MapControl.canvas.addEventListener('mouseleave', MapControl.handleMouseLeave);
+        MapControl.canvas.addEventListener('wheel', MapControl.handleWheel, { passive: false });
+        MapControl.canvas.addEventListener('touchstart', MapControl.handleTouchStart, { passive: false });
+        MapControl.canvas.addEventListener('touchmove', MapControl.handleTouchMove, { passive: false });
+        MapControl.canvas.addEventListener('touchend', MapControl.handleTouchEnd);
+        MapControl.canvas.addEventListener('touchcancel', MapControl.handleTouchEnd);
+        window.addEventListener('resize', MapControl.handleResize);
     },
     clampTargetPosition: () => {
-        const scaledMapWidth = mapImage.width * target.scale;
-        const scaledMapHeight = mapImage.height * target.scale;
-        const minX = Math.min(0, canvas.width - scaledMapWidth);
-        const maxX = Math.max(0, canvas.width - scaledMapWidth);
-        const minY = Math.min(0, canvas.height - scaledMapHeight);
-        const maxY = Math.max(0, canvas.height - scaledMapHeight);
-        target.x = Math.max(minX, Math.min((scaledMapWidth > canvas.width ? 0 : maxX), target.x));
-        target.y = Math.max(minY, Math.min((scaledMapHeight > canvas.height ? 0 : maxY), target.y));
+        const scaledMapWidth = MapControl.mapImage.width * MapControl.target.scale;
+        const scaledMapHeight = MapControl.mapImage.height * MapControl.target.scale;
+        const minX = Math.min(0, MapControl.canvas.width - scaledMapWidth);
+        const maxX = Math.max(0, MapControl.canvas.width - scaledMapWidth);
+        const minY = Math.min(0, MapControl.canvas.height - scaledMapHeight);
+        const maxY = Math.max(0, MapControl.canvas.height - scaledMapHeight);
+        MapControl.target.x = Math.max(minX, Math.min((scaledMapWidth > MapControl.canvas.width ? 0 : maxX), MapControl.target.x));
+        MapControl.target.y = Math.max(minY, Math.min((scaledMapHeight > MapControl.canvas.height ? 0 : maxY), MapControl.target.y));
     },
     setZoomLevel(index) {
-        currentZoomIndex = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, index));
-        target.scale = baseScale * ZOOM_LEVELS[currentZoomIndex];
+        MapControl.currentZoomIndex = Math.max(0, Math.min(MapControl.ZOOM_LEVELS.length - 1, index));
+        MapControl.target.scale = MapControl.baseScale * MapControl.ZOOM_LEVELS[MapControl.currentZoomIndex];
     },
     handleMouseDown(e) {
-        isDragging = true;
-        lastPosition = { x: e.clientX, y: e.clientY };
-        canvas.style.cursor = 'grabbing';
+        MapControl.isDragging = true;
+        MapControl.lastPosition = { x: e.clientX, y: e.clientY };
+        MapControl.canvas.style.cursor = 'grabbing';
     },
     handleMouseMove(e) {
-        if (!isDragging) return;
-        const dx = e.clientX - lastPosition.x;
-        const dy = e.clientY - lastPosition.y;
-        target.x += dx;
-        target.y += dy;
-        clampTargetPosition();
-        lastPosition = { x: e.clientX, y: e.clientY };
-        requestRender();
+        if (!MapControl.isDragging) return;
+        const dx = e.clientX - MapControl.lastPosition.x;
+        const dy = e.clientY - MapControl.lastPosition.y;
+        MapControl.target.x += dx;
+        MapControl.target.y += dy;
+        MapControl.clampTargetPosition();
+        MapControl.lastPosition = { x: e.clientX, y: e.clientY };
+        MapControl.requestRender();
     },
-    handleMouseUp: () => { isDragging = false; canvas.style.cursor = 'grab'; },
-    handleMouseLeave: () => { isDragging = false; canvas.style.cursor = 'grab'; },
+    handleMouseUp: () => {
+        MapControl.isDragging = false;
+        MapControl.canvas.style.cursor = 'grab';
+    },
+    handleMouseLeave: () => {
+        MapControl.isDragging = false;
+        MapControl.canvas.style.cursor = 'grab';
+    },
     handleWheel(e) {
         e.preventDefault();
-        if (wheelTimeout) return;
+        if (MapControl.wheelTimeout) return;
         const direction = e.deltaY > 0 ? -1 : 1;
-        if ((direction === 1 && currentZoomIndex === ZOOM_LEVELS.length - 1) || (direction === -1 && currentZoomIndex === 0)) return;
+        if ((direction === 1 && MapControl.currentZoomIndex === MapControl.ZOOM_LEVELS.length - 1) || (direction === -1 && MapControl.currentZoomIndex === 0)) return;
         const mouse = { x: e.clientX, y: e.clientY };
-        const mapMouseX = (mouse.x - target.x) / target.scale;
-        const mapMouseY = (mouse.y - target.y) / target.scale;
-        setZoomLevel(currentZoomIndex + direction);
-        target.x = mouse.x - mapMouseX * target.scale;
-        target.y = mouse.y - mapMouseY * target.scale;
-        clampTargetPosition();
-        requestRender();
-        wheelTimeout = setTimeout(() => { wheelTimeout = null; }, WHEEL_THROTTLE_MS);
+        const mapMouseX = (mouse.x - MapControl.target.x) / MapControl.target.scale;
+        const mapMouseY = (mouse.y - MapControl.target.y) / MapControl.target.scale;
+        MapControl.setZoomLevel(MapControl.currentZoomIndex + direction);
+        MapControl.target.x = mouse.x - mapMouseX * MapControl.target.scale;
+        MapControl.target.y = mouse.y - mapMouseY * MapControl.target.scale;
+        MapControl.clampTargetPosition();
+        MapControl.requestRender();
+        MapControl.wheelTimeout = setTimeout(() => { MapControl.wheelTimeout = null; }, MapControl.WHEEL_THROTTLE_MS);
     },
     handleResize: () => {
-        const oldWidth = canvas.width;
-        const oldHeight = canvas.height;
-        const mapCenterX = (oldWidth / 2 - current.x) / current.scale;
-        const mapCenterY = (oldHeight / 2 - current.y) / current.scale;
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        target.x = canvas.width / 2 - mapCenterX * current.scale;
-        target.y = canvas.height / 2 - mapCenterY * current.scale;
-        clampTargetPosition();
-        requestRender();
+        const oldWidth = MapControl.canvas.width;
+        const oldHeight = MapControl.canvas.height;
+        const mapCenterX = (oldWidth / 2 - MapControl.current.x) / MapControl.current.scale;
+        const mapCenterY = (oldHeight / 2 - MapControl.current.y) / MapControl.current.scale;
+        MapControl.canvas.width = window.innerWidth;
+        MapControl.canvas.height = window.innerHeight;
+        MapControl.target.x = MapControl.canvas.width / 2 - mapCenterX * MapControl.current.scale;
+        MapControl.target.y = MapControl.canvas.height / 2 - mapCenterY * MapControl.current.scale;
+        MapControl.clampTargetPosition();
+        MapControl.requestRender();
     },
     getDistance(t1, t2) { return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY); },
     getCenter(t1, t2) { return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 }; },
     handleTouchStart(e) {
         e.preventDefault();
-        ignoreNextDragFrame = false;
+        MapControl.ignoreNextDragFrame = false;
         if (e.touches.length > 2) return;
 
         if (e.touches.length === 1) {
-            isPinching = false;
-            isDragging = true;
-            lastPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            MapControl.isPinching = false;
+            MapControl.isDragging = true;
+            MapControl.lastPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         } else if (e.touches.length === 2) {
-            isDragging = false;
-            isPinching = true;
-            initialPinchDistance = getDistance(e.touches[0], e.touches[1]);
+            MapControl.isDragging = false;
+            MapControl.isPinching = true;
+            MapControl.initialPinchDistance = MapControl.getDistance(e.touches[0], e.touches[1]);
             
-            const center = getCenter(e.touches[0], e.touches[1]);
-            pinchStart = {
-                scale: target.scale,
+            const center = MapControl.getCenter(e.touches[0], e.touches[1]);
+            MapControl.pinchStart = {
+                scale: MapControl.target.scale,
                 center: center,
                 mapCenter: {
-                    x: (center.x - target.x) / target.scale,
-                    y: (center.y - target.y) / target.scale,
+                    x: (center.x - MapControl.target.x) / MapControl.target.scale,
+                    y: (center.y - MapControl.target.y) / MapControl.target.scale,
                 }
             };
         }
     },
     handleTouchMove(e) {
         e.preventDefault();
-        if (isDragging && e.touches.length === 1) {
-            if (ignoreNextDragFrame) {
-                lastPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-                ignoreNextDragFrame = false;
+        if (MapControl.isDragging && e.touches.length === 1) {
+            if (MapControl.ignoreNextDragFrame) {
+                MapControl.lastPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                MapControl.ignoreNextDragFrame = false;
                 return;
             }
             const touch = e.touches[0];
-            const dx = touch.clientX - lastPosition.x;
-            const dy = touch.clientY - lastPosition.y;
-            target.x += dx;
-            target.y += dy;
-            clampTargetPosition();
-            lastPosition = { x: touch.clientX, y: touch.clientY };
-            requestRender();
-        } else if (isPinching && e.touches.length === 2) {
-            const newDist = getDistance(e.touches[0], e.touches[1]);
-            const zoomFactor = newDist / initialPinchDistance;
+            const dx = touch.clientX - MapControl.lastPosition.x;
+            const dy = touch.clientY - MapControl.lastPosition.y;
+            MapControl.target.x += dx;
+            MapControl.target.y += dy;
+            MapControl.clampTargetPosition();
+            MapControl.lastPosition = { x: touch.clientX, y: touch.clientY };
+            MapControl.requestRender();
+        } else if (MapControl.isPinching && e.touches.length === 2) {
+            const newDist = MapControl.getDistance(e.touches[0], e.touches[1]);
+            const zoomFactor = newDist / MapControl.initialPinchDistance;
             
-            target.scale = pinchStart.scale * zoomFactor;
+            MapControl.target.scale = MapControl.pinchStart.scale * zoomFactor;
 
-            const minScale = baseScale * ZOOM_LEVELS[0] * 0.8;
-            const maxScale = baseScale * ZOOM_LEVELS[ZOOM_LEVELS.length - 1] * 1.2;
-            target.scale = Math.max(minScale, Math.min(maxScale, target.scale));
+            const minScale = MapControl.baseScale * MapControl.ZOOM_LEVELS[0] * 0.8;
+            const maxScale = MapControl.baseScale * MapControl.ZOOM_LEVELS[MapControl.ZOOM_LEVELS.length - 1] * 1.2;
+            MapControl.target.scale = Math.max(minScale, Math.min(maxScale, MapControl.target.scale));
             
-            const center = getCenter(e.touches[0], e.touches[1]);
-            target.x = center.x - pinchStart.mapCenter.x * target.scale;
-            target.y = center.y - pinchStart.mapCenter.y * target.scale;
+            const center = MapControl.getCenter(e.touches[0], e.touches[1]);
+            MapControl.target.x = center.x - MapControl.pinchStart.mapCenter.x * MapControl.target.scale;
+            MapControl.target.y = center.y - MapControl.pinchStart.mapCenter.y * MapControl.target.scale;
             
-            clampTargetPosition();
-            requestRender();
+            MapControl.clampTargetPosition();
+            MapControl.requestRender();
         }
     },
     handleTouchEnd(e) {
         e.preventDefault();
 
-        if (isPinching) {
-            const finalIndex = snapToSingleLevel();
-            setZoomLevel(finalIndex);
+        if (MapControl.isPinching) {
+            const finalIndex = MapControl.snapToSingleLevel();
+            MapControl.setZoomLevel(finalIndex);
             
-            target.x = pinchStart.center.x - pinchStart.mapCenter.x * target.scale;
-            target.y = pinchStart.center.y - pinchStart.mapCenter.y * target.scale;
+            MapControl.target.x = MapControl.pinchStart.center.x - MapControl.pinchStart.mapCenter.x * MapControl.target.scale;
+            MapControl.target.y = MapControl.pinchStart.center.y - MapControl.pinchStart.mapCenter.y * MapControl.target.scale;
 
-            clampTargetPosition();
-            requestRender();
+            MapControl.clampTargetPosition();
+            MapControl.requestRender();
 
-            ignoreNextDragFrame = true;
+            MapControl.ignoreNextDragFrame = true;
         }
         
-        isPinching = false;
-        isDragging = false;
+        MapControl.isPinching = false;
+        MapControl.isDragging = false;
         
         if (e.touches.length === 1) {
-            isDragging = true;
-            lastPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            MapControl.isDragging = true;
+            MapControl.lastPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         }
     },
     snapToSingleLevel: () => {
-        const finalEffectiveScale = target.scale / baseScale;
-        const pinchStartIndex = ZOOM_LEVELS.indexOf(pinchStart.scale / baseScale);
+        const finalEffectiveScale = MapControl.target.scale / MapControl.baseScale;
+        let pinchStartIndex = MapControl.ZOOM_LEVELS.indexOf(MapControl.pinchStart.scale / MapControl.baseScale);
         
         let startIndex = pinchStartIndex;
         if (startIndex === -1) {
              let minDiff = Infinity;
-             ZOOM_LEVELS.forEach((level, index) => {
-                const diff = Math.abs((pinchStart.scale / baseScale) - level);
+             MapControl.ZOOM_LEVELS.forEach((level, index) => {
+                const diff = Math.abs((MapControl.pinchStart.scale / MapControl.baseScale) - level);
                 if (diff < minDiff) {
                     minDiff = diff;
                     startIndex = index;
@@ -226,12 +240,12 @@ MapControll = {
             });
         }
         
-        const startLevelScale = ZOOM_LEVELS[startIndex];
+        const startLevelScale = MapControl.ZOOM_LEVELS[startIndex];
         let finalIndex = startIndex;
 
         if (finalEffectiveScale > startLevelScale) {
-            if (startIndex < ZOOM_LEVELS.length - 1) {
-                const nextLevelScale = ZOOM_LEVELS[startIndex + 1];
+            if (startIndex < MapControl.ZOOM_LEVELS.length - 1) {
+                const nextLevelScale = MapControl.ZOOM_LEVELS[startIndex + 1];
                 const threshold = (startLevelScale + nextLevelScale) / 2;
                 if (finalEffectiveScale > threshold) {
                     finalIndex = startIndex + 1;
@@ -239,7 +253,7 @@ MapControll = {
             }
         } else if (finalEffectiveScale < startLevelScale) {
             if (startIndex > 0) {
-                const prevLevelScale = ZOOM_LEVELS[startIndex - 1];
+                const prevLevelScale = MapControl.ZOOM_LEVELS[startIndex - 1];
                 const threshold = (startLevelScale + prevLevelScale) / 2;
                 if (finalEffectiveScale < threshold) {
                     finalIndex = startIndex - 1;
