@@ -6,7 +6,7 @@ const MapControl = {
     MIN_MOVEMENT: 0.01,
     animationFrameId: null,
     ZOOM_LEVELS: [],
-    BASE_VIEWPORT: { width: 1920, height: 1080 },
+    BASE_VIEWPORT: null,
     currentZoomIndex: 0,
     baseScale: 1,
     isDragging: false,
@@ -20,6 +20,7 @@ const MapControl = {
     canvas: null, ctx: null, mapImage: null,
     Prepare: () => {
         MapControl.ZOOM_LEVELS = Variables.MapScaleInfo.list;
+        MapControl.BASE_VIEWPORT = { width: Variables.MapInfo.mapMinWidth, height: Variables.MapInfo.mapMinHeight };
         MapControl.canvas = document.getElementById('mapCanvas');
         MapControl.ctx = MapControl.canvas.getContext('2d');
         MapControl.mapImage = new Image(),
