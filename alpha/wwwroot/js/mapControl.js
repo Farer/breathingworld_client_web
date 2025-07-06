@@ -45,7 +45,7 @@ MapControll = {
             animationFrameId = requestAnimationFrame(renderLoop);
         }
     },
-    setupInitialView: () => { /* 이전과 동일 */ 
+    setupInitialView: () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         baseScale = Math.min(BASE_VIEWPORT.width / mapImage.width, BASE_VIEWPORT.height / mapImage.height);
@@ -55,7 +55,7 @@ MapControll = {
         current = { ...target };
         clampTargetPosition();
     },
-    addEventListeners: () => { /* 이전과 동일 */ 
+    addEventListeners: () => {
         canvas.addEventListener('mousedown', handleMouseDown);
         canvas.addEventListener('mousemove', handleMouseMove);
         canvas.addEventListener('mouseup', handleMouseUp);
@@ -67,7 +67,7 @@ MapControll = {
         canvas.addEventListener('touchcancel', handleTouchEnd);
         window.addEventListener('resize', handleResize);
     },
-    clampTargetPosition: () => { /* 이전과 동일 */
+    clampTargetPosition: () => {
         const scaledMapWidth = mapImage.width * target.scale;
         const scaledMapHeight = mapImage.height * target.scale;
         const minX = Math.min(0, canvas.width - scaledMapWidth);
@@ -77,16 +77,16 @@ MapControll = {
         target.x = Math.max(minX, Math.min((scaledMapWidth > canvas.width ? 0 : maxX), target.x));
         target.y = Math.max(minY, Math.min((scaledMapHeight > canvas.height ? 0 : maxY), target.y));
     },
-    setZoomLevel(index) { /* 이전과 동일 */
+    setZoomLevel(index) {
         currentZoomIndex = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, index));
         target.scale = baseScale * ZOOM_LEVELS[currentZoomIndex];
     },
-    handleMouseDown(e) { /* 이전과 동일 */
+    handleMouseDown(e) {
         isDragging = true;
         lastPosition = { x: e.clientX, y: e.clientY };
         canvas.style.cursor = 'grabbing';
     },
-    handleMouseMove(e) { /* 이전과 동일 */
+    handleMouseMove(e) {
         if (!isDragging) return;
         const dx = e.clientX - lastPosition.x;
         const dy = e.clientY - lastPosition.y;
@@ -96,9 +96,9 @@ MapControll = {
         lastPosition = { x: e.clientX, y: e.clientY };
         requestRender();
     },
-    handleMouseUp: () => { /* 이전과 동일 */ isDragging = false; canvas.style.cursor = 'grab'; },
-    handleMouseLeave: () => { /* 이전과 동일 */ isDragging = false; canvas.style.cursor = 'grab'; },
-    handleWheel(e) { /* 이전과 동일 */
+    handleMouseUp: () => { isDragging = false; canvas.style.cursor = 'grab'; },
+    handleMouseLeave: () => { isDragging = false; canvas.style.cursor = 'grab'; },
+    handleWheel(e) {
         e.preventDefault();
         if (wheelTimeout) return;
         const direction = e.deltaY > 0 ? -1 : 1;
@@ -113,7 +113,7 @@ MapControll = {
         requestRender();
         wheelTimeout = setTimeout(() => { wheelTimeout = null; }, WHEEL_THROTTLE_MS);
     },
-    handleResize: () => { /* 이전과 동일 */ 
+    handleResize: () => {
         const oldWidth = canvas.width;
         const oldHeight = canvas.height;
         const mapCenterX = (oldWidth / 2 - current.x) / current.scale;
@@ -125,8 +125,8 @@ MapControll = {
         clampTargetPosition();
         requestRender();
     },
-    getDistance(t1, t2) { /* 이전과 동일 */ return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY); },
-    getCenter(t1, t2) { /* 이전과 동일 */ return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 }; },
+    getDistance(t1, t2) { return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY); },
+    getCenter(t1, t2) { return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 }; },
     handleTouchStart(e) {
         e.preventDefault();
         ignoreNextDragFrame = false;
@@ -141,7 +141,6 @@ MapControll = {
             isPinching = true;
             initialPinchDistance = getDistance(e.touches[0], e.touches[1]);
             
-            // CHANGED: 핀치 시작점의 모든 상태를 '앵커'로 저장
             const center = getCenter(e.touches[0], e.touches[1]);
             pinchStart = {
                 scale: target.scale,
@@ -156,7 +155,6 @@ MapControll = {
     handleTouchMove(e) {
         e.preventDefault();
         if (isDragging && e.touches.length === 1) {
-            // ... (드래그 로직은 이전과 동일, 움찔거림 방지 포함) ...
             if (ignoreNextDragFrame) {
                 lastPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                 ignoreNextDragFrame = false;
@@ -171,18 +169,15 @@ MapControll = {
             lastPosition = { x: touch.clientX, y: touch.clientY };
             requestRender();
         } else if (isPinching && e.touches.length === 2) {
-            // 이 함수의 역할은 오직 '시각적 피드백'. 최종 계산은 touchend에서.
             const newDist = getDistance(e.touches[0], e.touches[1]);
             const zoomFactor = newDist / initialPinchDistance;
             
-            // 스케일은 연속적으로 변경 (시각적 피드백용)
             target.scale = pinchStart.scale * zoomFactor;
 
-            const minScale = baseScale * ZOOM_LEVELS[0] * 0.8; // 최소/최대 레벨보다 조금 더 여유를 줌
+            const minScale = baseScale * ZOOM_LEVELS[0] * 0.8;
             const maxScale = baseScale * ZOOM_LEVELS[ZOOM_LEVELS.length - 1] * 1.2;
             target.scale = Math.max(minScale, Math.min(maxScale, target.scale));
             
-            // 위치도 시각적 피드백을 위해 업데이트
             const center = getCenter(e.touches[0], e.touches[1]);
             target.x = center.x - pinchStart.mapCenter.x * target.scale;
             target.y = center.y - pinchStart.mapCenter.y * target.scale;
@@ -195,11 +190,9 @@ MapControll = {
         e.preventDefault();
 
         if (isPinching) {
-            // CHANGED: 스냅 함수 호출 후, 앵커를 기준으로 최종 위치를 재계산
             const finalIndex = snapToSingleLevel();
             setZoomLevel(finalIndex);
             
-            // 오차가 누적된 중간 값을 버리고, 저장된 '앵커'와 '최종 스케일'로 위치를 새로 계산
             target.x = pinchStart.center.x - pinchStart.mapCenter.x * target.scale;
             target.y = pinchStart.center.y - pinchStart.mapCenter.y * target.scale;
 
@@ -221,7 +214,6 @@ MapControll = {
         const finalEffectiveScale = target.scale / baseScale;
         const pinchStartIndex = ZOOM_LEVELS.indexOf(pinchStart.scale / baseScale);
         
-        // pinchStartIndex가 -1인 경우(easing 중간에 핀치 시작), 가장 가까운 인덱스를 찾음
         let startIndex = pinchStartIndex;
         if (startIndex === -1) {
              let minDiff = Infinity;
