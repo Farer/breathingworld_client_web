@@ -19,6 +19,8 @@ const MapControl = {
     wheelTimeout: null,
     WHEEL_THROTTLE_MS: 100,
     canvas: null, ctx: null, mapImage: null,
+    lastTapTime: 0,
+    DOUBLE_TAP_THRESHOLD_MS: 300,
 
     Prepare: () => {
         MapControl.ZOOM_LEVELS = Variables.MapScaleInfo.list;
@@ -37,23 +39,20 @@ const MapControl = {
     requestRender: () => {
         if (!MapControl.animationFrameId) { MapControl.animationFrameId = requestAnimationFrame(MapControl.renderLoop); }
     },
-    
+
     renderLoop: () => {
         MapControl.current.x += (MapControl.target.x - MapControl.current.x) * MapControl.ZOOM_EASING_FACTOR;
         MapControl.current.y += (MapControl.target.y - MapControl.current.y) * MapControl.ZOOM_EASING_FACTOR;
         MapControl.current.scale += (MapControl.target.scale - MapControl.current.scale) * MapControl.ZOOM_EASING_FACTOR;
-
         MapControl.ctx.clearRect(0, 0, MapControl.canvas.width, MapControl.canvas.height);
         MapControl.ctx.save();
         MapControl.ctx.translate(MapControl.current.x, MapControl.current.y);
         MapControl.ctx.scale(MapControl.current.scale, MapControl.current.scale);
         MapControl.ctx.drawImage(MapControl.mapImage, 0, 0);
         MapControl.ctx.restore();
-
         const dx = Math.abs(MapControl.target.x - MapControl.current.x);
         const dy = Math.abs(MapControl.target.y - MapControl.current.y);
         const ds = Math.abs(MapControl.target.scale - MapControl.current.scale);
-
         if (dx < MapControl.MIN_MOVEMENT && dy < MapControl.MIN_MOVEMENT && ds < MapControl.MIN_MOVEMENT) {
             MapControl.current = { ...MapControl.target };
             MapControl.isZooming = false;
@@ -62,20 +61,84 @@ const MapControl = {
             MapControl.animationFrameId = requestAnimationFrame(MapControl.renderLoop);
         }
     },
-    
+
+    addEventListeners: () => {
+        MapControl.canvas.addEventListener('mousedown', MapControl.handleMouseDown);
+        MapControl.canvas.addEventListener('mousemove', MapControl.handleMouseMove);
+        MapControl.canvas.addEventListener('mouseup', MapControl.handleMouseUp);
+        MapControl.canvas.addEventListener('mouseleave', MapControl.handleMouseLeave);
+        MapControl.canvas.addEventListener('wheel', MapControl.handleWheel, { passive: false });
+        MapControl.canvas.addEventListener('dblclick', MapControl.handleDoubleClick, { passive: false });
+        MapControl.canvas.addEventListener('touchstart', MapControl.handleTouchStart, { passive: false });
+        MapControl.canvas.addEventListener('touchmove', MapControl.handleTouchMove, { passive: false });
+        MapControl.canvas.addEventListener('touchend', MapControl.handleTouchEnd);
+        MapControl.canvas.addEventListener('touchcancel', MapControl.handleTouchEnd);
+        window.addEventListener('resize', MapControl.handleResize);
+    },
+
+    zoomInAtPoint: (point) => {
+        MapControl.current = { ...MapControl.target };
+        MapControl.isZooming = true;
+        const maxZoom = MapControl.ZOOM_LEVELS.length - 1;
+        if (MapControl.currentZoomIndex >= maxZoom) {
+            MapControl.isZooming = false;
+            return;
+        }
+        const newIndex = MapControl.currentZoomIndex + 1;
+        const mapMouseX = (point.x - MapControl.target.x) / MapControl.target.scale;
+        const mapMouseY = (point.y - MapControl.target.y) / MapControl.target.scale;
+        MapControl.setZoomLevel(newIndex);
+        MapControl.target.x = point.x - mapMouseX * MapControl.target.scale;
+        MapControl.target.y = point.y - mapMouseY * MapControl.target.scale;
+        MapControl.clampTargetPosition();
+        MapControl.requestRender();
+    },
+
+    handleDoubleClick: (e) => {
+        e.preventDefault();
+        MapControl.zoomInAtPoint({ x: e.clientX, y: e.clientY });
+    },
+
+    handleTouchStart: (e) => {
+        e.preventDefault();
+        if (e.touches.length === 1) {
+            const now = new Date().getTime();
+            const timeSinceLastTap = now - MapControl.lastTapTime;
+            if (timeSinceLastTap < MapControl.DOUBLE_TAP_THRESHOLD_MS && timeSinceLastTap > 0) {
+                MapControl.zoomInAtPoint({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+                MapControl.lastTapTime = 0;
+                return;
+            }
+            MapControl.lastTapTime = now;
+        } else {
+            MapControl.lastTapTime = 0;
+        }
+        MapControl.ignoreNextDragFrame = false;
+        if (e.touches.length === 1) {
+            MapControl.isPinching = false;
+            MapControl.handleMouseDown({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
+        } else if (e.touches.length === 2) {
+            MapControl.isDragging = false;
+            MapControl.isPinching = true;
+            MapControl.current = { ...MapControl.target };
+            MapControl.initialPinchDistance = MapControl.getDistance(e.touches[0], e.touches[1]);
+            const center = MapControl.getCenter(e.touches[0], e.touches[1]);
+            MapControl.pinchStart = {
+                scale: MapControl.target.scale, center,
+                mapCenter: { x: (center.x - MapControl.target.x) / MapControl.target.scale, y: (center.y - MapControl.target.y) / MapControl.target.scale }
+            };
+        }
+    },
+
     handleMouseMove(e) {
         if (MapControl.isZooming || !MapControl.isDragging) return;
-
         const dx = e.clientX - MapControl.lastPosition.x;
         const dy = e.clientY - MapControl.lastPosition.y;
-
         MapControl.target.x += dx;
         MapControl.target.y += dy;
         MapControl.clampTargetPosition();
-
         MapControl.current.x = MapControl.target.x;
         MapControl.current.y = MapControl.target.y;
-
         MapControl.lastPosition = { x: e.clientX, y: e.clientY };
         MapControl.requestRender();
     },
@@ -83,26 +146,20 @@ const MapControl = {
     handleWheel(e) {
         e.preventDefault();
         if (MapControl.wheelTimeout) return;
-
         MapControl.current = { ...MapControl.target };
         MapControl.isZooming = true;
-        
         const direction = e.deltaY > 0 ? -1 : 1;
         const maxZoom = MapControl.ZOOM_LEVELS.length - 1;
         if ((direction === 1 && MapControl.currentZoomIndex === maxZoom) || (direction === -1 && MapControl.currentZoomIndex === 0)) {
             MapControl.isZooming = false;
             return;
         }
-        
         const mouse = { x: e.clientX, y: e.clientY };
         const mapMouseX = (mouse.x - MapControl.target.x) / MapControl.target.scale;
         const mapMouseY = (mouse.y - MapControl.target.y) / MapControl.target.scale;
-        
         MapControl.setZoomLevel(MapControl.currentZoomIndex + direction);
-        
         MapControl.target.x = mouse.x - mapMouseX * MapControl.target.scale;
         MapControl.target.y = mouse.y - mapMouseY * MapControl.target.scale;
-        
         MapControl.clampTargetPosition();
         MapControl.requestRender();
         MapControl.wheelTimeout = setTimeout(() => { MapControl.wheelTimeout = null; }, MapControl.WHEEL_THROTTLE_MS);
@@ -117,18 +174,6 @@ const MapControl = {
         MapControl.target.y = (MapControl.canvas.height - MapControl.mapImage.height * MapControl.target.scale) / 2;
         MapControl.current = { ...MapControl.target };
         MapControl.clampTargetPosition();
-    },
-    addEventListeners: () => {
-        MapControl.canvas.addEventListener('mousedown', MapControl.handleMouseDown);
-        MapControl.canvas.addEventListener('mousemove', MapControl.handleMouseMove);
-        MapControl.canvas.addEventListener('mouseup', MapControl.handleMouseUp);
-        MapControl.canvas.addEventListener('mouseleave', MapControl.handleMouseLeave);
-        MapControl.canvas.addEventListener('wheel', MapControl.handleWheel, { passive: false });
-        MapControl.canvas.addEventListener('touchstart', MapControl.handleTouchStart, { passive: false });
-        MapControl.canvas.addEventListener('touchmove', MapControl.handleTouchMove, { passive: false });
-        MapControl.canvas.addEventListener('touchend', MapControl.handleTouchEnd);
-        MapControl.canvas.addEventListener('touchcancel', MapControl.handleTouchEnd);
-        window.addEventListener('resize', MapControl.handleResize);
     },
     clampTargetPosition: () => {
         const scaledMapWidth = MapControl.mapImage.width * MapControl.target.scale;
@@ -166,25 +211,6 @@ const MapControl = {
     },
     getDistance(t1, t2) { return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY); },
     getCenter(t1, t2) { return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 }; },
-    handleTouchStart(e) {
-        e.preventDefault();
-        MapControl.ignoreNextDragFrame = false;
-        if (e.touches.length > 2) return;
-        if (e.touches.length === 1) {
-            MapControl.isPinching = false;
-            MapControl.handleMouseDown({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
-        } else if (e.touches.length === 2) {
-            MapControl.isDragging = false;
-            MapControl.isPinching = true;
-            MapControl.current = { ...MapControl.target };
-            MapControl.initialPinchDistance = MapControl.getDistance(e.touches[0], e.touches[1]);
-            const center = MapControl.getCenter(e.touches[0], e.touches[1]);
-            MapControl.pinchStart = {
-                scale: MapControl.target.scale, center,
-                mapCenter: { x: (center.x - MapControl.target.x) / MapControl.target.scale, y: (center.y - MapControl.target.y) / MapControl.target.scale }
-            };
-        }
-    },
     handleTouchMove(e) {
         e.preventDefault();
         if (MapControl.isZooming) return;
