@@ -2,7 +2,7 @@
 const Images = {
     LoadedCount: 0,
     PreloadData: [
-        'weed|/img/sprites/sprite_weed_512_tiny.png?1',
+        'weed|/img/sprites/sprite_weed_512_opti.png',
         'rabbit|/img/sprites/sprite_rabbit_256_tiny.png',
         'rabbit_etc|/img/sprites/sprite_rabbit_etc_512_tiny.png?1',
         'animal_bones|/img/animal_bones_tiny.png',
