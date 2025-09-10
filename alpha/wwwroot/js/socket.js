@@ -34,9 +34,9 @@ const Socket = {
                 console.error(error);
             }
         });
-        Socket.WebsocketConnection.on("ReceiveSeasonIdUpdated", function (seasonId) {
+        Socket.WebsocketConnection.on("ReceiveWeekIdUpdated", function (weekId) {
             try {
-                Variables.Settings.seasonId = seasonId;
+                Variables.Settings.weekId = weekId;
                 Core.LoadMap();
             } catch (error) {
                 console.error(error);
