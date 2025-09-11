@@ -5,6 +5,7 @@ const Variables = {
     ChatUrl: '',
     Settings: null,
     PlantsTurnId: 0,
+    MonthNames: ['January', 'February', 'March', 'April', 'May', 'June','July', 'August', 'September', 'October', 'November', 'December'],
     UserDragged: false,
     TimeoutInfo: {
         zoomMap: null,

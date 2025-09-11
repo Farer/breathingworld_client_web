@@ -1,5 +1,15 @@
 'use strict';
 const Methods = {
+    CalculateMonthAndWeek: (weekId) => {
+        if (weekId < 1 || weekId > 48) return { month: 'January', week: 1, monthIndex: 0 };
+        const monthIndex = Math.floor((weekId - 1) / 4);
+        const weekInMonth = ((weekId - 1) % 4) + 1;
+        return {
+            month: Variables.MonthNames[monthIndex],
+            week: weekInMonth,
+            monthIndex: monthIndex
+        };
+    },
     GatherViewDistrictIds: () => {
         let districtIds = [];
         const leftTop = Methods.GetLeftTopMapWrap();

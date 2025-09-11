@@ -37,6 +37,7 @@ const Socket = {
         Socket.WebsocketConnection.on("ReceiveWeekIdUpdated", function (weekId) {
             try {
                 Variables.Settings.weekId = weekId;
+                Core.UpdateWeekProgressBar();
                 Core.LoadMap();
             } catch (error) {
                 console.error(error);

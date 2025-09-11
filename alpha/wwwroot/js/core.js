@@ -217,12 +217,78 @@ const Core = {
             selectLocationDom.style.display = 'none';
         });
     },
+    UpdateWeekProgressBar: () => {
+        const weekId = Variables.Settings.weekId || 1;
+        const { month, week, monthIndex } = Methods.CalculateMonthAndWeek(weekId);
+        
+        let progressContainer = document.getElementById('weekProgressContainer');
+        
+        if (!progressContainer) {
+            progressContainer = document.createElement('div');
+            progressContainer.id = 'weekProgressContainer';
+            progressContainer.style.position = 'fixed';
+            progressContainer.style.left = '20px';
+            progressContainer.style.bottom = '20px';
+            progressContainer.style.width = '120px';
+            progressContainer.style.height = '20px';
+            progressContainer.style.zIndex = '9999';
+            
+            const progressBackground = document.createElement('div');
+            progressBackground.id = 'progressBackground';
+            progressBackground.style.position = 'relative';
+            progressBackground.style.width = '100%';
+            progressBackground.style.height = '100%';
+            progressBackground.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+            progressBackground.style.borderRadius = '10px';
+            progressBackground.style.overflow = 'hidden';
+            progressBackground.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+            
+            const progressFill = document.createElement('div');
+            progressFill.id = 'progressFill';
+            progressFill.style.position = 'absolute';
+            progressFill.style.left = '0';
+            progressFill.style.top = '0';
+            progressFill.style.height = '100%';
+            progressFill.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+            progressFill.style.borderRadius = '10px';
+            progressFill.style.transition = 'width 0.3s ease';
+            
+            const monthLabel = document.createElement('div');
+            monthLabel.id = 'monthLabel';
+            monthLabel.style.position = 'absolute';
+            monthLabel.style.left = '0';
+            monthLabel.style.top = '0';
+            monthLabel.style.width = '100%';
+            monthLabel.style.height = '100%';
+            monthLabel.style.display = 'flex';
+            monthLabel.style.alignItems = 'center';
+            monthLabel.style.justifyContent = 'center';
+            monthLabel.style.color = 'rgba(255, 255, 255, 0.8)';
+            monthLabel.style.fontSize = '11px';
+            monthLabel.style.fontWeight = '500';
+            monthLabel.style.pointerEvents = 'none';
+            monthLabel.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.3)';
+            
+            progressBackground.appendChild(progressFill);
+            progressBackground.appendChild(monthLabel);
+            progressContainer.appendChild(progressBackground);
+            document.body.appendChild(progressContainer);
+        }
+        
+        const monthLabel = document.getElementById('monthLabel');
+        const progressFill = document.getElementById('progressFill');
+        
+        if (monthLabel && progressFill) {
+            monthLabel.textContent = month;
+            progressFill.style.width = `${(week / 4) * 100}%`;
+        }
+    },
     DrawUsersCountDom: () => {
         const usersDom = document.createElement('div');
         usersDom.id = 'users_count';
         usersDom.style.position = 'fixed';
         usersDom.style.left = '20px';
-        usersDom.style.bottom = '15px';
+        usersDom.style.bottom = '50px';
         
         let html = '';
         html += '<div style="display: flex; align-items: center; gap: 5px; filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));">';
@@ -787,7 +853,7 @@ const Core = {
                 accelerationIcon.src = Images.Data['icon_weed'].src;
                 accelerationIcon.style.position = 'absolute';
                 accelerationIcon.style.left = '20px';
-                accelerationIcon.style.bottom = '55px';
+                accelerationIcon.style.bottom = '90px';
                 accelerationIcon.style.width = '32px';
                 accelerationIcon.style.height = '32px';
                 accelerationIcon.style.filter = 'drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5))';
@@ -798,5 +864,6 @@ const Core = {
         else if(accelerationIcon != null) {
             accelerationIcon.parentNode.removeChild(accelerationIcon);
         }
+        Core.UpdateWeekProgressBar();
     },
 };
