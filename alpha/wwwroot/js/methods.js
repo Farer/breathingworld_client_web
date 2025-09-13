@@ -1,13 +1,18 @@
 'use strict';
 const Methods = {
+    GetWeekIdByDayId: (dayId) => {
+        return Math.floor((dayId - 1) / 7) + 1;
+    },
+    GetMapIndex: (dayId, timeOfDay) => {
+        return Methods.GetWeekIdByDayId(dayId) * 3 + timeOfDay;
+    },
     CalculateMonthAndWeek: (weekId) => {
         if (weekId < 1 || weekId > 48) return { month: 'January', week: 1, monthIndex: 0 };
         const monthIndex = Math.floor((weekId - 1) / 4);
         const weekInMonth = ((weekId - 1) % 4) + 1;
         return {
             month: Variables.MonthNames[monthIndex],
-            week: weekInMonth,
-            monthIndex: monthIndex
+            week: weekInMonth
         };
     },
     GatherViewDistrictIds: () => {

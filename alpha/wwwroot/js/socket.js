@@ -34,9 +34,11 @@ const Socket = {
                 console.error(error);
             }
         });
-        Socket.WebsocketConnection.on("ReceiveWeekIdUpdated", function (weekId) {
+        Socket.WebsocketConnection.on("ReceiveTimeOfDayChanged", function (dayId, timeOfDay) {
             try {
-                Variables.Settings.weekId = weekId;
+                Variables.Settings.weekId = Methods.GetWeekIdByDayId(dayId);
+                Variables.Settings.dayId = dayId;
+                Variables.Settings.timeOfDay = timeOfDay;
                 Core.UpdateWeekProgressBar();
                 Core.LoadMap();
             } catch (error) {
