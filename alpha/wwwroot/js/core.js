@@ -709,7 +709,7 @@ const Core = {
 
             Variables.Settings = await response.json();
             Variables.Settings.weekId = Methods.GetWeekIdByDayId(Variables.Settings.dayId);
-            CacheManager.autoUpdateCache();
+            await CacheManager.autoUpdateCache();
             Variables.MapInfo.mapMinWidth = Variables.Settings.mapMinWidth;
             Variables.MapInfo.mapMinHeight = Variables.Settings.mapMinHeight;
         } catch (error) {
