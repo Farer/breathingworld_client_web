@@ -811,7 +811,7 @@ const Core = {
         const imagePosInfo = Core.DefineDirtDroppingImagePos(fecesData);
         const mapIndex = Methods.GetMapIndex(Variables.Settings.dayId, Variables.Settings.timeOfDay);
         ctx.drawImage(
-            window.cdnPrefix+'/img/sprites/grounds_tiny/'+mapIndex+'.png',
+            CacheManager.groundImages[mapIndex],
             imagePosInfo.posX,
             imagePosInfo.posY,
             Variables.DirtFloorWidthHeight,

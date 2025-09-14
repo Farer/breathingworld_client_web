@@ -1,6 +1,7 @@
 const CacheManager = {
     cacheName: 'game-maps-cache-v1',
     currentWeekId: null,
+    groundImages: {},
     getMapIndex: (weekId, timeOfDay) => {
         return (weekId - 1) * 3 + timeOfDay;
     },
@@ -18,6 +19,11 @@ const CacheManager = {
                 const mapIndex = this.getMapIndex(weekId, timeOfDay);
                 const urls = this.getFileUrls(mapIndex);
                 urlsToCache.push(urls.svg, urls.png);
+
+                if(this.groundImages[mapIndex] == undefined) {
+                    this.groundImages[mapIndex] = new Image();
+                    this.groundImages[mapIndex].src = urls.png;
+                }
 
                 const fillColorKey = 'map_' + mapIndex;
                 if(Images.FillColors[fillColorKey] == undefined) {
@@ -41,6 +47,9 @@ const CacheManager = {
                 const mapIndex = this.getMapIndex(weekId, timeOfDay);
                 const urls = this.getFileUrls(mapIndex);
                 urlsToRemove.push(urls.svg, urls.png);
+                if(this.groundImages[mapIndex] != undefined) {
+                    this.groundImages[mapIndex] = null;
+                }
             }
             console.log(`캐시에서 제거 중: Week ${weekId}`, urlsToRemove);
             for (const url of urlsToRemove) {
