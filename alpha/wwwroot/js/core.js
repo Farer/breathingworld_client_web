@@ -218,88 +218,53 @@ const Core = {
         });
     },
     UpdateWeekProgressBar: () => {
-        const weekId = Variables.Settings.weekId || 1;
-        const { month, week } = Methods.CalculateMonthAndWeek(weekId);
+        const dayId = Variables.Settings.dayId || 1;
         const timeOfDay = Variables.Settings.timeOfDay || 1;
+        const { monthIndex, day } = Methods.GetMonthAndDayByDayId(dayId);
+        const monthName = Variables.MonthNames[monthIndex - 1];
+        
         let timeOfDayImageUrl = window.cdnPrefix + '/img/morning_shadow_opti.png';
         if(timeOfDay == 2) { timeOfDayImageUrl = window.cdnPrefix + '/img/day_shadow_opti.png'; }
         else if(timeOfDay == 3) { timeOfDayImageUrl = window.cdnPrefix + '/img/night_shadow_opti.png'; }
         
-        let progressContainer = document.getElementById('weekProgressContainer');
-        
-        if (!progressContainer) {
-            progressContainer = document.createElement('div');
-            progressContainer.id = 'weekProgressContainer';
-            progressContainer.style.position = 'fixed';
-            progressContainer.style.left = '20px';
-            progressContainer.style.bottom = '20px';
-            progressContainer.style.width = '120px';
-            progressContainer.style.height = '20px';
-            progressContainer.style.zIndex = '9999';
+        let dateContainer = document.getElementById('dateContainer');
+        if (!dateContainer) {
+            dateContainer = document.createElement('div');
+            dateContainer.id = 'dateContainer';
+            dateContainer.style.position = 'fixed';
+            dateContainer.style.left = '20px';
+            dateContainer.style.top = '70px';
+            dateContainer.style.height = '20px';
+            dateContainer.style.zIndex = '9999';
+            dateContainer.style.display = 'flex';
+            dateContainer.style.alignItems = 'center';
+            dateContainer.style.gap = '4px';
             
-            const progressBackground = document.createElement('div');
-            progressBackground.id = 'progressBackground';
-            progressBackground.style.position = 'relative';
-            progressBackground.style.width = '100%';
-            progressBackground.style.height = '100%';
-            progressBackground.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-            progressBackground.style.borderRadius = '10px';
-            progressBackground.style.overflow = 'hidden';
-            progressBackground.style.border = '1px solid rgba(255, 255, 255, 0.1)';
-            
-            const progressFill = document.createElement('div');
-            progressFill.id = 'progressFill';
-            progressFill.style.position = 'absolute';
-            progressFill.style.left = '0';
-            progressFill.style.top = '0';
-            progressFill.style.height = '100%';
-            progressFill.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-            progressFill.style.borderRadius = '10px';
-            progressFill.style.transition = 'width 0.3s ease';
-            
-            const contentContainer = document.createElement('div');
-            contentContainer.id = 'contentContainer';
-            contentContainer.style.position = 'absolute';
-            contentContainer.style.left = '0';
-            contentContainer.style.top = '0';
-            contentContainer.style.width = '100%';
-            contentContainer.style.height = '100%';
-            contentContainer.style.display = 'flex';
-            contentContainer.style.alignItems = 'center';
-            contentContainer.style.justifyContent = 'center';
-            contentContainer.style.pointerEvents = 'none';
-            contentContainer.style.gap = '4px';
-            
-            const monthLabel = document.createElement('div');
-            monthLabel.id = 'monthLabel';
-            monthLabel.style.color = 'rgba(255, 255, 255, 0.8)';
-            monthLabel.style.fontSize = '11px';
-            monthLabel.style.fontWeight = '500';
-            monthLabel.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.3)';
-            monthLabel.style.lineHeight = '1';
+            const dateLabel = document.createElement('div');
+            dateLabel.id = 'dateLabel';
+            dateLabel.style.color = 'rgba(255, 255, 255, 0.8)';
+            dateLabel.style.fontSize = '11px';
+            dateLabel.style.fontWeight = '500';
+            dateLabel.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.3)';
+            dateLabel.style.lineHeight = '1';
+            dateLabel.style.whiteSpace = 'nowrap';
             
             const timeOfDayImage = document.createElement('img');
             timeOfDayImage.id = 'timeOfDayImage';
             timeOfDayImage.style.width = '14px';
             timeOfDayImage.style.height = '14px';
             timeOfDayImage.style.objectFit = 'contain';
-            // timeOfDayImage.style.filter = 'drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.3))';
             
-            contentContainer.appendChild(monthLabel);
-            contentContainer.appendChild(timeOfDayImage);
-            progressBackground.appendChild(progressFill);
-            progressBackground.appendChild(contentContainer);
-            progressContainer.appendChild(progressBackground);
-            document.body.appendChild(progressContainer);
+            dateContainer.appendChild(dateLabel);
+            dateContainer.appendChild(timeOfDayImage);
+            document.body.appendChild(dateContainer);
         }
         
-        const monthLabel = document.getElementById('monthLabel');
-        const progressFill = document.getElementById('progressFill');
+        const dateLabel = document.getElementById('dateLabel');
         const timeOfDayImage = document.getElementById('timeOfDayImage');
         
-        if (monthLabel && progressFill && timeOfDayImage) {
-            monthLabel.textContent = month;
-            progressFill.style.width = `${(week / 4) * 100}%`;
+        if (dateLabel && timeOfDayImage) {
+            dateLabel.textContent = `${day} ${monthName}`;
             timeOfDayImage.src = timeOfDayImageUrl;
         }
     },
@@ -308,7 +273,7 @@ const Core = {
         usersDom.id = 'users_count';
         usersDom.style.position = 'fixed';
         usersDom.style.left = '20px';
-        usersDom.style.bottom = '50px';
+        usersDom.style.bottom = '10px';
         
         let html = '';
         html += '<div style="display: flex; align-items: center; gap: 5px; filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5));">';
@@ -891,7 +856,7 @@ const Core = {
                 accelerationIcon.src = Images.Data['icon_weed'].src;
                 accelerationIcon.style.position = 'absolute';
                 accelerationIcon.style.left = '20px';
-                accelerationIcon.style.bottom = '90px';
+                accelerationIcon.style.bottom = '53px';
                 accelerationIcon.style.width = '32px';
                 accelerationIcon.style.height = '32px';
                 accelerationIcon.style.filter = 'drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5))';
