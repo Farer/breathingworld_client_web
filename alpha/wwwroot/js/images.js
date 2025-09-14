@@ -12,4 +12,5 @@ const Images = {
         'icon_weed|/img/icon_weed.svg',
     ],
     Data: {},
+    FillColors: {},
 };

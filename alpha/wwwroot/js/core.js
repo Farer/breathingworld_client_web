@@ -310,13 +310,24 @@ const Core = {
             const url = keyString === 'environmentMap' ? splits[1] : window.cdnPrefix + splits[1];
             Images.Data[keyString] = new Image();
             Images.Data[keyString].src = url;
-            Images.Data[keyString].onload = () => {
+            Images.Data[keyString].onload = async () => {
+                const fill = await Core.LoadSvgFill(url, "oceanBase");
+                Images.FillColors = Images.FillColors || {};
+                Images.FillColors[keyString] = fill;
                 Core.OnLoadErrorImage();
             };
             Images.Data[keyString].onerror = () => {
                 Core.OnLoadErrorImage();
             };
         });
+    },
+    LoadSvgFill: async (url, id) => {
+        const res = await fetch(url);
+        const svgText = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgText, "image/svg+xml");
+        const el = doc.getElementById(id);
+        return el ? el.getAttribute("fill") : "#aadaff";
     },
     OnLoadErrorImage: () => {
         updateProgress();
@@ -431,7 +442,9 @@ const Core = {
         canvas.width = windowWidth;
         canvas.height = windowHeight;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = "#AADAFF";
+        const mapIndex = Methods.GetMapIndex(Variables.Settings.dayId, Variables.Settings.timeOfDay);
+        const fillColor = Images.FillColors['map_'+mapIndex];
+        ctx.fillStyle = fillColor;
         ctx.fillRect(0, 0, windowWidth, windowHeight);
 
         Variables.MapCanvasInfo.xPosStartOfCanvas = 0, Variables.MapCanvasInfo.yPosStartOfCanvas = 0
