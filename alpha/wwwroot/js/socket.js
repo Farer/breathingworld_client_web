@@ -36,7 +36,11 @@ const Socket = {
         });
         Socket.WebsocketConnection.on("ReceiveTimeOfDayChanged", function (dayId, timeOfDay) {
             try {
-                Variables.Settings.weekId = Methods.GetWeekIdByDayId(dayId);
+                const newWeekId = Methods.GetWeekIdByDayId(dayId);
+                if(Variables.Settings.weekId != newWeekId) {
+                    Variables.Settings.weekId = newWeekId;
+                    CacheManager.autoUpdateCache();
+                }
                 Variables.Settings.dayId = dayId;
                 Variables.Settings.timeOfDay = timeOfDay;
                 Core.UpdateWeekProgressBar();

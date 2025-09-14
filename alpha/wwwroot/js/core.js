@@ -287,7 +287,6 @@ const Core = {
     PrepareImageSources: () => {
         Images.PreloadData.unshift('environmentMap|'+Variables.ApiUrl + '/maps/' + Variables.Settings.mapId + '/live/' + Variables.Settings.mapImageUpdateId);
         Core.PrepareTreeImages();
-        Core.PrepareMapGroundImages();
         totalTasks = scripts.length + Images.PreloadData.length;
         Images.PreloadData.forEach((item) => {
             const splits = item.split('|');
@@ -296,9 +295,6 @@ const Core = {
             Images.Data[keyString] = new Image();
             Images.Data[keyString].src = url;
             Images.Data[keyString].onload = async () => {
-                const fill = await Core.LoadSvgFill(url, "oceanBase");
-                Images.FillColors = Images.FillColors || {};
-                Images.FillColors[keyString] = fill;
                 Core.OnLoadErrorImage();
             };
             Images.Data[keyString].onerror = () => {
@@ -322,12 +318,6 @@ const Core = {
     PrepareTreeImages: () => {
         for (let i = 0; i < 12; i++) {
             Images.PreloadData.push('tree' + i + '|/img/tree_' + i + '_tiny.png');
-        }
-    },
-    PrepareMapGroundImages: () => {
-        for (let i = 1; i <= 144; i++) {
-            Images.PreloadData.push('dirt_droppings_' + i + '|/img/sprites/grounds_tiny/' + i + '.png');
-            Images.PreloadData.push('map_' + i + '|/img/maps/' + i + '.svg');
         }
     },
     IfAllImagesLoaded: () => {
@@ -413,7 +403,7 @@ const Core = {
     },
     LoadMap: () => {
         const mapIndex = Methods.GetMapIndex(Variables.Settings.dayId, Variables.Settings.timeOfDay);
-        Variables.MapInfo.mapImage.src = Images.Data['map_'+mapIndex].src;
+        Variables.MapInfo.mapImage.src = window.cdnPrefix+'/img/maps/'+mapIndex+'.svg';
         Variables.MapInfo.mapImage.onload = function () {
             Variables.MapInfo.mapMaxWidth = Variables.MapInfo.mapImage.width;
             Variables.MapInfo.mapMaxHeight = Variables.MapInfo.mapImage.height;
@@ -719,6 +709,7 @@ const Core = {
 
             Variables.Settings = await response.json();
             Variables.Settings.weekId = Methods.GetWeekIdByDayId(Variables.Settings.dayId);
+            CacheManager.autoUpdateCache();
             Variables.MapInfo.mapMinWidth = Variables.Settings.mapMinWidth;
             Variables.MapInfo.mapMinHeight = Variables.Settings.mapMinHeight;
         } catch (error) {
@@ -819,13 +810,12 @@ const Core = {
         if (weedWrapDom == null) { return; }
         const imagePosInfo = Core.DefineDirtDroppingImagePos(fecesData);
         const mapIndex = Methods.GetMapIndex(Variables.Settings.dayId, Variables.Settings.timeOfDay);
-        const dirtFloorWidthHeight = Images.Data['dirt_droppings_'+mapIndex].height;
         ctx.drawImage(
-            Images.Data['dirt_droppings_'+mapIndex],
+            window.cdnPrefix+'/img/sprites/grounds_tiny/'+mapIndex+'.png',
             imagePosInfo.posX,
             imagePosInfo.posY,
-            dirtFloorWidthHeight,
-            dirtFloorWidthHeight,
+            Variables.DirtFloorWidthHeight,
+            Variables.DirtFloorWidthHeight,
             posX,
             posY,
             viewSize,
@@ -833,8 +823,7 @@ const Core = {
         );
     },
     DefineDirtDroppingImagePos: (fecesData) => {
-        const mapIndex = Methods.GetMapIndex(Variables.Settings.dayId, Variables.Settings.timeOfDay);
-        const imageSize = Images.Data['dirt_droppings_'+mapIndex].height;
+        const imageSize = Variables.DirtFloorWidthHeight;
         const rabbitFecesExists = fecesData[0];
         const wolfFecesExists = fecesData[1];
         let caseId = 0;
