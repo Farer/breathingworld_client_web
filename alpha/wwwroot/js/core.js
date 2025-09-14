@@ -220,6 +220,10 @@ const Core = {
     UpdateWeekProgressBar: () => {
         const weekId = Variables.Settings.weekId || 1;
         const { month, week } = Methods.CalculateMonthAndWeek(weekId);
+        const timeOfDay = Variables.Settings.timeOfDay || 1;
+        let timeOfDayImageUrl = window.cdnPrefix + '/img/morning_shadow_opti.png';
+        if(timeOfDay == 2) { timeOfDayImageUrl = window.cdnPrefix + '/img/day_shadow_opti.png'; }
+        else if(timeOfDay == 3) { timeOfDayImageUrl = window.cdnPrefix + '/img/night_shadow_opti.png'; }
         
         let progressContainer = document.getElementById('weekProgressContainer');
         
@@ -253,34 +257,50 @@ const Core = {
             progressFill.style.borderRadius = '10px';
             progressFill.style.transition = 'width 0.3s ease';
             
+            const contentContainer = document.createElement('div');
+            contentContainer.id = 'contentContainer';
+            contentContainer.style.position = 'absolute';
+            contentContainer.style.left = '0';
+            contentContainer.style.top = '0';
+            contentContainer.style.width = '100%';
+            contentContainer.style.height = '100%';
+            contentContainer.style.display = 'flex';
+            contentContainer.style.alignItems = 'center';
+            contentContainer.style.justifyContent = 'center';
+            contentContainer.style.pointerEvents = 'none';
+            contentContainer.style.gap = '4px';
+            
             const monthLabel = document.createElement('div');
             monthLabel.id = 'monthLabel';
-            monthLabel.style.position = 'absolute';
-            monthLabel.style.left = '0';
-            monthLabel.style.top = '0';
-            monthLabel.style.width = '100%';
-            monthLabel.style.height = '100%';
-            monthLabel.style.display = 'flex';
-            monthLabel.style.alignItems = 'center';
-            monthLabel.style.justifyContent = 'center';
             monthLabel.style.color = 'rgba(255, 255, 255, 0.8)';
             monthLabel.style.fontSize = '11px';
             monthLabel.style.fontWeight = '500';
-            monthLabel.style.pointerEvents = 'none';
             monthLabel.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.3)';
+            monthLabel.style.lineHeight = '1';
             
+            const timeOfDayImage = document.createElement('img');
+            timeOfDayImage.id = 'timeOfDayImage';
+            timeOfDayImage.style.width = '14px';
+            timeOfDayImage.style.height = '14px';
+            timeOfDayImage.style.objectFit = 'contain';
+            // timeOfDayImage.style.filter = 'drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.3))';
+            
+            contentContainer.appendChild(monthLabel);
+            contentContainer.appendChild(timeOfDayImage);
             progressBackground.appendChild(progressFill);
-            progressBackground.appendChild(monthLabel);
+            progressBackground.appendChild(contentContainer);
             progressContainer.appendChild(progressBackground);
             document.body.appendChild(progressContainer);
         }
         
         const monthLabel = document.getElementById('monthLabel');
         const progressFill = document.getElementById('progressFill');
+        const timeOfDayImage = document.getElementById('timeOfDayImage');
         
-        if (monthLabel && progressFill) {
+        if (monthLabel && progressFill && timeOfDayImage) {
             monthLabel.textContent = month;
             progressFill.style.width = `${(week / 4) * 100}%`;
+            timeOfDayImage.src = timeOfDayImageUrl;
         }
     },
     DrawUsersCountDom: () => {
