@@ -1,19 +1,42 @@
 'use strict';
 const Methods = {
-    GetWeekIdByDayId: (dayId) => {
-        return Math.floor((dayId - 1) / 7) + 1;
+    GetMonthAndDayByDayId: (dayId) => {
+        if (dayId < 1 || dayId > Variables.TotalDaysInYear) {
+            return { monthIndex: 1, day: 1 };
+        }
+        const daysInMonth = Variables.DaysInMonth;
+        let remainingDays = dayId;
+        for (let month = 1; month <= Variables.MonthNames.length; month++) {
+            if (remainingDays <= daysInMonth[month - 1]) {
+                return { monthIndex: month, day: remainingDays };
+            }
+            remainingDays -= daysInMonth[month - 1];
+        }
+        return { monthIndex: 1, day: 1 };
     },
-    GetMapIndex: (dayId, timeOfDay) => {
-        return Methods.GetWeekIdByDayId(dayId) * 3 + timeOfDay;
+    GetWeekIdByDayId: (dayId) => {
+        const { monthIndex, day } = Methods.GetMonthAndDayByDayId(dayId);
+        const daysPerWeek = Variables.DaysInMonth[monthIndex - 1] / Variables.WeeksPerMonth;
+        const weekInMonth = Math.min(Variables.WeeksPerMonth, Math.ceil(day / daysPerWeek));
+        return (monthIndex - 1) * Variables.WeeksPerMonth + weekInMonth;
     },
     CalculateMonthAndWeek: (weekId) => {
-        if (weekId < 1 || weekId > 48) return { month: 'January', week: 1, monthIndex: 0 };
-        const monthIndex = Math.floor((weekId - 1) / 4);
-        const weekInMonth = ((weekId - 1) % 4) + 1;
+        if (weekId < 1 || weekId > Variables.TotalWeeksInYear) {
+            return { 
+                month: Variables.MonthNames[0], 
+                week: 1,
+            };
+        }
+        const monthIndex = Math.floor((weekId - 1) / Variables.WeeksPerMonth);
+        const weekInMonth = ((weekId - 1) % Variables.WeeksPerMonth) + 1;
         return {
             month: Variables.MonthNames[monthIndex],
-            week: weekInMonth
+            week: weekInMonth,
         };
+    },
+    GetMapIndex: (dayId, timeOfDay) => {
+        const weekId = Methods.GetWeekIdByDayId(dayId);
+        return (weekId - 1) * 3 + timeOfDay;
     },
     GatherViewDistrictIds: () => {
         let districtIds = [];

@@ -5,6 +5,10 @@ const Variables = {
     ChatUrl: '',
     Settings: null,
     PlantsTurnId: 0,
+    TotalDaysInYear: 365,
+    TotalWeeksInYear: 48,
+    WeeksPerMonth: 4,
+    DaysInMonth: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
     MonthNames: ['January', 'February', 'March', 'April', 'May', 'June','July', 'August', 'September', 'October', 'November', 'December'],
     UserDragged: false,
     TimeoutInfo: {
