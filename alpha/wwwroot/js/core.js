@@ -348,6 +348,7 @@ const Core = {
     IfAllImagesLoaded: () => {
         if(Images.PreloadData.length === Images.LoadedCount) {
             if (completedTasks === totalTasks) { setTimeout(() => { document.getElementById("loading-screen").style.display = "none"; }, 300); }
+            Object.keys(Images.Data).forEach(key => { Images.Data[key].onload = null; });
             Core.LoadMap();
         }
     },
