@@ -11,10 +11,16 @@ window.onload = async function () {
     await Core.GetSettings();
     Socket.PrepareWebsocketCommunication();
     Chat.PrepareWebsocketCommunication();
+    Core.PrepareMapContainer();
     Core.PrepareMapWrap();
+    Core.PrepareWeatherWrap();
+    Core.DrawOutterLink();
+    Core.DrawUsersCountDom();
+    Chat.DrawChatUI();
     AddDragMapEvent();
     Core.AddEvents();
-    Core.PrepareCanvas();
+    Core.PrepareMapCanvas();
+    Core.PrepareWeatherCanvas();
     Core.PrepareImageSources();
     Core.UpdatePlantProceedAccelerated();
 }

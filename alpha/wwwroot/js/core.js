@@ -64,8 +64,15 @@ const Core = {
         menuContainer.appendChild(menuBox);
         document.body.appendChild(menuContainer);
     },
+    PrepareMapContainer: () => {
+        const dom = document.createElement('div');
+        const domId = 'mapContainer';
+        dom.id = domId;
+        dom.style.position = 'relative';
+        dom.style.overflow = 'hidden';
+        document.body.appendChild(dom);
+    },
     PrepareMapWrap: () => {
-        document.body.style.overflow = 'hidden';
         const wrap = document.createElement('div');
         const wrapId = 'mapWrap';
         wrap.id = wrapId;
@@ -75,10 +82,19 @@ const Core = {
         wrap.style.top = '0px';
         wrap.style.overflow = 'hidden';
         wrap.style.zIndex = '0';
-        document.body.appendChild(wrap);
-        Core.DrawOutterLink();
-        Core.DrawUsersCountDom();
-        Chat.DrawChatUI();
+        document.getElementById('mapContainer').appendChild(wrap);
+    },
+    PrepareWeatherWrap: () => {
+        const wrap = document.createElement('div');
+        const wrapId = 'weatherWrap';
+        wrap.id = wrapId;
+        wrap.style.position = 'absolute';
+        wrap.style.left = '0px';
+        wrap.style.top = '0px';
+        wrap.style.overflow = 'hidden';
+        wrap.style.zIndex = '1';
+        wrap.style.pointerEvents = 'none';
+        document.getElementById('mapContainer').appendChild(wrap);
     },
     DrawOutterLink: () => {
         const discordDom = document.createElement('div');
@@ -391,7 +407,7 @@ const Core = {
         Variables.MapScaleInfo.mobileTouchStartDistance = 0;
         Variables.MapScaleInfo.mobileTouchScaleIsChanged = false;
     },
-    PrepareCanvas: () => {
+    PrepareMapCanvas: () => {
         const canvas = document.createElement('canvas');
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
@@ -400,6 +416,15 @@ const Core = {
         canvas.height = windowHeight;
         canvas.style.cursor = 'grab';
         document.getElementById('mapWrap').appendChild(canvas);
+    },
+    PrepareWeatherCanvas: () => {
+        const canvas = document.createElement('canvas');
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        canvas.id = 'weatherCanvas';
+        canvas.width = windowWidth;
+        canvas.height = windowHeight;
+        document.getElementById('weatherWrap').appendChild(canvas);
     },
     LoadMap: () => {
         const mapIndex = Methods.GetMapIndex(Variables.Settings.dayId, Variables.Settings.timeOfDay);
@@ -411,13 +436,23 @@ const Core = {
         };
     },
     DrawMap: (isResizing = false, isZooming = false) => {
+        const mapContainer = document.getElementById('mapContainer');
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
+        mapContainer.style.width = window.innerWidth + 'px';
+        mapContainer.style.height = window.innerHeight + 'px';
 
-        const canvas = document.getElementById('mapCanvas');
-        canvas.width = windowWidth;
-        canvas.height = windowHeight;
-        const ctx = canvas.getContext('2d');
+        const mapCanvas = document.getElementById('mapCanvas');
+        const weatherCanvas = document.getElementById('weatherCanvas');
+        
+
+        if(isResizing) {
+            mapCanvas.width = windowWidth;
+            mapCanvas.height = windowHeight;
+            weatherCanvas.width = windowWidth;
+            weatherCanvas.height = windowHeight;
+        }
+        const ctx = mapCanvas.getContext('2d');
         const mapIndex = Methods.GetMapIndex(Variables.Settings.dayId, Variables.Settings.timeOfDay);
         const fillColor = Images.FillColors['map_'+mapIndex];
         ctx.fillStyle = fillColor;

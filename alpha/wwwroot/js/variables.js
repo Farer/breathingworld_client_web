@@ -11,6 +11,8 @@ const Variables = {
     DaysInMonth: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
     MonthNames: ['January', 'February', 'March', 'April', 'May', 'June','July', 'August', 'September', 'October', 'November', 'December'],
     DirtFloorWidthHeight: 128,
+    ActiveWeather: null,
+    WeatherResizeTimeout: null,
     UserDragged: false,
     TimeoutInfo: {
         zoomMap: null,
