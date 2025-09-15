@@ -8,7 +8,6 @@ const Images = {
         'animal_bones|/img/animal_bones_tiny.png',
         'wolf|/img/sprites/sprite_wolf_256_tiny.png',
         'wolf_etc|/img/sprites/sprite_wolf_etc_512_tiny.png?1',
-        'mapSvg|/img/map1.svg?4',
         'icon_weed|/img/icon_weed.svg',
         'morning_shadow_opti|/img/morning_shadow_opti.png',
         'day_shadow_opti|/img/day_shadow_opti.png',
