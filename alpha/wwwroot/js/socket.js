@@ -50,8 +50,11 @@ const Socket = {
             }
         });
         Socket.WebsocketConnection.on("ReceiveWeatherChanged", function (weatherInfo) {
-            Variables.Settings.weatherInfo = weatherInfo;
-            Core.ApplyWeather();
+            const parsedWeatherInfo = Methods.ParseWeatherInfo(weatherInfo);
+            if(Variables.Settings.weatherInfo != parsedWeatherInfo.info) {
+                Variables.Settings.weatherInfo = parsedWeatherInfo.info;
+                Core.ApplyWeather();
+            }
         });
         Socket.WebsocketConnection.on("ReceivePlantProceedAccelerated", function (plantProceedAccelerated) {
             try {

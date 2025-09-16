@@ -744,6 +744,9 @@ const Core = {
 
             Variables.Settings = await response.json();
             Variables.Settings.weekId = Methods.GetWeekIdByDayId(Variables.Settings.dayId);
+            const weatherInfo = Methods.ParseWeatherInfo(Variables.Settings.weatherInfo);
+            Variables.Settings.weatherInfo = weatherInfo.info;
+            Variables.Settings.temperature = weatherInfo.temperature;
             await CacheManager.autoUpdateCache();
             Variables.MapInfo.mapMinWidth = Variables.Settings.mapMinWidth;
             Variables.MapInfo.mapMinHeight = Variables.Settings.mapMinHeight;
@@ -894,11 +897,9 @@ const Core = {
         Core.UpdateWeekProgressBar();
     },
     ApplyWeather: () => {
-        // "1|200|5|2|12.5"
+        // "1|200|5|2"
         if(Variables.Settings.weatherInfo != undefined) {
             const split = Variables.Settings.weatherInfo.split("|");
-            const temperature = split[split.length - 1];
-            console.log(`Temperature: ${temperature}`);
             const modeValue = split[0];
             if(split[0] != "0") {
                 /*

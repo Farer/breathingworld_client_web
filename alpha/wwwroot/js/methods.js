@@ -38,6 +38,14 @@ const Methods = {
         const weekId = Methods.GetWeekIdByDayId(dayId);
         return (weekId - 1) * 3 + timeOfDay;
     },
+    ParseWeatherInfo: (weatherInfo) => {
+        const splitsWeatherInfo = weatherInfo.split('|');
+        const info = splitsWeatherInfo[0]+"|"+splitsWeatherInfo[1]+"|"+splitsWeatherInfo[2]+"|"+splitsWeatherInfo[3];
+        return {
+            info: info,
+            temperature: splitsWeatherInfo[4]
+        }
+    },
     ShowWeather:(canvasId, mode, options = {}) => {
         if (Variables.ActiveWeather && Variables.ActiveWeather.canvas.id !== canvasId) {
             Variables.ActiveWeather.stop();
