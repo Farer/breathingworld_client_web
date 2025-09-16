@@ -194,9 +194,7 @@ class WeatherEffect {
             const { wind, minRainSpeed } = this.weather.settings;
             const { width, height } = this.weather;
             
-            if (this.windEffect !== wind) {
-                this.windEffect += (wind - this.windEffect) * 0.1;
-            }
+            this.windEffect = wind;
             
             if (Math.abs(wind) < 2) { 
                 this.x = Math.random() * (width + 200) - 100; 
@@ -231,9 +229,7 @@ class WeatherEffect {
             const { width, height } = this.weather;
             
             const targetWind = this.weather.settings.wind;
-            if (this.windEffect !== targetWind) {
-                this.windEffect += (targetWind - this.windEffect) * 0.05;
-            }
+            this.windEffect += (targetWind - this.windEffect) * 0.1;
             
             if (this.type === 'rain') { 
                 this.y += this.speed * this.speedMultiplier; 
