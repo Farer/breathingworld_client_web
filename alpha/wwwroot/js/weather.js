@@ -33,6 +33,7 @@ class WeatherEffect {
             mixRatio: options.mixRatio || 50,
             maxParticles: 500,
             weatherMode: mode,
+            minRainSpeed: options.minRainSpeed || 3,
         };
         
         if (this.isActive && !this.isStopping) {
@@ -190,7 +191,7 @@ class WeatherEffect {
         }
         
         reset() {
-            const { wind } = this.weather.settings;
+            const { wind, minRainSpeed } = this.weather.settings;
             const { width, height } = this.weather;
             
             if (this.windEffect !== wind) {
@@ -211,7 +212,8 @@ class WeatherEffect {
             }
             
             if (this.type === 'rain') { 
-                this.speed = Math.random() * 2 + this.weather.settings.speed; 
+                const baseSpeed = Math.random() * 2 + this.weather.settings.speed;
+                this.speed = Math.max(baseSpeed, minRainSpeed || 3);
                 this.length = Math.random() * 15 + 10; 
                 this.opacity = Math.random() * 0.5 + 0.3;
                 this.size = Math.random() * 0.5 + 1;
