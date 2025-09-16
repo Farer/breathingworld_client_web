@@ -49,6 +49,10 @@ const Socket = {
                 console.error(error);
             }
         });
+        Socket.WebsocketConnection.on("ReceiveWeatherChanged", function (weatherInfo) {
+            Variables.Settings.weatherInfo = weatherInfo;
+            Core.ApplyWeather();
+        });
         Socket.WebsocketConnection.on("ReceivePlantProceedAccelerated", function (plantProceedAccelerated) {
             try {
                 Variables.Settings.plantProceedAccelerated = plantProceedAccelerated;

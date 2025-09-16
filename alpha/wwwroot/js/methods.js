@@ -38,10 +38,6 @@ const Methods = {
         const weekId = Methods.GetWeekIdByDayId(dayId);
         return (weekId - 1) * 3 + timeOfDay;
     },
-    /*
-    Methods.ShowWeather('weatherCanvas', 'rain', { intensity: 200, speed: 5, wind: 2 });
-    Methods.ShowWeather('weatherCanvas', 'snow', { intensity: 150, speed: 1, wind: -1 });
-    */
     ShowWeather:(canvasId, mode, options = {}) => {
         if (Variables.ActiveWeather && Variables.ActiveWeather.canvas.id !== canvasId) {
             Variables.ActiveWeather.stop();

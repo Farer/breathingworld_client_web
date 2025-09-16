@@ -72,7 +72,6 @@ class WeatherEffect {
         this.ctx.clearRect(0, 0, this.width, this.height);
         for (const particle of this.particles) {
             if (particle.type === 'rain') {
-                // 방법 1: 그라디언트로 빗방울에 입체감 추가
                 const gradient = this.ctx.createLinearGradient(
                     particle.x, particle.y, 
                     particle.x + this.settings.wind * 2, particle.y + particle.length
@@ -89,8 +88,7 @@ class WeatherEffect {
                 this.ctx.lineTo(particle.x + this.settings.wind * 2, particle.y + particle.length);
                 this.ctx.stroke();
 
-                // 방법 2: 미세한 테두리 효과 (성능 영향 최소)
-                if (particle.opacity > 0.4) { // 불투명한 빗방울에만 적용
+                if (particle.opacity > 0.4) {
                     this.ctx.strokeStyle = `rgba(255, 255, 255, ${particle.opacity * 0.3})`;
                     this.ctx.lineWidth = particle.size + 0.5;
                     this.ctx.beginPath();
@@ -98,7 +96,6 @@ class WeatherEffect {
                     this.ctx.lineTo(particle.x + this.settings.wind * 2, particle.y + particle.length);
                     this.ctx.stroke();
                     
-                    // 원래 빗방울 다시 그리기
                     this.ctx.strokeStyle = gradient;
                     this.ctx.lineWidth = particle.size;
                     this.ctx.beginPath();
@@ -107,7 +104,6 @@ class WeatherEffect {
                     this.ctx.stroke();
                 }
             } else {
-                // 눈은 기존 방식 유지
                 this.ctx.fillStyle = `rgba(255, 255, 255, ${particle.opacity})`;
                 this.ctx.beginPath();
                 this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
@@ -154,9 +150,8 @@ class WeatherEffect {
             if(this.type==='rain'){ 
                 this.speed = Math.random()*2+this.weather.settings.speed; 
                 this.length=Math.random()*15+10; 
-                // 투명도 범위를 높여서 더 선명하게
-                this.opacity=Math.random()*.5+.3; // 기존: .3+.1
-                this.size=Math.random()*0.5+1; // 크기를 약간 다양화
+                this.opacity=Math.random()*.5+.3;
+                this.size=Math.random()*0.5+1;
             } else { 
                 this.speed = Math.random()*1+this.weather.settings.speed*.3; 
                 this.size=Math.random()*4+2; 

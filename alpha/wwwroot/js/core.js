@@ -893,4 +893,24 @@ const Core = {
         }
         Core.UpdateWeekProgressBar();
     },
+    ApplyWeather: () => {
+        /*
+        Methods.ShowWeather('weatherCanvas', 'rain', { intensity: 200, speed: 5, wind: 2 });
+        Methods.ShowWeather('weatherCanvas', 'snow', { intensity: 150, speed: 1, wind: -1 });
+        Methods.ShowWeather('weatherCanvas', 'mixed', { intensity: 300, speed: 3, wind: 1 });
+        */
+        if(Variables.Settings.weatherInfo != undefined) {
+            const split = Variables.Settings.weatherInfo.split("|");
+            const modeValue = split[0];
+            if(split[0] != "0") {
+                let mode = "rain";
+                if(modeValue == "2") { mode = "snow"; }
+                else if(modeValue == "3") { mode = "mixed"; }
+                Methods.ShowWeather('weatherCanvas', mode, { intensity: split[1], speed: split[2], wind: split[3] });
+            }
+            else {
+                Methods.StopWeather();
+            }
+        }
+    }
 };

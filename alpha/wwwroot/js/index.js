@@ -23,6 +23,7 @@ window.onload = async function () {
     Core.PrepareWeatherCanvas();
     Core.PrepareImageSources();
     Core.UpdatePlantProceedAccelerated();
+    Core.ApplyWeather();
 }
 window.onresize = function () {
     Core.DrawMap(true, false);

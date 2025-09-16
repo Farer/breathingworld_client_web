@@ -36,14 +36,14 @@
             "/js/movementProcess.js?4",
             "/js/domControl.js?5",
             "/js/shadowControl.js?3",
-            "/js/methods.js?14",
+            "/js/methods.js?15",
             "/js/draggable.js?5",
-            "/js/socket.js?26",
+            "/js/socket.js?27",
             "/js/chat.js?8",
-            "/js/core.js?41",
-            "/js/weather.js",
+            "/js/core.js?42",
+            "/js/weather.js?1",
             "/js/cacheManager.js?1",
-            "/js/index.js?9"
+            "/js/index.js?10"
         ];
         function updateProgress() { completedTasks++; const percent = Math.round((completedTasks / totalTasks) * 100); document.getElementById("progress-bar").style.width = percent + "%"; }
         function loadScriptsSequentially(index = 0) { if (index < scripts.length) { loadScript(scripts[index], () => { updateProgress(); loadScriptsSequentially(index + 1); }); } }
