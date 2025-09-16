@@ -894,15 +894,18 @@ const Core = {
         Core.UpdateWeekProgressBar();
     },
     ApplyWeather: () => {
-        /*
-        Methods.ShowWeather('weatherCanvas', 'rain', { intensity: 200, speed: 5, wind: 2 });
-        Methods.ShowWeather('weatherCanvas', 'snow', { intensity: 150, speed: 1, wind: -1 });
-        Methods.ShowWeather('weatherCanvas', 'mixed', { intensity: 300, speed: 3, wind: 1 });
-        */
+        // "1|200|5|2|12.5"
         if(Variables.Settings.weatherInfo != undefined) {
             const split = Variables.Settings.weatherInfo.split("|");
+            const temperature = split[split.length - 1];
+            console.log(`Temperature: ${temperature}`);
             const modeValue = split[0];
             if(split[0] != "0") {
+                /*
+                Methods.ShowWeather('weatherCanvas', 'rain', { intensity: 200, speed: 5, wind: 2 });
+                Methods.ShowWeather('weatherCanvas', 'snow', { intensity: 150, speed: 1, wind: -1 });
+                Methods.ShowWeather('weatherCanvas', 'mixed', { intensity: 300, speed: 3, wind: 1 });
+                */
                 let mode = "rain";
                 if(modeValue == "2") { mode = "snow"; }
                 else if(modeValue == "3") { mode = "mixed"; }
