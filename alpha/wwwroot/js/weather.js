@@ -29,7 +29,7 @@ class WeatherEffect {
         this.settings = {
             intensity: options.intensity || 200,
             speed: options.speed || 5,
-            wind: options.wind || 0,
+            wind: parseFloat(options.wind) || 0,
             mixRatio: options.mixRatio || 50,
             maxParticles: 500,
             weatherMode: mode,
@@ -267,7 +267,6 @@ class WeatherEffect {
         
         isOutOfBounds() {
             const { width, height } = this.weather;
-            const windDir = this.weather.settings.wind || 0;
             const buffer = 300;
             
             return this.y > height + buffer || this.x < -buffer || this.x > width + buffer;
