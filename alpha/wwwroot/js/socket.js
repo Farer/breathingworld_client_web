@@ -51,6 +51,7 @@ const Socket = {
         });
         Socket.WebsocketConnection.on("ReceiveWeatherChanged", function (weatherInfo) {
             const parsedWeatherInfo = Methods.ParseWeatherInfo(weatherInfo);
+            Variables.Settings.temperature = parsedWeatherInfo.temperature;
             if(Variables.Settings.weatherInfo != parsedWeatherInfo.info) {
                 Variables.Settings.weatherInfo = parsedWeatherInfo.info;
                 Core.ApplyWeather();
