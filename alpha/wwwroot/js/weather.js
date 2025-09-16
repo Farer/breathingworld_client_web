@@ -70,10 +70,22 @@ class WeatherEffect {
     _initParticles() {
         this.particles = [];
         const particleCount = Math.min(this.settings.intensity, this.settings.maxParticles);
+        
+        // 초기 생성 시 화면 전체에 분포시키되, 바람이 있으면 점진적으로 이동
+        const windStrength = Math.abs(this.settings.wind || 0);
+        
         for (let i = 0; i < particleCount; i++) {
             let type = this._determineParticleType();
             const particle = new this.WeatherParticle(this, type);
-            particle.y = Math.random() * this.height;
+            
+            // 바람이 강할 때는 처음부터 화면 밖에서 시작
+            if (windStrength >= 0.5) {
+                // reset()이 이미 올바른 위치를 설정함
+            } else {
+                // 바람이 약하거나 없을 때만 화면 내 분포 (초기 로딩 시각 효과)
+                particle.y = Math.random() * this.height;
+            }
+            
             this.particles.push(particle);
         }
     }
@@ -102,6 +114,7 @@ class WeatherEffect {
         this.ctx.clearRect(0, 0, this.width, this.height);
         
         for (const particle of this.particles) {
+            // 값 검증: NaN이나 Infinity 체크
             if (!isFinite(particle.x) || !isFinite(particle.y) || 
                 !isFinite(particle.windEffect) || !isFinite(particle.length) ||
                 !isFinite(particle.size) || !isFinite(particle.opacity)) {
@@ -206,22 +219,46 @@ class WeatherEffect {
             const { wind, minRainSpeed } = this.weather.settings;
             const { width, height } = this.weather;
             
+            // 바람 효과를 안전하게 설정
             this.windEffect = isFinite(wind) ? wind : 0;
             
-            if (Math.abs(this.windEffect) < 2) { 
+            // 현재 설정된 바람값을 기준으로 생성 위치 결정
+            const currentWind = isFinite(wind) ? wind : 0;
+            const windStrength = Math.abs(currentWind);
+            
+            if (windStrength < 0.5) { 
+                // 바람이 거의 없을 때: 위쪽에서만 생성
                 this.x = Math.random() * (width + 200) - 100; 
-                this.y = -Math.random() * 200 - 50; 
+                this.y = -(Math.random() * 200 + 50); // 항상 음수 보장
             } else { 
-                if (Math.random() < 0.5) { 
-                    this.x = this.windEffect > 0 ? -Math.random() * 300 - 100 : width + Math.random() * 300 + 100; 
-                    this.y = Math.random() * height; 
-                } else { 
-                    this.x = Math.random() * (width + 400) - 200; 
-                    this.y = -Math.random() * 300 - 50; 
-                } 
+                // 바람이 있을 때: 반드시 화면 바깥쪽에서만 생성
+                if (currentWind > 0) {
+                    // 오른쪽으로 바람이 불 때: 반드시 왼쪽 바깥에서만 생성
+                    // X는 반드시 음수여야 함
+                    this.x = -(Math.random() * 300 + 200); // -200 ~ -500 사이의 음수값
+                    // Y는 화면 위부터 아래까지
+                    this.y = Math.random() * (height + 400) - 200;
+                } else if (currentWind < 0) {
+                    // 왼쪽으로 바람이 불 때: 반드시 오른쪽 바깥에서만 생성
+                    // X는 반드시 화면 너비보다 커야 함
+                    this.x = width + (Math.random() * 300 + 200); // width + 200 ~ width + 500
+                    // Y는 화면 위부터 아래까지
+                    this.y = Math.random() * (height + 400) - 200;
+                }
+                
+                // 디버깅: 화면 안쪽에서 생성되는 경우 경고
+                if (currentWind > 0 && this.x >= 0) {
+                    console.warn(`Wrong X position for right wind: x=${this.x}, should be negative`);
+                    this.x = -(Math.random() * 300 + 200); // 강제로 음수로 재설정
+                }
+                if (currentWind < 0 && this.x <= width) {
+                    console.warn(`Wrong X position for left wind: x=${this.x}, should be > ${width}`);
+                    this.x = width + (Math.random() * 300 + 200); // 강제로 화면 오른쪽 밖으로 재설정
+                }
             }
             
             if (this.type === 'rain') { 
+                // 비의 속도 계산 시 최소 속도 보장
                 const baseSpeed = Math.random() * 2 + this.weather.settings.speed;
                 this.speed = Math.max(baseSpeed, minRainSpeed || 3);
                 this.length = Math.random() * 15 + 10; 
@@ -236,6 +273,7 @@ class WeatherEffect {
                 this.angle = 0; 
             }
             
+            // 모든 값이 유효한지 확인
             this.x = isFinite(this.x) ? this.x : 0;
             this.y = isFinite(this.y) ? this.y : 0;
             this.speed = isFinite(this.speed) ? this.speed : 1;
@@ -249,6 +287,7 @@ class WeatherEffect {
         update() {
             const { width, height } = this.weather;
             
+            // 바람 효과를 실시간으로 업데이트 (안전하게)
             const targetWind = this.weather.settings.wind;
             if (isFinite(targetWind)) {
                 this.windEffect += (targetWind - this.windEffect) * 0.1;
@@ -264,6 +303,7 @@ class WeatherEffect {
                 this.x += Math.sin(this.angle) * this.swayAmount; 
             }
             
+            // 값이 비정상이 되면 안전한 값으로 되돌림
             if (!isFinite(this.x)) this.x = Math.random() * width;
             if (!isFinite(this.y)) this.y = -100;
             if (!isFinite(this.windEffect)) this.windEffect = 0;
@@ -271,7 +311,12 @@ class WeatherEffect {
         
         isOutOfBounds() {
             const { width, height } = this.weather;
-            return this.y > height + 100 || this.x < -500 || this.x > width + 500;
+            // 바람 방향에 따라 경계 조건 조정
+            const windDir = this.weather.settings.wind || 0;
+            const leftBound = windDir > 0 ? -600 : -200; // 오른쪽 바람일 때 왼쪽 경계를 더 넓게
+            const rightBound = windDir < 0 ? width + 600 : width + 200; // 왼쪽 바람일 때 오른쪽 경계를 더 넓게
+            
+            return this.y > height + 100 || this.x < leftBound || this.x > rightBound;
         }
     }
 }
