@@ -67,17 +67,55 @@ class WeatherEffect {
             this.particles.push(new this.WeatherParticle(this, type));
         }
     }
+
     _drawWeather() {
         this.ctx.clearRect(0, 0, this.width, this.height);
         for (const particle of this.particles) {
             if (particle.type === 'rain') {
-                this.ctx.strokeStyle = `rgba(174, 194, 224, ${particle.opacity})`; this.ctx.lineWidth = particle.size; this.ctx.lineCap = 'round';
-                this.ctx.beginPath(); this.ctx.moveTo(particle.x, particle.y); this.ctx.lineTo(particle.x + this.settings.wind * 2, particle.y + particle.length); this.ctx.stroke();
+                // 방법 1: 그라디언트로 빗방울에 입체감 추가
+                const gradient = this.ctx.createLinearGradient(
+                    particle.x, particle.y, 
+                    particle.x + this.settings.wind * 2, particle.y + particle.length
+                );
+                gradient.addColorStop(0, `rgba(200, 220, 255, ${particle.opacity * 0.3})`);
+                gradient.addColorStop(0.5, `rgba(174, 194, 224, ${particle.opacity})`);
+                gradient.addColorStop(1, `rgba(120, 150, 200, ${particle.opacity * 0.7})`);
+                
+                this.ctx.strokeStyle = gradient;
+                this.ctx.lineWidth = particle.size;
+                this.ctx.lineCap = 'round';
+                this.ctx.beginPath();
+                this.ctx.moveTo(particle.x, particle.y);
+                this.ctx.lineTo(particle.x + this.settings.wind * 2, particle.y + particle.length);
+                this.ctx.stroke();
+
+                // 방법 2: 미세한 테두리 효과 (성능 영향 최소)
+                if (particle.opacity > 0.4) { // 불투명한 빗방울에만 적용
+                    this.ctx.strokeStyle = `rgba(255, 255, 255, ${particle.opacity * 0.3})`;
+                    this.ctx.lineWidth = particle.size + 0.5;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(particle.x, particle.y);
+                    this.ctx.lineTo(particle.x + this.settings.wind * 2, particle.y + particle.length);
+                    this.ctx.stroke();
+                    
+                    // 원래 빗방울 다시 그리기
+                    this.ctx.strokeStyle = gradient;
+                    this.ctx.lineWidth = particle.size;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(particle.x, particle.y);
+                    this.ctx.lineTo(particle.x + this.settings.wind * 2, particle.y + particle.length);
+                    this.ctx.stroke();
+                }
             } else {
-                this.ctx.fillStyle = `rgba(255, 255, 255, ${particle.opacity})`; this.ctx.beginPath(); this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2); this.ctx.fill();
+                // 눈은 기존 방식 유지
+                this.ctx.fillStyle = `rgba(255, 255, 255, ${particle.opacity})`;
+                this.ctx.beginPath();
+                this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                this.ctx.fill();
             }
         }
     }
+
     _animate() {
         if (!this.isActive) return;
         for (const particle of this.particles) particle.update();
@@ -90,19 +128,56 @@ class WeatherEffect {
         this._drawWeather();
         this.animationId = requestAnimationFrame(this._animate.bind(this));
     }
+
     WeatherParticle = class {
-        constructor(weather, type) { this.weather = weather; this.type = type; this.reset(); }
+        constructor(weather, type) { 
+            this.weather = weather; 
+            this.type = type; 
+            this.reset(); 
+        }
+        
         reset() {
             const { wind } = this.weather.settings, { width, height } = this.weather;
-            if (Math.abs(wind) < 2) { this.x = Math.random()*(width+200)-100; this.y = -Math.random()*200-50; }
-            else { if(Math.random()<.5){ this.x = wind>0?-Math.random()*300-100:width+Math.random()*300+100; this.y = Math.random()*height; } else { this.x = Math.random()*(width+400)-200; this.y = -Math.random()*300-50; } }
-            if(this.type==='rain'){ this.speed = Math.random()*2+this.weather.settings.speed; this.length=Math.random()*15+10; this.opacity=Math.random()*.3+.1; this.size=1; }
-            else { this.speed = Math.random()*1+this.weather.settings.speed*.3; this.size=Math.random()*4+2; this.opacity=Math.random()*.6+.2; this.swaySpeed=Math.random()*.02+.01; this.swayAmount=Math.random()*.5+.2; this.angle=0; }
+            if (Math.abs(wind) < 2) { 
+                this.x = Math.random()*(width+200)-100; 
+                this.y = -Math.random()*200-50; 
+            } else { 
+                if(Math.random()<.5){ 
+                    this.x = wind>0?-Math.random()*300-100:width+Math.random()*300+100; 
+                    this.y = Math.random()*height; 
+                } else { 
+                    this.x = Math.random()*(width+400)-200; 
+                    this.y = -Math.random()*300-50; 
+                } 
+            }
+            
+            if(this.type==='rain'){ 
+                this.speed = Math.random()*2+this.weather.settings.speed; 
+                this.length=Math.random()*15+10; 
+                // 투명도 범위를 높여서 더 선명하게
+                this.opacity=Math.random()*.5+.3; // 기존: .3+.1
+                this.size=Math.random()*0.5+1; // 크기를 약간 다양화
+            } else { 
+                this.speed = Math.random()*1+this.weather.settings.speed*.3; 
+                this.size=Math.random()*4+2; 
+                this.opacity=Math.random()*.6+.2; 
+                this.swaySpeed=Math.random()*.02+.01; 
+                this.swayAmount=Math.random()*.5+.2; 
+                this.angle=0; 
+            }
         }
+        
         update() {
             const { wind } = this.weather.settings, { width, height } = this.weather;
-            if(this.type==='rain'){ this.y+=this.speed; this.x+=wind; }
-            else{ this.y+=this.speed; this.x+=wind*.3; this.angle+=this.swaySpeed; this.x+=Math.sin(this.angle)*this.swayAmount; }
+            if(this.type==='rain'){ 
+                this.y+=this.speed; 
+                this.x+=wind; 
+            } else{ 
+                this.y+=this.speed; 
+                this.x+=wind*.3; 
+                this.angle+=this.swaySpeed; 
+                this.x+=Math.sin(this.angle)*this.swayAmount; 
+            }
             if(this.y>height+100||this.x<-500||this.x>width+500) this.reset();
         }
     }
