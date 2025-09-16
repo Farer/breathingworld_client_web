@@ -102,6 +102,12 @@ class WeatherEffect {
         this.ctx.clearRect(0, 0, this.width, this.height);
         
         for (const particle of this.particles) {
+            if (!isFinite(particle.x) || !isFinite(particle.y) || 
+                !isFinite(particle.windEffect) || !isFinite(particle.length) ||
+                !isFinite(particle.size) || !isFinite(particle.opacity)) {
+                continue;
+            }
+            
             if (particle.type === 'rain') {
                 const gradient = this.ctx.createLinearGradient(
                     particle.x, particle.y, 
@@ -185,8 +191,14 @@ class WeatherEffect {
         constructor(weather, type) { 
             this.weather = weather; 
             this.type = type;
-            this.windEffect = weather.settings.wind;
+            this.windEffect = 0;
             this.speedMultiplier = 1;
+            this.x = 0;
+            this.y = 0;
+            this.speed = 0;
+            this.size = 1;
+            this.opacity = 1;
+            this.length = 10;
             this.reset(); 
         }
         
@@ -194,14 +206,14 @@ class WeatherEffect {
             const { wind, minRainSpeed } = this.weather.settings;
             const { width, height } = this.weather;
             
-            this.windEffect = wind;
+            this.windEffect = isFinite(wind) ? wind : 0;
             
-            if (Math.abs(wind) < 2) { 
+            if (Math.abs(this.windEffect) < 2) { 
                 this.x = Math.random() * (width + 200) - 100; 
                 this.y = -Math.random() * 200 - 50; 
             } else { 
                 if (Math.random() < 0.5) { 
-                    this.x = wind > 0 ? -Math.random() * 300 - 100 : width + Math.random() * 300 + 100; 
+                    this.x = this.windEffect > 0 ? -Math.random() * 300 - 100 : width + Math.random() * 300 + 100; 
                     this.y = Math.random() * height; 
                 } else { 
                     this.x = Math.random() * (width + 400) - 200; 
@@ -223,13 +235,24 @@ class WeatherEffect {
                 this.swayAmount = Math.random() * 0.5 + 0.2; 
                 this.angle = 0; 
             }
+            
+            this.x = isFinite(this.x) ? this.x : 0;
+            this.y = isFinite(this.y) ? this.y : 0;
+            this.speed = isFinite(this.speed) ? this.speed : 1;
+            this.size = isFinite(this.size) ? this.size : 1;
+            this.opacity = isFinite(this.opacity) ? this.opacity : 0.5;
+            if (this.type === 'rain') {
+                this.length = isFinite(this.length) ? this.length : 10;
+            }
         }
         
         update() {
             const { width, height } = this.weather;
             
             const targetWind = this.weather.settings.wind;
-            this.windEffect += (targetWind - this.windEffect) * 0.1;
+            if (isFinite(targetWind)) {
+                this.windEffect += (targetWind - this.windEffect) * 0.1;
+            }
             
             if (this.type === 'rain') { 
                 this.y += this.speed * this.speedMultiplier; 
@@ -240,6 +263,10 @@ class WeatherEffect {
                 this.angle += this.swaySpeed; 
                 this.x += Math.sin(this.angle) * this.swayAmount; 
             }
+            
+            if (!isFinite(this.x)) this.x = Math.random() * width;
+            if (!isFinite(this.y)) this.y = -100;
+            if (!isFinite(this.windEffect)) this.windEffect = 0;
         }
         
         isOutOfBounds() {
