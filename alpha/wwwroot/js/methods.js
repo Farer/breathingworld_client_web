@@ -39,8 +39,8 @@ const Methods = {
         return (weekId - 1) * 3 + timeOfDay;
     },
     /*
-    ShowWeather('my-canvas', 'rain', { intensity: 200, speed: 5, wind: 2 });
-    ShowWeather('my-canvas', 'snow', { intensity: 150, speed: 1, wind: -1 });
+    Methods.ShowWeather('weatherCanvas', 'rain', { intensity: 200, speed: 5, wind: 2 });
+    Methods.ShowWeather('weatherCanvas', 'snow', { intensity: 150, speed: 1, wind: -1 });
     */
     ShowWeather:(canvasId, mode, options = {}) => {
         if (Variables.ActiveWeather && Variables.ActiveWeather.canvas.id !== canvasId) {
