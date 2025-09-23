@@ -267,9 +267,9 @@ const Core = {
         const dateLabel = document.getElementById('dateLabel');
         const currentHour = parseInt(Variables.Settings.hourId, 10);
         const amPm = currentHour < 12 ? 'AM' : 'PM';
-        const hour = currentHour <= 12 ? currentHour : currentHour - 12;
+        const hour = currentHour % 12 || 12;
         if (dateLabel) {
-            dateLabel.textContent = `${monthName} ${day} · ${hour} ${amPm} `;
+            dateLabel.textContent = `${day} ${monthName} · ${hour} ${amPm} `;
         }
     },
     DrawUsersCountDom: () => {

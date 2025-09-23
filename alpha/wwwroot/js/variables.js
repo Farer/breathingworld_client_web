@@ -9,7 +9,7 @@ const Variables = {
     TotalWeeksInYear: 48,
     WeeksPerMonth: 4,
     DaysInMonth: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-    MonthNames: ['January', 'February', 'March', 'April', 'May', 'June','July', 'August', 'September', 'October', 'November', 'December'],
+    MonthNames: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun','Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     DirtFloorWidthHeight: 128,
     ActiveWeather: null,
     WeatherResizeTimeout: null,
