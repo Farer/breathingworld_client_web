@@ -38,12 +38,12 @@
             "/js/shadowControl.js?3",
             "/js/methods.js?17",
             "/js/draggable.js?5",
-            "/js/socket.js?29",
+            "/js/socket.js?30",
             "/js/chat.js?8",
-            "/js/core.js?44",
+            "/js/core.js?45",
             "/js/weather.js?3",
             "/js/colorCalculator.js",
-            "/js/index.js?10"
+            "/js/index.js?11"
         ];
         function updateProgress() { completedTasks++; const percent = Math.round((completedTasks / totalTasks) * 100); document.getElementById("progress-bar").style.width = percent + "%"; }
         function loadScriptsSequentially(index = 0) { if (index < scripts.length) { loadScript(scripts[index], () => { updateProgress(); loadScriptsSequentially(index + 1); }); } }

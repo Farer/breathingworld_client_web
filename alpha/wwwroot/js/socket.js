@@ -43,7 +43,7 @@ const Socket = {
                 Variables.Settings.dayId = dayId;
                 Variables.Settings.hourId = hourId;
                 Core.UpdateWeekProgressBar();
-                Core.ApplyMapColor(dayId, hourId);
+                Core.ApplyMapColor(dayId, hourId, true);
             } catch (error) {
                 console.error(error);
             }

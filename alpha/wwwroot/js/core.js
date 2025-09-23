@@ -415,18 +415,18 @@ const Core = {
         document.getElementById('weatherWrap').appendChild(canvas);
     },
     LoadMap: async () => {
-        Core.ApplyMapColor(Variables.Settings.dayId, Variables.Settings.hourId);
+        Core.ApplyMapColor(Variables.Settings.dayId, Variables.Settings.hourId, false);
         Variables.MapInfo.mapImage.onload = function () {
             Variables.MapInfo.mapMaxWidth = Variables.MapInfo.mapImage.width;
             Variables.MapInfo.mapMaxHeight = Variables.MapInfo.mapImage.height;
-            Core.DrawMap(true, false);
+            Core.DrawMap(true, false, false);
             URL.revokeObjectURL(Variables.MapInfo.mapImage.src);
             setTimeout(function() {
                 Variables.MapInfo.mapImage.onload = null;
             }, 100);
         };
     },
-    ApplyMapColor: async (dayId, hourId) => {
+    ApplyMapColor: async (dayId, hourId, refresh = false) => {
         if(Data.MapText=='') {
             const response = await fetch(window.cdnPrefix+'/img/map1.svg');
             Data.MapText = await response.text();
@@ -435,8 +435,9 @@ const Core = {
         const newMapText = Data.MapText.replace(/#aadaff/g, colors.ocean).replace(/#d7a757/g, colors.land);
         const blob = new Blob([newMapText], { type: 'image/svg+xml' });
         Variables.MapInfo.mapImage.src = URL.createObjectURL(blob);
+        if(refresh) { Core.DrawMap(false, false, true); }
     },
-    DrawMap: (isResizing = false, isZooming = false) => {
+    DrawMap: (isResizing = false, isZooming = false, redrawOnly = false) => {
         const mapContainer = document.getElementById('mapContainer');
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
@@ -576,7 +577,7 @@ const Core = {
                 );
             }
             Variables.MapInfo.firstDraw = false;
-            Core.ReserveDistrictInOut();
+            if(!redrawOnly) { Core.ReserveDistrictInOut(); }
         }
         catch(e) {
             Chat.ShowRefreshIcon();
@@ -721,7 +722,7 @@ const Core = {
         Variables.MapScaleInfo.previous = Variables.MapScaleInfo.current;
         Variables.MapScaleInfo.current = newScale;
         Data.Weed.UserPaused = true;
-        Core.DrawMap(true, true);
+        Core.DrawMap(true, true, false);
     },
     ReserveDistrictInOut: () => {
         if (

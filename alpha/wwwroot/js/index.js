@@ -26,5 +26,5 @@ window.onload = async function () {
     Core.ApplyWeather();
 }
 window.onresize = function () {
-    Core.DrawMap(true, false);
+    Core.DrawMap(true, false, false);
 }
