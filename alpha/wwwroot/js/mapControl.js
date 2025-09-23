@@ -18,12 +18,6 @@ MapControll = {
     wheelTimeout: null,
     WHEEL_THROTTLE_MS: 200,
     canvas: null, ctx: null, mapImage: null,
-    Prepare: () => {
-        canvas = document.getElementById('map-canvas');
-        ctx = canvas.getContext('2d');
-        mapImage = new Image(),
-        mapImage.src = 'map1.svg';
-    },
     requestRender: () => { if (!animationFrameId) { animationFrameId = requestAnimationFrame(renderLoop); } },
     renderLoop: () => {
         current.x += (target.x - current.x) * EASING_FACTOR;

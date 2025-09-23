@@ -420,22 +420,31 @@ const Core = {
             Variables.MapInfo.mapMaxWidth = Variables.MapInfo.mapImage.width;
             Variables.MapInfo.mapMaxHeight = Variables.MapInfo.mapImage.height;
             Core.DrawMap(true, false, false);
-            URL.revokeObjectURL(Variables.MapInfo.mapImage.src);
-            setTimeout(function() {
-                Variables.MapInfo.mapImage.onload = null;
-            }, 100);
+            setTimeout(function() { Variables.MapInfo.mapImage.onload = null; }, 100);
         };
     },
     ApplyMapColor: async (dayId, hourId, refresh = false) => {
-        if(Data.MapText=='') {
-            const response = await fetch(window.cdnPrefix+'/img/map1.svg');
-            Data.MapText = await response.text();
+        if(MapCache.svgText === null) {
+            const svgUrl = window.cdnPrefix + '/img/map1.svg';
+            MapCache.svgText = await MapCache.getSvgText(svgUrl);
         }
+        
         const colors = ColorManager.getColor(dayId, hourId);
-        const newMapText = Data.MapText.replace(/#aadaff/g, colors.ocean).replace(/#d7a757/g, colors.land);
+        const newMapText = MapCache.svgText.replace(/#aadaff/g, colors.ocean).replace(/#d7a757/g, colors.land);
+        
+        if(Variables.MapInfo.mapImage.src?.startsWith('blob:')) { 
+            URL.revokeObjectURL(Variables.MapInfo.mapImage.src); 
+        }
+        
         const blob = new Blob([newMapText], { type: 'image/svg+xml' });
         Variables.MapInfo.mapImage.src = URL.createObjectURL(blob);
-        if(refresh) { Core.DrawMap(false, false, true); }
+        
+        if(refresh) { 
+            Variables.MapInfo.mapImage.onload = function() {
+                Core.DrawMap(false, false, true);
+                Variables.MapInfo.mapImage.onload = null;
+            };
+        }
     },
     DrawMap: (isResizing = false, isZooming = false, redrawOnly = false) => {
         const mapContainer = document.getElementById('mapContainer');
