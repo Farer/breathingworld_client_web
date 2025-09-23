@@ -421,6 +421,9 @@ const Core = {
             Variables.MapInfo.mapMaxHeight = Variables.MapInfo.mapImage.height;
             Core.DrawMap(true, false);
             URL.revokeObjectURL(Variables.MapInfo.mapImage.src);
+            setTimeout(function() {
+                Variables.MapInfo.mapImage.onload = null;
+            }, 100);
         };
     },
     ApplyMapColor: async (dayId, hourId) => {
