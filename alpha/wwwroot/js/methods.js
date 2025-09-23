@@ -34,10 +34,6 @@ const Methods = {
             week: weekInMonth,
         };
     },
-    GetMapIndex: (dayId, timeOfDay) => {
-        const weekId = Methods.GetWeekIdByDayId(dayId);
-        return (weekId - 1) * 3 + timeOfDay;
-    },
     ParseWeatherInfo: (weatherInfo) => {
         const splitsWeatherInfo = weatherInfo.split('|');
         const info = splitsWeatherInfo[0]+"|"+splitsWeatherInfo[1]+"|"+splitsWeatherInfo[2]+"|"+splitsWeatherInfo[3];

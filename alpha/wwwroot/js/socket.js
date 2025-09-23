@@ -34,17 +34,17 @@ const Socket = {
                 console.error(error);
             }
         });
-        Socket.WebsocketConnection.on("ReceiveTimeOfDayChanged", function (dayId, timeOfDay) {
+        Socket.WebsocketConnection.on("ReceiveTimeOfDayChanged", function (dayId, hourId) {
+            console.log(`ReceiveTimeOfDayChanged - ${dayId}, ${hourId}`)
             try {
                 const newWeekId = Methods.GetWeekIdByDayId(dayId);
                 if(Variables.Settings.weekId != newWeekId) {
                     Variables.Settings.weekId = newWeekId;
-                    CacheManager.autoUpdateCache();
                 }
                 Variables.Settings.dayId = dayId;
-                Variables.Settings.timeOfDay = timeOfDay;
+                Variables.Settings.hourId = hourId;
                 Core.UpdateWeekProgressBar();
-                Core.LoadMap();
+                Core.ApplyMapColor(dayId, hourId);
             } catch (error) {
                 console.error(error);
             }

@@ -235,20 +235,15 @@ const Core = {
     },
     UpdateWeekProgressBar: () => {
         const dayId = Variables.Settings.dayId || 1;
-        const timeOfDay = Variables.Settings.timeOfDay || 1;
         const { monthIndex, day } = Methods.GetMonthAndDayByDayId(dayId);
         const monthName = Variables.MonthNames[monthIndex - 1];
-        
-        let timeOfDayImageUrl = window.cdnPrefix + '/img/morning_shadow_opti.png';
-        if(timeOfDay == 2) { timeOfDayImageUrl = window.cdnPrefix + '/img/day_shadow_opti.png'; }
-        else if(timeOfDay == 3) { timeOfDayImageUrl = window.cdnPrefix + '/img/night_shadow_opti.png'; }
         
         let dateContainer = document.getElementById('dateContainer');
         if (!dateContainer) {
             dateContainer = document.createElement('div');
             dateContainer.id = 'dateContainer';
             dateContainer.style.position = 'fixed';
-            dateContainer.style.left = '20px';
+            dateContainer.style.left = '30px';
             dateContainer.style.top = '70px';
             dateContainer.style.height = '20px';
             dateContainer.style.zIndex = '9999';
@@ -265,23 +260,16 @@ const Core = {
             dateLabel.style.lineHeight = '1';
             dateLabel.style.whiteSpace = 'nowrap';
             
-            const timeOfDayImage = document.createElement('img');
-            timeOfDayImage.id = 'timeOfDayImage';
-            timeOfDayImage.style.width = '14px';
-            timeOfDayImage.style.height = '14px';
-            timeOfDayImage.style.objectFit = 'contain';
-            
             dateContainer.appendChild(dateLabel);
-            dateContainer.appendChild(timeOfDayImage);
             document.body.appendChild(dateContainer);
         }
         
         const dateLabel = document.getElementById('dateLabel');
-        const timeOfDayImage = document.getElementById('timeOfDayImage');
-        
-        if (dateLabel && timeOfDayImage) {
-            dateLabel.textContent = `${day} ${monthName}`;
-            timeOfDayImage.src = timeOfDayImageUrl;
+        const currentHour = parseInt(Variables.Settings.hourId, 10);
+        const amPm = currentHour < 12 ? 'AM' : 'PM';
+        const hour = currentHour <= 12 ? currentHour : currentHour - 12;
+        if (dateLabel) {
+            dateLabel.textContent = `${monthName} ${day} · ${hour} ${amPm} `;
         }
     },
     DrawUsersCountDom: () => {
@@ -426,14 +414,24 @@ const Core = {
         canvas.height = windowHeight;
         document.getElementById('weatherWrap').appendChild(canvas);
     },
-    LoadMap: () => {
-        const mapIndex = Methods.GetMapIndex(Variables.Settings.dayId, Variables.Settings.timeOfDay);
-        Variables.MapInfo.mapImage.src = window.cdnPrefix+'/img/maps/'+mapIndex+'.svg';
+    LoadMap: async () => {
+        Core.ApplyMapColor(Variables.Settings.dayId, Variables.Settings.hourId);
         Variables.MapInfo.mapImage.onload = function () {
             Variables.MapInfo.mapMaxWidth = Variables.MapInfo.mapImage.width;
             Variables.MapInfo.mapMaxHeight = Variables.MapInfo.mapImage.height;
             Core.DrawMap(true, false);
+            URL.revokeObjectURL(Variables.MapInfo.mapImage.src);
         };
+    },
+    ApplyMapColor: async (dayId, hourId) => {
+        if(Data.MapText=='') {
+            const response = await fetch(window.cdnPrefix+'/img/map1.svg');
+            Data.MapText = await response.text();
+        }
+        const colors = ColorManager.getColor(dayId, hourId);
+        const newMapText = Data.MapText.replace(/#aadaff/g, colors.ocean).replace(/#d7a757/g, colors.land);
+        const blob = new Blob([newMapText], { type: 'image/svg+xml' });
+        Variables.MapInfo.mapImage.src = URL.createObjectURL(blob);
     },
     DrawMap: (isResizing = false, isZooming = false) => {
         const mapContainer = document.getElementById('mapContainer');
@@ -453,9 +451,8 @@ const Core = {
             weatherCanvas.height = windowHeight;
         }
         const ctx = mapCanvas.getContext('2d');
-        const mapIndex = Methods.GetMapIndex(Variables.Settings.dayId, Variables.Settings.timeOfDay);
-        const fillColor = Images.FillColors['map_'+mapIndex];
-        ctx.fillStyle = fillColor;
+        const mapColors = ColorManager.getColor(Variables.Settings.dayId, Variables.Settings.hourId);
+        ctx.fillStyle = mapColors.ocean;
         ctx.fillRect(0, 0, windowWidth, windowHeight);
 
         Variables.MapCanvasInfo.xPosStartOfCanvas = 0, Variables.MapCanvasInfo.yPosStartOfCanvas = 0
@@ -747,7 +744,6 @@ const Core = {
             const weatherInfo = Methods.ParseWeatherInfo(Variables.Settings.weatherInfo);
             Variables.Settings.weatherInfo = weatherInfo.info;
             Variables.Settings.temperature = weatherInfo.temperature;
-            await CacheManager.autoUpdateCache();
             Variables.MapInfo.mapMinWidth = Variables.Settings.mapMinWidth;
             Variables.MapInfo.mapMinHeight = Variables.Settings.mapMinHeight;
         } catch (error) {
@@ -847,9 +843,8 @@ const Core = {
         const weedWrapDom = document.getElementById('weedWrapDom');
         if (weedWrapDom == null) { return; }
         const imagePosInfo = Core.DefineDirtDroppingImagePos(fecesData);
-        const mapIndex = Methods.GetMapIndex(Variables.Settings.dayId, Variables.Settings.timeOfDay);
         ctx.drawImage(
-            CacheManager.groundImages[mapIndex],
+            Images.Data['sprite_ground'],
             imagePosInfo.posX,
             imagePosInfo.posY,
             Variables.DirtFloorWidthHeight,

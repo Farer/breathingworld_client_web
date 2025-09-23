@@ -1,5 +1,6 @@
 'use strict';
 const Data = {
+    MapText: '',
     Weed: {
         CacheExpireMillis: 60000,
         DistrictDataUpdateTime: [],
