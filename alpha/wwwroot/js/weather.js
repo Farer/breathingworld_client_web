@@ -120,9 +120,8 @@ class WeatherEffect {
                     particle.x, particle.y, 
                     particle.x + windEffect * 2, particle.y + particle.length
                 );
-                gradient.addColorStop(0, `rgba(200, 220, 255, ${particle.opacity * 0.3})`);
-                gradient.addColorStop(0.5, `rgba(174, 194, 224, ${particle.opacity})`);
-                gradient.addColorStop(1, `rgba(120, 150, 200, ${particle.opacity * 0.7})`);
+                gradient.addColorStop(0, `rgba(180, 200, 255, ${particle.opacity})`);
+                gradient.addColorStop(1, `rgba(100, 130, 200, ${particle.opacity * 0.9})`);
                 
                 this.ctx.strokeStyle = gradient;
                 this.ctx.lineWidth = particle.size;
@@ -224,9 +223,9 @@ class WeatherEffect {
             if (this.type === 'rain') { 
                 const baseSpeed = Math.random() * 2 + this.weather.settings.speed;
                 this.speed = Math.max(baseSpeed, minRainSpeed || 3);
-                this.length = Math.random() * 15 + 10; 
-                this.opacity = Math.random() * 0.5 + 0.3;
-                this.size = Math.random() * 0.5 + 1;
+                this.length = Math.random() * 20 + 15;
+                this.opacity = Math.random() * 0.3 + 0.7;
+                this.size = Math.random() * 0.7 + 1.3;
             } else { 
                 this.speed = Math.random() * 1 + this.weather.settings.speed * 0.3; 
                 this.size = Math.random() * 4 + 2; 
