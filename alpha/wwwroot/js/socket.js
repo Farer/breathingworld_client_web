@@ -35,7 +35,6 @@ const Socket = {
             }
         });
         Socket.WebsocketConnection.on("ReceiveTimeOfDayChanged", function (dayId, hourId) {
-            console.log(`ReceiveTimeOfDayChanged - ${dayId}, ${hourId}`)
             try {
                 const newWeekId = Methods.GetWeekIdByDayId(dayId);
                 if(Variables.Settings.weekId != newWeekId) {
