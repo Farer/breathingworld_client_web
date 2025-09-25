@@ -70,6 +70,7 @@ const Core = {
         dom.id = domId;
         dom.style.position = 'relative';
         dom.style.overflow = 'hidden';
+        dom.style.zIndex = '0';
         document.body.appendChild(dom);
     },
     PrepareMapWrap: () => {
@@ -81,6 +82,7 @@ const Core = {
         wrap.style.left = '0px';
         wrap.style.top = '0px';
         wrap.style.overflow = 'hidden';
+        wrap.style.zIndex = '0';
         document.getElementById('mapContainer').appendChild(wrap);
     },
     PrepareWeatherWrap: () => {
@@ -91,6 +93,7 @@ const Core = {
         wrap.style.left = '0px';
         wrap.style.top = '0px';
         wrap.style.overflow = 'hidden';
+        wrap.style.zIndex = '1';
         wrap.style.pointerEvents = 'none';
         document.getElementById('mapContainer').appendChild(wrap);
     },
