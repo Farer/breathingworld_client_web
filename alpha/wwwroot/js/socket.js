@@ -272,7 +272,7 @@ const Socket = {
         for(let i=0; i<mapIds.length; i++) {
             targetIds.push(mapIds[i].toString());
         }
-        console.log(Variables.MapScaleInfo)
+        // console.log(Variables.MapScaleInfo)
         Socket.WebsocketConnection.invoke("JoinMapGroup", targetIds, Variables.MapScaleInfo.current)
         .then(function () {
             Methods.PrepareDistrictIdsToGet();
