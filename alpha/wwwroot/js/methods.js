@@ -108,14 +108,19 @@ const Methods = {
             Data.Weed.DistrictIdsBucket.add(Variables.MapInfo.viewDistrictIds[i]);
         }
     },
-    GetDistrictDataOneByOneByFromBucket: () => {
+    GetDistrictDataOneByOneByFromBucket: (fromId) => {
+        console.log(`GetDistrictDataOneByOneByFromBucket: ${fromId}`);
         if(Data.Weed.DistrictIdsBucket.size == 0) { return; }
         const districtId = Data.Weed.DistrictIdsBucket.values().next().value;
         Data.Weed.DistrictIdsBucket.delete(districtId);
+        // if(Variables.MapScaleInfo.current == 128) {
+        //     Socket.GetEarthWormInfoByDistrictId(districtId);
+        // }
         Socket.GetWeedInfoByDistrictId(districtId);
         Socket.GetTreeInfoByDistrictId(districtId);
         Socket.GetRabbitInfoByDistrictId(districtId);
         Socket.GetWolfInfoByDistrictId(districtId);
+        Methods.GetDistrictDataOneByOneByFromBucket(-1);
     },
     CleanPrepareWeedWrapDom: () => {
         if(Data.Weed.UserPaused == true && Variables.UserDragged == true) { return; }
@@ -137,6 +142,25 @@ const Methods = {
         weedWrapDom.appendChild(canvas);
 
         document.getElementById('mapWrap').appendChild(weedWrapDom);
+    },
+    CleanPrepareEarthWormWrapDom: () => {
+        let earthWormWrapDom = document.getElementById('earthWormWrapDom');
+        if(earthWormWrapDom != null) { earthWormWrapDom.parentNode.removeChild(earthWormWrapDom); }
+        earthWormWrapDom = document.createElement('div');
+        earthWormWrapDom.id = 'earthWormWrapDom';
+        earthWormWrapDom.style.position = 'absolute';
+        earthWormWrapDom.style.left = '0px';
+        earthWormWrapDom.style.top = '0px';
+
+        const canvas = document.createElement('canvas');
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        canvas.id = 'earthWormCanvas';
+        canvas.width = windowWidth;
+        canvas.height = windowHeight;
+        earthWormWrapDom.appendChild(canvas);
+
+        document.getElementById('mapWrap').appendChild(earthWormWrapDom);
     },
     CleanPrepareShadowWrapDom: () => {
         let shadowWrapDom = document.getElementById('shadowWrapDom');
@@ -170,6 +194,12 @@ const Methods = {
         treeWrapDom.style.top = '0px';
 
         document.getElementById('mapWrap').appendChild(treeWrapDom);
+    },
+    RemoveEarthWormWrapDom: () => {
+        const earthWormWrapDom = document.getElementById('earthWormWrapDom');
+        if(earthWormWrapDom != null) {
+            earthWormWrapDom.parentNode.removeChild(earthWormWrapDom);
+        }
     },
     RemoveShadowWrapDom: () => {
         const shadowWrapDom = document.getElementById('shadowWrapDom');
