@@ -109,7 +109,7 @@ const Methods = {
         }
     },
     GetDistrictDataOneByOneByFromBucket: (fromId) => {
-        console.log(`GetDistrictDataOneByOneByFromBucket: ${fromId}`);
+        // console.log(`GetDistrictDataOneByOneByFromBucket: ${fromId}`);
         if(Data.Weed.DistrictIdsBucket.size == 0) { return; }
         const districtId = Data.Weed.DistrictIdsBucket.values().next().value;
         Data.Weed.DistrictIdsBucket.delete(districtId);
