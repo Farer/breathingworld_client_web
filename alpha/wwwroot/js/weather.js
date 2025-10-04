@@ -1,6 +1,6 @@
 class WeatherEffect {
     constructor(canvasId) {
-        this.canvas = document.getElementById(canvasId);
+        this.canvas = Variables.Doms.get(canvasId);
 
         if (!this.canvas || this.canvas.tagName !== 'CANVAS') {
             console.error(`WeatherEffect: ID '${canvasId}' is not a valid canvas element.`);

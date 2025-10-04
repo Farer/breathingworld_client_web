@@ -414,10 +414,12 @@ const Core = {
         const canvas = document.createElement('canvas');
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
-        canvas.id = 'weatherCanvas';
+        const domId = 'weatherCanvas';
+        canvas.id = domId;
         canvas.width = windowWidth;
         canvas.height = windowHeight;
         document.getElementById('weatherWrap').appendChild(canvas);
+        Variables.Doms.set(domId, canvas);
     },
     LoadMap: async () => {
         Core.ApplyMapColor(Variables.Settings.dayId, Variables.Settings.hourId, false);
@@ -459,7 +461,7 @@ const Core = {
         mapContainer.style.height = window.innerHeight + 'px';
 
         const mapCanvas = document.getElementById('mapCanvas');
-        const weatherCanvas = document.getElementById('weatherCanvas');
+        const weatherCanvas = Variables.Doms.get('weatherCanvas');
         
 
         if(isResizing) {
