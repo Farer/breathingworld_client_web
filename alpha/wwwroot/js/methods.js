@@ -147,7 +147,8 @@ const Methods = {
         canvas.height = windowHeight;
         weedWrapDom.appendChild(canvas);
 
-        document.getElementById('mapWrap').appendChild(weedWrapDom);
+        const mapWrap = Variables.Doms.get('mapWrap');
+        mapWrap.appendChild(weedWrapDom);
     },
     CleanPrepareEarthWormWrapDom: () => {
         let earthWormWrapDom = document.getElementById('earthWormWrapDom');
@@ -166,7 +167,8 @@ const Methods = {
         canvas.height = windowHeight;
         earthWormWrapDom.appendChild(canvas);
         Variables.EarthWormController = new EarthWormController(canvas);
-        document.getElementById('mapWrap').appendChild(earthWormWrapDom);
+        const mapWrap = Variables.Doms.get('mapWrap');
+        mapWrap.appendChild(earthWormWrapDom);
     },
     CleanPrepareShadowWrapDom: () => {
         let shadowWrapDom = document.getElementById('shadowWrapDom');
@@ -177,7 +179,8 @@ const Methods = {
         shadowWrapDom.style.left = '0px';
         shadowWrapDom.style.top = '0px';
 
-        document.getElementById('mapWrap').appendChild(shadowWrapDom);
+        const mapWrap = Variables.Doms.get('mapWrap');
+        mapWrap.appendChild(shadowWrapDom);
     },
     CleanPrepareAnimalWrapDom: () => {
         let animalWrapDom = document.getElementById('animalWrapDom');
@@ -188,7 +191,8 @@ const Methods = {
         animalWrapDom.style.left = '0px';
         animalWrapDom.style.top = '0px';
 
-        document.getElementById('mapWrap').appendChild(animalWrapDom);
+        const mapWrap = Variables.Doms.get('mapWrap');
+        mapWrap.appendChild(animalWrapDom);
     },
     CleanPrepareTreeWrapDom: () => {
         let treeWrapDom = document.getElementById('treeWrapDom');
@@ -199,7 +203,8 @@ const Methods = {
         treeWrapDom.style.left = '0px';
         treeWrapDom.style.top = '0px';
 
-        document.getElementById('mapWrap').appendChild(treeWrapDom);
+        const mapWrap = Variables.Doms.get('mapWrap');
+        mapWrap.appendChild(treeWrapDom);
     },
     RemoveEarthWormWrapDom: () => {
         const earthWormWrapDom = document.getElementById('earthWormWrapDom');

@@ -15,6 +15,7 @@ const Variables = {
     WeatherResizeTimeout: null,
     UserDragged: false,
     EarthWormController: null,
+    Doms: new Map(),
     MapViewPort: {
         x: 0,
         y: 0

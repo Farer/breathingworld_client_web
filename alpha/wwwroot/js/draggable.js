@@ -1,7 +1,7 @@
 'use strict';
 function AddDragMapEvent() {
     let getDataDebounceTimer = null;
-    const element = document.getElementById('mapWrap');
+    const element = Variables.Doms.get('mapWrap');
     element.addEventListener('mousedown', TriggerMouseDown);
     element.addEventListener('touchstart', TriggerTouchStart, { passive: false });
 

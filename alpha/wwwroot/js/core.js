@@ -72,6 +72,7 @@ const Core = {
         dom.style.overflow = 'hidden';
         dom.style.zIndex = '0';
         document.body.appendChild(dom);
+        Variables.Doms.set(domId, dom);
     },
     PrepareMapWrap: () => {
         const wrap = document.createElement('div');
@@ -84,7 +85,9 @@ const Core = {
         wrap.style.top = '0px';
         wrap.style.overflow = 'hidden';
         wrap.style.zIndex = '0';
-        document.getElementById('mapContainer').appendChild(wrap);
+        const mapContainer = Variables.Doms.get('mapContainer');
+        mapContainer.appendChild(wrap);
+        Variables.Doms.set(wrapId, wrap);
     },
     PrepareWeatherWrap: () => {
         const wrap = document.createElement('div');
@@ -96,7 +99,8 @@ const Core = {
         wrap.style.overflow = 'hidden';
         wrap.style.zIndex = '1';
         wrap.style.pointerEvents = 'none';
-        document.getElementById('mapContainer').appendChild(wrap);
+        const mapContainer = Variables.Doms.get('mapContainer');
+        mapContainer.appendChild(wrap);
     },
     DrawOutterLink: () => {
         const discordDom = document.createElement('div');
@@ -353,7 +357,6 @@ const Core = {
     },
     HandleTouchMove: (event) => {
         if (event.touches.length === 2) {
-            const mapDom = document.getElementById('mapWrap');
             const touch1 = event.touches[0];
             const touch2 = event.touches[1];
             const currentDistance = Math.sqrt(
@@ -404,7 +407,8 @@ const Core = {
         canvas.width = windowWidth;
         canvas.height = windowHeight;
         canvas.style.cursor = 'grab';
-        document.getElementById('mapWrap').appendChild(canvas);
+        const mapWrap = Variables.Doms.get('mapWrap');
+        mapWrap.appendChild(canvas);
     },
     PrepareWeatherCanvas: () => {
         const canvas = document.createElement('canvas');
@@ -448,7 +452,7 @@ const Core = {
         }
     },
     DrawMap: (isResizing = false, isZooming = false, redrawOnly = false) => {
-        const mapContainer = document.getElementById('mapContainer');
+        const mapContainer = Variables.Doms.get('mapContainer');
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
         mapContainer.style.width = window.innerWidth + 'px';
@@ -661,9 +665,7 @@ const Core = {
         Variables.TimeoutInfo.zoomMap = setTimeout(Core.ZoomMap(event), 100);
     },
     ZoomMap: (event) => {
-        const mapDom = document.getElementById('mapWrap');
-        if (mapDom == null) { return; }
-
+        if (!Variables.Doms.has('mapWrap')) { return; }
 
         let scrollDirection = '';
         if (Variables.ScrollInfo.upAmount > 0) {
