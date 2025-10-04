@@ -1,11 +1,16 @@
 'use strict';
 const Data = {
+    DistrictIdsBucket: new Set(),
+    UserPaused: false,
+    EarthWorm: {
+        CacheExpireMillis: 60000,
+        DistrictDataUpdateTime: [],
+        DistrictData: new Map(),
+    },
     Weed: {
         CacheExpireMillis: 60000,
         DistrictDataUpdateTime: [],
         DistrictData: [],
-        DistrictIdsBucket: new Set(),
-        UserPaused: false,
     },
     Tree: {
         CacheExpireMillis: 60000,

@@ -77,7 +77,8 @@ const Core = {
         const wrap = document.createElement('div');
         const wrapId = 'mapWrap';
         wrap.id = wrapId;
-        wrap.setAttribute('leftTop', '0|0');
+        Variables.MapViewPort.x = 0;
+        Variables.MapViewPort.y = 0;
         wrap.style.position = 'absolute';
         wrap.style.left = '0px';
         wrap.style.top = '0px';
@@ -247,7 +248,6 @@ const Core = {
             dateContainer.style.left = '30px';
             dateContainer.style.top = '70px';
             dateContainer.style.height = '20px';
-            dateContainer.style.zIndex = '9999';
             dateContainer.style.display = 'flex';
             dateContainer.style.alignItems = 'center';
             dateContainer.style.gap = '4px';
@@ -339,7 +339,7 @@ const Core = {
         document.addEventListener('touchend', Core.HandleTouchEnd);
     },
     HandleTouchStart: (event) => {
-        Data.Weed.UserPaused = false;
+        Data.UserPaused = false;
         if (event.touches.length === 2) {
             const touch1 = event.touches[0];
             const touch2 = event.touches[1];
@@ -372,7 +372,7 @@ const Core = {
             if (diffDistance > 0) { newScale *= 2; }
             else { newScale /= 2; }
 
-            const leftTop = Methods.GetLeftTopMapWrap(mapDom);
+            const leftTop = Methods.GetLeftTopMapWrap();
             if (newScale > Variables.MapScaleInfo.current) {
                 Variables.MapScaleInfo.zoomPosX = Math.abs(leftTop[0]) + Variables.MapScaleInfo.mobileTouchStartCenterPosX / 2;
                 Variables.MapScaleInfo.zoomPosY = Math.abs(leftTop[1]) + Variables.MapScaleInfo.mobileTouchStartCenterPosY / 2;
@@ -386,8 +386,8 @@ const Core = {
             Variables.MapScaleInfo.zoomPosX = Variables.MapScaleInfo.zoomPosX * newScaleRatio;
             Variables.MapScaleInfo.zoomPosY = Variables.MapScaleInfo.zoomPosY * newScaleRatio;
 
-            const newLeftTop = -Variables.MapScaleInfo.zoomPosX + '|' + -Variables.MapScaleInfo.zoomPosY;
-            mapDom.setAttribute('leftTop', newLeftTop);
+            Variables.MapViewPort.x = -Variables.MapScaleInfo.zoomPosX;
+            Variables.MapViewPort.y = -Variables.MapScaleInfo.zoomPosY;
 
             Core.ChangeMapScale(newScale);
         }
@@ -533,8 +533,7 @@ const Core = {
             Variables.MapCanvasInfo.yEndPosLimit = -(Variables.MapInfo.mapImage.height - Variables.MapCanvasInfo.bringMapHeight) / Variables.MapScaleInfo.maxScale;
         }
 
-        const mapWrapDom = document.getElementById('mapWrap');
-        const leftTop = Methods.GetLeftTopMapWrap(mapWrapDom);
+        const leftTop = Methods.GetLeftTopMapWrap();
         const domLeft = leftTop[0];
         const domTop = leftTop[1];
 
@@ -558,8 +557,8 @@ const Core = {
             newTop = 0;
         }
 
-        const newLeftTop = newLeft + '|' + newTop;
-        mapWrapDom.setAttribute("leftTop", newLeftTop);
+        Variables.MapViewPort.x = newLeft;
+        Variables.MapViewPort.y = newTop;
 
         try {
             ctx.drawImage(
@@ -592,6 +591,14 @@ const Core = {
         catch(e) {
             Chat.ShowRefreshIcon();
         }
+    },
+    RelocateEarthWormWrapWhenDrag: (movedX, movedY) => {
+        const earthWormWrapDom = document.getElementById('earthWormWrapDom');
+        const newLeft = -movedX;
+        const newTop = -movedY;
+        if (earthWormWrapDom == null) { return; }
+        earthWormWrapDom.style.left = newLeft + 'px';
+        earthWormWrapDom.style.top = newTop + 'px';
     },
     RelocateWeedWrapWhenDrag: (movedX, movedY) => {
         const weedWrapDom = document.getElementById('weedWrapDom');
@@ -699,10 +706,12 @@ const Core = {
             if (newIndex > newScaleList.length - 1) { newIndex = newScaleList.length - 1; }
         }
 
-        const leftTop = Methods.GetLeftTopMapWrap(mapDom);
+        const leftTop = Methods.GetLeftTopMapWrap();
         if (scrollDirection == 'up') {
             Variables.MapScaleInfo.zoomPosX = Math.abs(leftTop[0]) + event.clientX / 2;
+            if(Variables.MapCanvasInfo.xPosStartOfCanvas > 0) { Variables.MapScaleInfo.zoomPosX -= Variables.MapCanvasInfo.xPosStartOfCanvas; }
             Variables.MapScaleInfo.zoomPosY = Math.abs(leftTop[1]) + event.clientY / 2;
+            if(Variables.MapCanvasInfo.yPosStartOfCanvas > 0) { Variables.MapScaleInfo.zoomPosY -= Variables.MapCanvasInfo.yPosStartOfCanvas; }
         }
         else if (scrollDirection == 'down') {
             Variables.MapScaleInfo.zoomPosX = Math.abs(leftTop[0]) - event.clientX;
@@ -717,8 +726,8 @@ const Core = {
         Variables.MapScaleInfo.zoomPosX = Variables.MapScaleInfo.zoomPosX * newScaleRatio;
         Variables.MapScaleInfo.zoomPosY = Variables.MapScaleInfo.zoomPosY * newScaleRatio;
 
-        const newLeftTop = -Variables.MapScaleInfo.zoomPosX + '|' + -Variables.MapScaleInfo.zoomPosY;
-        mapDom.setAttribute('leftTop', newLeftTop);
+        Variables.MapViewPort.x = -Variables.MapScaleInfo.zoomPosX;
+        Variables.MapViewPort.y = -Variables.MapScaleInfo.zoomPosY;
 
         AnimationProcess.TargetDomIds.clear();
 
@@ -731,7 +740,7 @@ const Core = {
     ChangeMapScale: async (newScale) => {
         Variables.MapScaleInfo.previous = Variables.MapScaleInfo.current;
         Variables.MapScaleInfo.current = newScale;
-        Data.Weed.UserPaused = true;
+        Data.UserPaused = true;
         Core.DrawMap(true, true, false);
     },
     ReserveDistrictInOut: () => {
@@ -764,8 +773,82 @@ const Core = {
             console.error('Error:', error);
         }
     },
+    ManageEarthWormCache: (districtId, mapIndex, info) => {
+        try {
+            if (!(Data.EarthWorm.DistrictData instanceof Map)) {
+                Data.EarthWorm.DistrictData = new Map();
+                Data.EarthWorm.DistrictData.set(districtId, new Map());
+            }
+            const previousData = Data.EarthWorm.DistrictData.has(districtId) ? Data.EarthWorm.DistrictData.get(districtId) : new Map();
+            previousData.set(mapIndex, info);
+            Data.EarthWorm.DistrictData.set(districtId, previousData);
+        }
+        catch(error) {
+            console.error('ManageEarthWormCache');
+            console.log(error);
+        }
+    },
+    HandleEarthWormByInfo: (districtId, info) => {
+        const parsedInfo = Methods.ParseEarthWormInfo(info);
+        const mapPosition = Methods.GetMapPositionByAnimalPositionIndex(parsedInfo.currentPosition);
+
+        const mapIndex = Methods.GetMapIndexByMapPosition(mapPosition.x, mapPosition.y);
+        Core.ManageEarthWormCache(districtId, mapIndex, info);
+
+        const animalPosition = Methods.GetAnimalPositionByIndex(parsedInfo.currentPosition);
+        const realPosition = Methods.GetAnimalRealPosition(animalPosition);
+        if(!Core.IfThisTileVisible(mapPosition.x, mapPosition.y)) { return; }
+        const exist = Variables.EarthWormController.hasWorm(parsedInfo.id);
+        if(exist == false) {
+            if(parsedInfo.status == '-1') {
+
+            }
+            else if(parsedInfo.status == '0') {
+                Variables.EarthWormController.emergeWorm(parsedInfo.id, {x: realPosition.left, y: realPosition.top});
+            }
+            else if(parsedInfo.status == '1') {
+                Variables.EarthWormController.emergeWorm(parsedInfo.id, {x: realPosition.left, y: realPosition.top});
+                setTimeout(() => {
+                    const targetRealPosition = Methods.GetAnimalRealPosition(Methods.GetAnimalPositionByIndex(parsedInfo.newPosition));
+                    Variables.EarthWormController.moveWorm(parsedInfo.id, targetRealPosition.left, targetRealPosition.top);
+                }, 1000);
+            }
+            else if(parsedInfo.status == '2') {
+
+            }
+            else if(parsedInfo.status == '3') {
+                Variables.EarthWormController.addWorm(parsedInfo.id, {x: realPosition.left, y: realPosition.top});
+                Variables.EarthWormController.killWorm(parsedInfo.id);
+            }
+        }
+        else {
+            if(parsedInfo.status == '-1') {
+                Variables.EarthWormController.burrowWorm(parsedInfo.id);
+            }
+            else if(parsedInfo.status == '0') {
+                // do nothing
+            }
+            else if(parsedInfo.status == '1') {
+                const targetRealPosition = Methods.GetAnimalRealPosition(Methods.GetAnimalPositionByIndex(parsedInfo.newPosition));
+                Variables.EarthWormController.moveWorm(parsedInfo.id, targetRealPosition.left, targetRealPosition.top);
+            }
+            else if(parsedInfo.status == '2') {
+                Variables.EarthWormController.burrowWorm(parsedInfo.id);
+            }
+            else if(parsedInfo.status == '3') {
+                Variables.EarthWormController.killWorm(parsedInfo.id);
+            }
+        }
+    },
+    DrawDistrictEarthWormTileByDistrictId: (districtId) => {
+        if (!(Data.EarthWorm.DistrictData instanceof Map)) { return; }
+        const mapTileData = Data.EarthWorm.DistrictData.get(districtId);
+        for (const wormInfo of mapTileData.values()) {
+            Core.HandleEarthWormByInfo(districtId, wormInfo);
+        }
+    },
     DrawDistrictWeedTileByDistrictId: (districtId) => {
-        if( Data.Weed.DistrictData[districtId] == undefined || Data.Weed.UserPaused == false ) { return; }
+        if( Data.Weed.DistrictData[districtId] == undefined || Data.UserPaused == false ) { return; }
         const mapWarpLeftTop = Methods.GetLeftTopMapWrap();
         for(let tileId in Data.Weed.DistrictData[districtId]) {
             const tileIdSplit = tileId.split(':');
@@ -812,6 +895,29 @@ const Core = {
         const weedStatus = Data.Weed.DistrictData[districtId][tileId];
         var fecesData = Data.Feces.DistrictData[districtId][tileId];
         Core.HandleWeedTileByStat(xPos, yPos, weedStatus, fecesData[0], fecesData[1]);
+    },
+    IfThisTileVisible: (xPos, yPos) => {
+        const currentScale = Variables.MapScaleInfo.current;
+        const canvasWidth = Variables.MapCanvasInfo.widthOfCanvas;
+        const canvasHeight = Variables.MapCanvasInfo.heightOfCanvas;
+        const realXpos = xPos * currentScale;
+        const realYpos = yPos * currentScale;
+        const mapContainerLeftTop = Methods.GetLeftTopMapWrap();
+        const viewportX = -mapContainerLeftTop[0];
+        const viewportY = -mapContainerLeftTop[1];
+        const tileRight = realXpos + currentScale;
+        const tileBottom = realYpos + currentScale;
+        const viewportRight = viewportX + canvasWidth;
+        const viewportBottom = viewportY + canvasHeight;
+        if (
+            realXpos >= viewportRight ||
+            tileRight <= viewportX ||
+            realYpos >= viewportBottom ||
+            tileBottom <= viewportY
+        ) {
+            return false;
+        }
+        return true;
     },
     IfThisWeedTileVisible: (xPos, yPos) => {
         const weedTileSize = Variables.MapScaleInfo.current;
@@ -896,7 +1002,6 @@ const Core = {
                 accelerationIcon.style.width = '32px';
                 accelerationIcon.style.height = '32px';
                 accelerationIcon.style.filter = 'drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.5))';
-                accelerationIcon.style.zIndex = '9999';
                 document.body.appendChild(accelerationIcon);
             }
         }

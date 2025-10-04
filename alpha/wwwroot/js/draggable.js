@@ -7,8 +7,8 @@ function AddDragMapEvent() {
 
     function TriggerMouseDown(e) {
         e.preventDefault();
-        Data.Weed.UserPaused = false;
-        const leftTop = Methods.GetLeftTopMapWrap(element);
+        Data.UserPaused = false;
+        const leftTop = Methods.GetLeftTopMapWrap();
         Variables.MapMoveInfo.currentLeft = leftTop[0];
         Variables.MapMoveInfo.currentTop = leftTop[1];
         Variables.MapMoveInfo.currentPosX = e.clientX;
@@ -20,10 +20,10 @@ function AddDragMapEvent() {
     }
 
     function TriggerTouchStart(e) {
-        Data.Weed.UserPaused = false;
+        Data.UserPaused = false;
         e.preventDefault();
         if (e.touches.length === 1) {
-            const leftTop = Methods.GetLeftTopMapWrap(element);
+            const leftTop = Methods.GetLeftTopMapWrap();
             Variables.MapMoveInfo.currentLeft = leftTop[0];
             Variables.MapMoveInfo.currentTop = leftTop[1];
             Variables.MapMoveInfo.currentPosX = e.touches[0].clientX;
@@ -36,7 +36,7 @@ function AddDragMapEvent() {
     }
 
     function DoingMouseDrag(e) {
-        Data.Weed.UserPaused = false;
+        Data.UserPaused = false;
         Variables.UserDragged = true;
         e.preventDefault();
 
@@ -49,6 +49,7 @@ function AddDragMapEvent() {
         Variables.MapMoveInfo.finalLeft = newLeft;
         Variables.MapMoveInfo.finalTop = newTop;
 
+        Core.RelocateEarthWormWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
         Core.RelocateWeedWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
         Core.RelocateTreeWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
         Core.RelocateAnimalWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
@@ -56,13 +57,14 @@ function AddDragMapEvent() {
         MovementProcess.ResetMovementData();
         AnimationProcess.TargetDomIds.clear();
 
-        element.setAttribute('leftTop', newLeft + '|' + newTop);
+        Variables.MapViewPort.x = newLeft;
+        Variables.MapViewPort.y = newTop;
 
         Core.DrawMap();
     }
 
     function DoingTouchDrag(e) {
-        Data.Weed.UserPaused = false;
+        Data.UserPaused = false;
         Variables.UserDragged = true;
         e.preventDefault();
         if (e.touches.length === 1) {
@@ -75,13 +77,15 @@ function AddDragMapEvent() {
             Variables.MapMoveInfo.finalLeft = newLeft;
             Variables.MapMoveInfo.finalTop = newTop;
 
+            Core.RelocateEarthWormWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
             Core.RelocateWeedWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
             Core.RelocateTreeWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
             Core.RelocateAnimalWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
             Core.RelocateShadowWrapWhenDrag(Variables.MapMoveInfo.movedPosX, Variables.MapMoveInfo.movedPosY);
             AnimationProcess.TargetDomIds.clear();
 
-            element.setAttribute('leftTop', newLeft + '|' + newTop);
+            Variables.MapViewPort.x = newLeft;
+            Variables.MapViewPort.y = newTop;
 
             Core.DrawMap();
         }

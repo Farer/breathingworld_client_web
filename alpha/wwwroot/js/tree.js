@@ -109,12 +109,10 @@ const Tree = {
     HandleTreeDomByStat: (treeData) => {
         const treeWrapDom = document.getElementById('treeWrapDom');
         if (treeWrapDom == null) {
-            console.error('treeWrapDom == null');
             return;
         }
         const imageSource = Tree.GetTreeImageSource(treeData.id);
         if (imageSource == null) {
-            console.error('imageSource == null');
             return;
         }
         const imageInfo = Tree.GetTreeImageInfoByCurrentScale(treeData);

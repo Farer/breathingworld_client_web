@@ -65,19 +65,23 @@ const Socket = {
             }
         });
         Socket.WebsocketConnection.on("ReceiveOneEarthWormInfo", function (districtId, tileId, info) {
-            console.log('ReceiveOneEarthWormInfo');
-            console.log(`${districtId}, ${tileId}, ${info}`);
+            // 906, 1267:604, 7354:147:1:297205555:297021231
+            Core.HandleEarthWormByInfo(districtId, info);
         });
         Socket.WebsocketConnection.on("ReceiveEarthWormInfoByDistrictId", function (districtId, weedsBytes) {
-            console.log('ReceiveEarthWormInfoByDistrictId');
+            // console.log('ReceiveEarthWormInfoByDistrictId');
             const base64Data = weedsBytes;
             const decodedData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
             const earthWormInfoDecoded = msgpack.decode(decodedData);
-            if (Object.keys(earthWormInfoDecoded).length === 0) {
-                for(var i in earthWormInfoDecoded) {
-                    console.log(i);
+            Data.EarthWorm.DistrictDataUpdateTime[districtId] = Date.now();
+            if (earthWormInfoDecoded.length > 0) {
+                for(var i =0; i<earthWormInfoDecoded.length; i++) {
+                    Core.HandleEarthWormByInfo(districtId, earthWormInfoDecoded[i][1]);
                 }
                 return;
+            }
+            else {
+                Data.EarthWorm.DistrictData.set(districtId, new Map());
             }
         });
         Socket.WebsocketConnection.on("ReceiveOneWeedInfo", function (districtId, tileId, weedProceedCode, rabbitFeceExists, wolfFeceExists) {
@@ -114,10 +118,7 @@ const Socket = {
                 const base64Data = weedsBytes;
                 const decodedData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
                 const weedInfoDecoded = msgpack.decode(decodedData);
-                if (Object.keys(weedInfoDecoded).length === 0) {
-                    Methods.GetDistrictDataOneByOneByFromBucket(0);
-                    return;
-                }
+                if (Object.keys(weedInfoDecoded).length === 0) { return; }
                 Data.Weed.DistrictDataUpdateTime[districtId] = nowDate;
                 Data.Weed.DistrictData[districtId] = [];
                 for(var i in weedInfoDecoded) {
@@ -125,7 +126,6 @@ const Socket = {
                     Methods.UpdateFecesData(districtId, i, [weedInfoDecoded[i][1], weedInfoDecoded[i][2]]);
                 }
                 Core.DrawDistrictWeedTileByDistrictId(districtId);
-                Methods.GetDistrictDataOneByOneByFromBucket(1);
             } catch (error) {
                 console.error(error);
             }
@@ -190,15 +190,11 @@ const Socket = {
                     Tree.UpsertData(treeInfoDecoded);
                     treesIds.push(treeInfoDecoded.id);
                 }
-                if (treesIds.length === 0) {
-                    Methods.GetDistrictDataOneByOneByFromBucket(2);
-                    return;
-                }
+                if (treesIds.length === 0) { return; }
                 Data.Tree.DistrictDataUpdateTime[districtId] = nowDate;
                 Data.Tree.IdsInDistrict[districtId] = treesIds;
             
                 Tree.DrawDistrictTreeTileByDistrictId(districtId);
-                Methods.GetDistrictDataOneByOneByFromBucket(3);
             } catch (error) {
                 console.error(error);
             }
@@ -247,11 +243,11 @@ const Socket = {
         }
         else if(Variables.MapInfo.viewDistrictIds.length > 0) {
             Variables.MapInfo.viewDistrictIds = [];
+            Methods.RemoveEarthWormWrapDom();
             Methods.RemoveWeedWrapDom();
             Methods.RemoveTreeWrapDom();
             Methods.RemoveAnimalWrapDom();
             Methods.RemoveShadowWrapDom();
-            Methods.RemoveEarthWormWrapDom();
         }
         else if(Variables.MapInfo.viewDistrictIds.length == 0) {
             return;
@@ -276,7 +272,7 @@ const Socket = {
         Socket.WebsocketConnection.invoke("JoinMapGroup", targetIds, Variables.MapScaleInfo.current)
         .then(function () {
             Methods.PrepareDistrictIdsToGet();
-            if(Data.Weed.UserPaused == false && Variables.UserDragged == true) { return; }
+            if(Data.UserPaused == false && Variables.UserDragged == true) { return; }
             Methods.CleanPrepareEarthWormWrapDom();
             Methods.CleanPrepareWeedWrapDom();
             Methods.CleanPrepareShadowWrapDom();
@@ -292,7 +288,6 @@ const Socket = {
     GetEarthWormInfoByDistrictId: (districtId) => {
         if(Methods.IfDistrictEarthWormCacheValid(districtId)) {
             Core.DrawDistrictEarthWormTileByDistrictId(districtId);
-            // Methods.GetDistrictDataOneByOneByFromBucket(5);
             return;
         }
         Socket.WebsocketConnection.invoke("GetEarthWormInfoByDistrictId", districtId).catch(function (err) {
@@ -302,7 +297,6 @@ const Socket = {
     GetWeedInfoByDistrictId: (districtId) => {
         if(Methods.IfDistrictWeedCacheValid(districtId)) {
             Core.DrawDistrictWeedTileByDistrictId(districtId);
-            // Methods.GetDistrictDataOneByOneByFromBucket(6);
             return;
         }
         Socket.WebsocketConnection.invoke("GetWeedInfoByDistrictId", districtId).catch(function (err) {
@@ -312,7 +306,6 @@ const Socket = {
     GetTreeInfoByDistrictId: (districtId) => {
         if(Methods.IfDistrictTreeCacheValid(districtId)) {
             Tree.DrawDistrictTreeTileByDistrictId(districtId);
-            // Methods.GetDistrictDataOneByOneByFromBucket(7);
             return;
         }
         Socket.WebsocketConnection.invoke("GetTreeInfoByDistrictId", districtId).catch(function (err) {

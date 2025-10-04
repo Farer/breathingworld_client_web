@@ -86,6 +86,12 @@ const Methods = {
         const divide = Variables.MapInfo.mapMinWidth / Variables.Settings.districtWidth;
         return yPos * divide + xPos;
     },
+    IfDistrictEarthWormCacheValid: (districtId) => {
+        const nowDate = Date.now();
+        const cacheExpireDiff = nowDate - Data.EarthWorm.CacheExpireMillis;
+        if(Data.EarthWorm.DistrictDataUpdateTime[districtId] == undefined || Data.EarthWorm.DistrictDataUpdateTime[districtId] <= cacheExpireDiff) { return false; }
+        return true;
+    },
     IfDistrictWeedCacheValid: (districtId) => {
         const nowDate = Date.now();
         const cacheExpireDiff = nowDate - Data.Weed.CacheExpireMillis;
@@ -103,19 +109,19 @@ const Methods = {
         return true;
     },
     PrepareDistrictIdsToGet: () => {
-        Data.Weed.DistrictIdsBucket.clear();
+        Data.DistrictIdsBucket.clear();
         for(let i=0; Variables.MapInfo.viewDistrictIds.length > i; i++) {
-            Data.Weed.DistrictIdsBucket.add(Variables.MapInfo.viewDistrictIds[i]);
+            Data.DistrictIdsBucket.add(Variables.MapInfo.viewDistrictIds[i]);
         }
     },
     GetDistrictDataOneByOneByFromBucket: (fromId) => {
         // console.log(`GetDistrictDataOneByOneByFromBucket: ${fromId}`);
-        if(Data.Weed.DistrictIdsBucket.size == 0) { return; }
-        const districtId = Data.Weed.DistrictIdsBucket.values().next().value;
-        Data.Weed.DistrictIdsBucket.delete(districtId);
-        // if(Variables.MapScaleInfo.current == 128) {
-        //     Socket.GetEarthWormInfoByDistrictId(districtId);
-        // }
+        if(Data.DistrictIdsBucket.size == 0) { return; }
+        const districtId = Data.DistrictIdsBucket.values().next().value;
+        Data.DistrictIdsBucket.delete(districtId);
+        if(Variables.MapScaleInfo.current == 128) {
+            Socket.GetEarthWormInfoByDistrictId(districtId);
+        }
         Socket.GetWeedInfoByDistrictId(districtId);
         Socket.GetTreeInfoByDistrictId(districtId);
         Socket.GetRabbitInfoByDistrictId(districtId);
@@ -123,8 +129,8 @@ const Methods = {
         Methods.GetDistrictDataOneByOneByFromBucket(-1);
     },
     CleanPrepareWeedWrapDom: () => {
-        if(Data.Weed.UserPaused == true && Variables.UserDragged == true) { return; }
-        if(Data.Weed.UserPaused == false && Variables.UserDragged == false) { return; }
+        if(Data.UserPaused == true && Variables.UserDragged == true) { return; }
+        if(Data.UserPaused == false && Variables.UserDragged == false) { return; }
         let weedWrapDom = document.getElementById('weedWrapDom');
         if(weedWrapDom != null) { weedWrapDom.parentNode.removeChild(weedWrapDom); }
         weedWrapDom = document.createElement('div');
@@ -159,7 +165,7 @@ const Methods = {
         canvas.width = windowWidth;
         canvas.height = windowHeight;
         earthWormWrapDom.appendChild(canvas);
-
+        Variables.EarthWormController = new EarthWormController(canvas);
         document.getElementById('mapWrap').appendChild(earthWormWrapDom);
     },
     CleanPrepareShadowWrapDom: () => {
@@ -225,22 +231,40 @@ const Methods = {
             animalWrapDom.parentNode.removeChild(animalWrapDom);
         }
     },
-    GetLeftTopMapWrap: (givenDom) => {
-        if(givenDom == undefined) { givenDom = document.getElementById('mapWrap'); }
-        const leftTop = givenDom.getAttribute('leftTop').split('|');
-        return [ parseInt(leftTop[0], 10), parseInt(leftTop[1], 10) ];
+    GetLeftTopMapWrap: () => {
+        return [Variables.MapViewPort.x, Variables.MapViewPort.y];
     },
     SetWhenUserStopAction: (fromId) => {
-        Data.Weed.UserPaused = true;
+        Data.UserPaused = true;
         if(Variables.UserDragged == true) { Socket.UnjoinMapGroup(); }
         Variables.UserDragged = false;
     },
-    GetAnimalDomInfo: (animalPosition, keyId) => {
-        if(animalPosition == undefined) {
-            console.log("GetAnimalDomInfo animalPosition: ", animalPosition);
+    GetMapIndexByMapPosition: (x, y) => {
+        return Variables.MapInfo.mapMinWidth * y + x;
+    },
+    GetAnimalPositionByIndex: (index) => {
+        const realWidth = Variables.MapInfo.mapMinWidth * Variables.Settings.animalCoordinateScale;
+        const xPos = index % realWidth;
+        const yPos = Math.floor(index / realWidth);
+        return xPos + ':' + yPos;
+    },
+    GetMapPositionByAnimalPositionIndex: (index) => {
+        const realWidth = Variables.MapInfo.mapMinWidth * Variables.Settings.animalCoordinateScale;
+        const xPos = index % realWidth;
+        const yPos = Math.floor(index / realWidth);
+        const finalXpos = parseInt(xPos / Variables.Settings.animalCoordinateScale, 10);
+        const finalYpos = parseInt(yPos / Variables.Settings.animalCoordinateScale, 10);
+        return {
+            x: finalXpos,
+            y: finalYpos
+        }
+    },
+    GetAnimalRealPosition: (animalPositionString) => {
+        if(animalPositionString == undefined) {
+            console.log("GetAnimalRealPosition animalPositionString: ", animalPositionString);
             return null;
         }
-        const positions = animalPosition.split(':');
+        const positions = animalPositionString.split(':');
         const animalScaledPosX = parseInt(positions[0], 10) * Variables.MapScaleInfo.current;
         const animalScaledPosY = parseInt(positions[1], 10) * Variables.MapScaleInfo.current;
 
@@ -260,6 +284,16 @@ const Methods = {
         let left = Variables.MapCanvasInfo.widthOfCanvas * xPercent / 100 * Variables.MapScaleInfo.current;
         let top = Variables.MapCanvasInfo.heightOfCanvas * yPercent / 100 * Variables.MapScaleInfo.current;
         
+        return {
+            left: left,
+            top: top
+        };
+    },
+    GetAnimalDomInfo: (animalPosition, keyId) => {
+        const realPosition = Methods.GetAnimalRealPosition(animalPosition);
+        let top = realPosition.top;
+        let left = realPosition.left;
+
         const topModifier = Methods.CalculateAnimalDomTopModifier(keyId);
         top = top - topModifier;
         let size;
@@ -307,6 +341,17 @@ const Methods = {
         const finalXpos = parseInt(xPos / Variables.Settings.animalCoordinateScale, 10).toString();
         const finalYpos = parseInt(yPos / Variables.Settings.animalCoordinateScale, 10).toString();
         return finalXpos + ':' + finalYpos;
+    },
+    ParseEarthWormInfo: (earthWormInfo) => {
+        const splitsEarthWormInfo = earthWormInfo.split(':');
+        const newPosition = splitsEarthWormInfo[4] ?? null;
+        return {
+            id: splitsEarthWormInfo[0],
+            age: splitsEarthWormInfo[1],
+            status: splitsEarthWormInfo[2],
+            currentPosition: splitsEarthWormInfo[3],
+            newPosition: newPosition
+        };
     },
     MapRabbitArrayToObject: (rabbitArray) => {
         return {
