@@ -963,6 +963,7 @@ const Core = {
         const weedWrapDom = document.getElementById('weedWrapDom');
         if (weedWrapDom == null) { return; }
         const imagePosInfo = Core.DefineDirtDroppingImagePos(fecesData);
+        ctx.clearRect(posX, posY, viewSize, viewSize);
         ctx.drawImage(
             Images.Data['sprite_ground'],
             imagePosInfo.posX,
