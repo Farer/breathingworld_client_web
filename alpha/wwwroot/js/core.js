@@ -403,12 +403,14 @@ const Core = {
         const canvas = document.createElement('canvas');
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
-        canvas.id = 'mapCanvas';
+        const domId = 'mapCanvas';
+        canvas.id = domId;
         canvas.width = windowWidth;
         canvas.height = windowHeight;
         canvas.style.cursor = 'grab';
         const mapWrap = Variables.Doms.get('mapWrap');
         mapWrap.appendChild(canvas);
+        Variables.Doms.set(domId, canvas);
     },
     PrepareWeatherCanvas: () => {
         const canvas = document.createElement('canvas');
@@ -460,7 +462,7 @@ const Core = {
         mapContainer.style.width = window.innerWidth + 'px';
         mapContainer.style.height = window.innerHeight + 'px';
 
-        const mapCanvas = document.getElementById('mapCanvas');
+        const mapCanvas = Variables.Doms.get('mapCanvas');
         const weatherCanvas = Variables.Doms.get('weatherCanvas');
         
 
