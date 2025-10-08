@@ -16,120 +16,148 @@
     <!-- 2. 우리가 만든 PixiManager 로드 -->
     <script src="./js/pixiManager.js?1"></script>
 
-    <!-- 3. 메인 애플리케이션 로직 -->
-    <script>
+    <!-- 3. 메인 애플리케이션 로직 (type="module") -->
+    <script type="module">
+        // ======================================================================
+        // ===                       ★★★ 수정된 부분 ★★★                       ===
+        // ======================================================================
+        // 필요한 부품들(Tween, Easing, update)을 각각 이름으로 직접 import 합니다.
+        import { Tween, Easing, update as updateTweens } from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@20.0.3/dist/tween.esm.js';
+        // ======================================================================
+
         window.onload = async () => {
             const container = document.getElementById('pixi-container');
-            
-            // PixiManager 인스턴스 생성 (이때 초기화 및 에셋 로딩이 시작됩니다)
             const pixiManager = new PixiManager(container);
 
-            // 로딩이 완료될 때까지 기다려야 합니다.
-            // PixiManager가 준비되었는지 확인하는 간단한 폴링 방법
+            // 로딩 대기
             await new Promise(resolve => {
                 const checkReady = () => {
-                    if (pixiManager.app && pixiManager.textures.trees.length > 0) {
-                        resolve();
-                    } else {
-                        setTimeout(checkReady, 100);
-                    }
+                    if (pixiManager.app && pixiManager.textures.trees.length > 0) resolve();
+                    else setTimeout(checkReady, 100);
                 };
                 checkReady();
             });
 
-            // --- 이제 PixiManager를 마음껏 사용할 수 있습니다! ---
-
             // --- 모든 엔티티를 담을 배열 ---
             const allEntities = [];
+            const animals = [];
 
-            // 예시 1: 다 자란 나무 생성
+            // ... (나무, 잡초 생성 코드는 변경 없음) ...
             const bigTree = pixiManager.createTree(8);
-            bigTree.x = pixiManager.app.screen.width / 2;
-            bigTree.y = 699;
-            allEntities.push(bigTree); // 배열에 추가
-
-            // ==========================================================
-            // ===               잡초 생성 코드 추가                  ===
-            // ==========================================================
-            const grassCount = 50; // 원하는 잡초 개수를 설정합니다.
-            const totalGrassStages = 17; // pixiManager에 설정된 잡초의 총 스테이지 수
-
+            bigTree.x = pixiManager.app.screen.width * 0.7;
+            bigTree.y = pixiManager.app.screen.height * 0.5;
+            allEntities.push(bigTree);
+            const grassCount = 50;
             for (let i = 0; i < grassCount; i++) {
-                // 0부터 16까지의 잡초 스테이지 중 하나를 무작위로 선택합니다.
-                const randomStage = Math.floor(Math.random() * totalGrassStages);
-                const grass = pixiManager.createGrass(randomStage);
-
-                // 화면 내 무작위 위치에 배치합니다.
+                const grass = pixiManager.createGrass(Math.floor(Math.random() * 17));
                 grass.x = Math.random() * pixiManager.app.screen.width;
                 grass.y = Math.random() * pixiManager.app.screen.height;
-
-                // 크기를 살짝씩 다르게 하여 더 자연스럽게 만듭니다.
-                // const randomScale = 0.8 + Math.random() * 0.4; // 80% ~ 120% 크기
                 grass.scale.set(0.1);
             }
-            // ==========================================================
 
-
-            // 1. 모든 토끼를 담을 빈 배열을 생성합니다.
-            const allRabbits = [];
-
-            // 예시 2: 토끼 10마리 생성
+            // ... (동물 생성 코드는 변경 없음) ...
             for (let i = 0; i < 10; i++) {
-                const rabbit = pixiManager.createAnimal('rabbit', 'run');
+                const rabbit = pixiManager.createAnimal('rabbit', 'idle');
                 rabbit.x = Math.random() * pixiManager.app.screen.width;
                 rabbit.y = Math.random() * pixiManager.app.screen.height;
-                rabbit.animationSpeed = 0.2 + Math.random() * 0.5; // 속도도 살짝 다르게
+                allEntities.push(rabbit);
+                animals.push(rabbit);
+            }
+            const wolf = pixiManager.createAnimal('wolf', 'idle');
+            wolf.x = pixiManager.app.screen.width * 0.2;
+            wolf.y = pixiManager.app.screen.height * 0.8;
+            allEntities.push(wolf);
+            animals.push(wolf);
 
-                // 이동 방향과 속도를 각 토끼 객체에 저장합니다.
-                const direction = Math.random() < 0.5 ? 1 : -1; // 1: 오른쪽, -1: 왼쪽
-                rabbit.scale.x = direction * -1; // 기본이 왼쪽을 보니, 오른쪽(+1)일 때 뒤집음(-1)
-                rabbit.vx = direction * rabbit.animationSpeed * 2; // 이동 속도
+            // --- AI 및 이동 함수 (moveTo 함수 수정됨) ---
+            function moveTo(character, target, duration) {
+                // ==========================================================
+                // ===             ★★★ 좌우 반전 로직 추가 ★★★           ===
+                // ==========================================================
+                // 목표 지점의 x좌표와 현재 x좌표를 비교하여 방향을 결정합니다.
+                if (target.x > character.x) {
+                    // 목표가 오른쪽에 있으므로, 오른쪽을 보도록 캐릭터를 좌우 반전시킵니다.
+                    character.scale.x = -1; 
+                } else if (target.x < character.x) {
+                    // 목표가 왼쪽에 있으므로, 왼쪽을 보도록 원래 방향으로 되돌립니다.
+                    character.scale.x = 1;
+                }
+                // (만약 target.x와 character.x가 같다면, 현재 방향을 유지합니다.)
+                // ==========================================================
 
-                allEntities.push(rabbit); // 배열에 추가
+                character.textures = character.animations.run;
+                character.play();
+
+                new Tween(character.position)
+                    .to(target, duration * 1000)
+                    .easing(Easing.Quadratic.InOut) // 이 부분은 원하시는 Easing으로 변경 가능
+                    .onComplete(() => {
+                        character.textures = character.animations.idle;
+                        character.play();
+                        setTimeout(() => thinkAndAct(character), 1000 + Math.random() * 3000);
+                    })
+                    .start();
+            }
+            
+            function thinkAndAct(character) { /* ... (내부 로직 변경 없음) ... */ 
+                const screen = pixiManager.app.screen;
+                const target = { x: Math.random() * screen.width, y: Math.random() * screen.height };
+                const dx = target.x - character.x;
+                const dy = target.y - character.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const baseSpeed = 150;
+                const duration = distance / baseSpeed;
+                character.animationSpeed = 0.2 + (distance / 2000);
+                moveTo(character, target, duration);
             }
 
-            // 예시 3: 늑대 생성 및 애니메이션 전환
-            const wolf = pixiManager.createAnimal('wolf', 'idle');
-            wolf.x = 600;
-            wolf.y = 900;
-            allEntities.push(wolf); // 배열에 추가
-            
-            // 3초 후 늑대 애니메이션을 'howl'로 변경
-            setTimeout(() => {
-                wolf.textures = wolf.animations.howl;
-                wolf.play();
-            }, 3000);
+            animals.forEach(animal => thinkAndAct(animal));
 
-            // 메인 게임 루프 (Y-Sorting 및 객체 이동)
+            // --- 메인 게임 루프 (수정됨) ---
             pixiManager.app.ticker.add((ticker) => {
-                // --- 모든 엔티티를 하나의 루프에서 처리 ---
-                for (const entity of allEntities) {
-                    // 움직이는 객체만 위치 업데이트 (vx 속성이 있는 경우)
-                    if (entity.vx) {
-                        entity.x += entity.vx * ticker.deltaTime;
-                        if (entity.vx > 0 && entity.x > pixiManager.app.screen.width + 50) {
-                            entity.x = -50;
-                        } else if (entity.vx < 0 && entity.x < -50) {
-                            entity.x = pixiManager.app.screen.width + 50;
-                        }
+                // 1. Tween.js 업데이트 (모든 객체의 x, y 위치를 변경)
+                updateTweens();
+
+                // 2. 현재 이동 속도에 기반한 애니메이션 속도 조절
+                for (const animal of animals) {
+                    // 이전 프레임의 위치가 없으면 현재 위치를 저장하고 건너뜀
+                    if (animal.lastX === undefined) {
+                        animal.lastX = animal.x;
+                        animal.lastY = animal.y;
+                        continue;
                     }
+
+                    // 이번 프레임에 이동한 거리 계산
+                    const dx = animal.x - animal.lastX;
+                    const dy = animal.y - animal.lastY;
+                    const distanceMoved = Math.sqrt(dx * dx + dy * dy);
+
+                    // 현재 속도 (프레임당 이동 픽셀)
+                    const currentSpeed = distanceMoved / ticker.deltaTime;
+                    
+                    if (distanceMoved > 0.1) { // 아주 조금이라도 움직였을 때만
+                        // 기본 속도 + 현재 속도에 비례한 추가 속도
+                        const baseAnimationSpeed = 0.1;
+                        const speedMultiplier = 0.2; // 이 값을 조절해 민감도 변경
+                        animal.animationSpeed = baseAnimationSpeed + currentSpeed * speedMultiplier;
+                    }
+
+                    // 다음 프레임 계산을 위해 현재 위치를 '이전 위치'로 저장
+                    animal.lastX = animal.x;
+                    animal.lastY = animal.y;
                 }
 
-                // --- Y-Sorting (이제 모든 레이어를 한번에 처리) ---
-                for (const child of pixiManager.grassLayer.children) {
-                    child.zIndex = child.y;
-                }
+                // 3. Y-Sorting (변경 없음)
+                for (const child of pixiManager.grassLayer.children) { child.zIndex = child.y; }
                 for (const child of pixiManager.entityLayer.children) {
                     child.zIndex = child.y;
                     if (child.shadow) {
                         child.shadow.x = child.x;
                         child.shadow.y = child.y + (child.shadowOffsetY || 0);
                         child.shadow.zIndex = child.y;
-                        
-                        // 객체의 실제 가로 크기에 비례해서 그림자 크기 설정
-                        const objectWidth = child.width;
-                        child.shadow.width = objectWidth * (child.shadowWidthRatio || 0.8);   // 객체 너비의 80%
-                        child.shadow.height = objectWidth * (child.shadowHeightRatio || 0.2); // 객체 너비의 20%
+                        const objectWidth = child.texture.width * Math.abs(child.scale.x);
+                        child.shadow.width = objectWidth * (child.shadowWidthRatio || 0.8);
+                        child.shadow.height = objectWidth * 0.2;
                     }
                 }
             });
