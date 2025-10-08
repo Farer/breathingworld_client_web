@@ -1,5 +1,5 @@
 'use strict';
-import { Tween, Easing, update as updateTweens } from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@20.0.3/dist/tween.esm.js';
+import * as TWEEN from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@20.0.3/dist/tween.esm.js';
 import { PixiController } from '/js/pixiController.js';
 window.onload = async function () {
     const selectedRegion = localStorage.getItem('selectedRegion');
@@ -27,7 +27,7 @@ window.onload = async function () {
     Core.PrepareImageSources();
     Core.UpdatePlantProceedAccelerated();
     Core.ApplyWeather();
-    new PixiController(document.getElementById('webGlDom'), { Tween, Easing, updateTweens });
+    window.pixiController = await PixiController.create(document.getElementById('webGlDom'), TWEEN);
 }
 window.onresize = function () {
     Core.DrawMap(true, false, false);

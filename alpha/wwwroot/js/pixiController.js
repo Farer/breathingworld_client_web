@@ -1,123 +1,188 @@
 'use strict';
 import { PixiManager } from './pixiManager.js';
-export class PixiController {
-    constructor(container, tweenLibs) {
-        this.pixiManager = new PixiManager(container);
-        this.Tween = tweenLibs.Tween;
-        this.Easing = tweenLibs.Easing;
-        this.updateTweens = tweenLibs.updateTweens;
 
+export class PixiController {
+    constructor(container, TWEEN) {
+        this.pixiManager = new PixiManager(container);
+        this.TWEEN = TWEEN;
+        
+        // ==========================================================
+        // ===            ★★★ 누락되었던 부분 복원 ★★★           ===
+        // ==========================================================
+        // 활성화된 객체 목록
         this.allEntities = [];
-        this._init();
+        this.activeGrass = []; // 활성 잡초 목록
+        // ==========================================================
+
+        // 오브젝트 풀
+        this.pools = {
+            tree: [],
+            rabbit: [],
+            wolf: [],
+            grass: []
+        };
     }
 
+    static async create(container, TWEEN) {
+        const controller = new PixiController(container, TWEEN);
+        await controller._init();
+        return controller;
+    }
+    
     async _init() {
         await new Promise(resolve => {
             const checkReady = () => {
-                if (this.pixiManager.app && this.pixiManager.textures.trees.length > 0) resolve();
+                if (this.pixiManager.app && this.pixiManager.isReady) resolve();
                 else setTimeout(checkReady, 100);
             };
             checkReady();
         });
 
-        const bigTree = this.pixiManager.createTree(8);
-        bigTree.x = this.pixiManager.app.screen.width * 0.7;
-        bigTree.y = this.pixiManager.app.screen.height * 0.5;
-        this.allEntities.push(bigTree);
+        // --- 초기 씬 구성 ---
+        const initialSceneData = [];
 
-        const grassCount = 50;
-        for (let i = 0; i < grassCount; i++) {
-            const grass = this.pixiManager.createGrass(Math.floor(Math.random() * 17));
-            grass.x = Math.random() * this.pixiManager.app.screen.width;
-            grass.y = Math.random() * this.pixiManager.app.screen.height;
-            grass.scale.set(0.1);
+        initialSceneData.push({ type: 'tree', stage: 8, x: this.pixiManager.app.screen.width * 0.7, y: this.pixiManager.app.screen.height * 0.5 });
+        for (let i = 0; i < 50; i++) {
+            initialSceneData.push({ type: 'grass', stage: Math.floor(Math.random() * 17), x: Math.random() * this.pixiManager.app.screen.width, y: Math.random() * this.pixiManager.app.screen.height, baseScale: 0.1 });
         }
-
         for (let i = 0; i < 10; i++) {
-            const rabbit = this.pixiManager.createAnimal('rabbit', 'idle');
-            rabbit.x = Math.random() * this.pixiManager.app.screen.width;
-            rabbit.y = Math.random() * this.pixiManager.app.screen.height;
-            rabbit.baseScale = 0.4 + Math.random() * 0.4;
-            rabbit.scale.set(rabbit.baseScale); // 초기 스케일 설정
-            this.allEntities.push(rabbit);
+            initialSceneData.push({ type: 'rabbit', x: Math.random() * this.pixiManager.app.screen.width, y: Math.random() * this.pixiManager.app.screen.height, baseScale: 0.4 + Math.random() * 0.4 });
         }
-        const wolf = this.pixiManager.createAnimal('wolf', 'idle');
-        wolf.x = this.pixiManager.app.screen.width * 0.2;
-        wolf.y = this.pixiManager.app.screen.height * 0.8;
-        this.allEntities.push(wolf);
+        initialSceneData.push({ type: 'wolf', x: this.pixiManager.app.screen.width * 0.2, y: this.pixiManager.app.screen.height * 0.8, baseScale: 1.0 });
 
-        // --- AI 시작 ---
-        // allEntities 배열에서 'animations' 속성을 가진 객체(동물)만 골라 AI를 시작시킵니다.
+        this.populateScene(initialSceneData);
+        this.pixiManager.app.ticker.add((ticker) => this.update(ticker));
+    }
+
+    borrowObject(type, stage) {
+        const pool = this.pools[type];
+        let entity = null;
+        if (pool.length > 0) {
+            entity = pool.pop();
+            entity.visible = true;
+            if (entity.shadow) entity.shadow.visible = true;
+            if (type === 'tree' || type === 'grass') {
+                const textureKey = (type === 'tree') ? 'trees' : 'grass';
+                if (entity.texture !== this.pixiManager.textures[textureKey][stage]) {
+                    entity.texture = this.pixiManager.textures[textureKey][stage];
+                }
+            }
+        } else {
+            switch (type) {
+                case 'tree': entity = this.pixiManager.createTree(stage); break;
+                case 'rabbit': case 'wolf': entity = this.pixiManager.createAnimal(type, 'idle'); break;
+                case 'grass': entity = this.pixiManager.createGrass(stage); break;
+            }
+        }
+        return entity;
+    }
+
+    returnObject(entity) {
+        entity.visible = false;
+        if (entity.shadow) entity.shadow.visible = false;
+        if (entity.animations) entity.stop();
+        if (entity.activeTween) {
+            this.TWEEN.remove(entity.activeTween);
+            entity.activeTween = null;
+        }
+        if (entity.entityType && this.pools[entity.entityType]) {
+            this.pools[entity.entityType].push(entity);
+        }
+    }
+
+    clearScene() {
+        this.TWEEN.removeAll();
+        while (this.allEntities.length > 0) {
+            this.returnObject(this.allEntities.pop());
+        }
+        // activeGrass 배열도 깨끗하게 비웁니다.
+        while (this.activeGrass.length > 0) {
+            this.returnObject(this.activeGrass.pop());
+        }
+    }
+
+    populateScene(sceneData) {
+        this.clearScene();
+        sceneData.forEach(data => {
+            const entity = this.borrowObject(data.type, data.stage);
+            if (entity) {
+                entity.x = data.x;
+                entity.y = data.y;
+                entity.baseScale = data.baseScale || 1.0;
+                entity.scale.set(entity.baseScale);
+                
+                // 타입에 따라 올바른 활성 목록에 추가합니다.
+                if (data.type === 'grass') {
+                    this.activeGrass.push(entity);
+                } else {
+                    this.allEntities.push(entity);
+                }
+            }
+        });
         this.allEntities.forEach(entity => {
             if (entity.animations) {
                 this.thinkAndAct(entity);
             }
         });
-
-        // --- Ticker 설정 ---
-        this.pixiManager.app.ticker.add((ticker) => {
-            this.updateTweens();
-
-            for (const entity of this.allEntities) {
-                if (entity.animations) {
-                    if (entity.lastX === undefined) {
-                        entity.lastX = entity.x;
-                        entity.lastY = entity.y;
-                        continue;
-                    }
-                    const dx = entity.x - entity.lastX;
-                    const dy = entity.y - entity.lastY;
-                    const distanceMoved = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distanceMoved > 0.1) {
-                        const currentSpeed = distanceMoved / ticker.deltaTime;
-                        const baseAnimationSpeed = 0.1;
-                        const speedMultiplier = 0.2;
-                        entity.animationSpeed = baseAnimationSpeed + currentSpeed * speedMultiplier;
-                    }
-                    entity.lastX = entity.x;
-                    entity.lastY = entity.y;
-                }
-            }
-
-            for (const child of this.pixiManager.grassLayer.children) { child.zIndex = child.y; }
-            for (const child of this.pixiManager.entityLayer.children) {
-                child.zIndex = child.y;
-                if (child.shadow) {
-                    const baseScale = child.baseScale || 1.0;
-                    const scaledOffsetY = (child.shadowOffsetY || 0) * baseScale;
-                    child.shadow.x = child.x;
-                    child.shadow.y = child.y + scaledOffsetY;
-                    child.shadow.zIndex = child.y;
-                    const shadowScale = baseScale * (child.shadowWidthRatio || 0.8);
-                    child.shadow.scale.set(shadowScale);
-                    const objectWidth = child.texture.width * Math.abs(child.scale.x);
-                    child.shadow.width = objectWidth * (child.shadowWidthRatio || 0.8);
-                    child.shadow.height = objectWidth * 0.2;
-                }
-            }
-        });
     }
 
+    update(ticker) {
+        this.TWEEN.update();
+
+        // 1. 활성화된 잡초만 순회하여 Y-Sorting (최적화 적용)
+        for (const grass of this.activeGrass) {
+            grass.zIndex = grass.y;
+        }
+        
+        // 2. 활성화된 엔티티(나무, 동물)만 순회하여 모든 작업을 한 번에 처리
+        for (const entity of this.allEntities) {
+            
+            if (entity.animations) {
+                if (entity.lastX === undefined) { entity.lastX = entity.x; entity.lastY = entity.y; }
+                const distanceMoved = Math.sqrt(Math.pow(entity.x - entity.lastX, 2) + Math.pow(entity.y - entity.lastY, 2));
+                if (distanceMoved > 0.1) {
+                    const currentSpeed = distanceMoved / ticker.deltaTime;
+                    entity.animationSpeed = 0.1 + currentSpeed * 0.2;
+                }
+                entity.lastX = entity.x;
+                entity.lastY = entity.y;
+            }
+
+            entity.zIndex = entity.y;
+
+            if (entity.shadow) {
+                const baseScale = entity.baseScale || 1.0;
+                const scaledOffsetY = (entity.shadowOffsetY || 0) * baseScale;
+                entity.shadow.x = entity.x;
+                entity.shadow.y = entity.y + scaledOffsetY;
+                entity.shadow.zIndex = entity.y;
+                const shadowScale = baseScale * (entity.shadowWidthRatio || 0.8);
+                entity.shadow.scale.set(shadowScale);
+            }
+        }
+    }
+    
     moveTo(character, target, duration) {
-        const direction = (target.x > character.x) ? 1 : -1;
+        const direction = (target.x > character.x) ? -1 : 1;
         const baseScale = character.baseScale || 1.0;
         character.scale.y = baseScale;
-        character.scale.x = direction * -1 * baseScale;
-
+        character.scale.x = direction * baseScale;
         character.textures = character.animations.run;
         character.play();
-
-        new this.Tween(character.position)
+        if (character.activeTween) {
+            this.TWEEN.remove(character.activeTween);
+        }
+        const tween = new this.TWEEN.Tween(character.position)
             .to(target, duration * 1000)
-            .easing(this.Easing.Quadratic.InOut)
+            .easing(this.TWEEN.Easing.Quadratic.InOut)
             .onComplete(() => {
                 character.textures = character.animations.idle;
                 character.play();
-                // setTimeout 콜백 안에서도 this 컨텍스트를 유지하기 위해 화살표 함수 사용
+                character.activeTween = null;
                 setTimeout(() => this.thinkAndAct(character), 1000 + Math.random() * 3000);
             })
             .start();
+        character.activeTween = tween;
     }
     
     thinkAndAct(character) {
@@ -126,5 +191,48 @@ export class PixiController {
         const distance = Math.sqrt(Math.pow(target.x - character.x, 2) + Math.pow(target.y - character.y, 2));
         const duration = distance / 150;
         this.moveTo(character, target, duration);
+    }
+
+    moveMap() {
+        console.log("Simulating map drag...");
+        const screen = this.pixiManager.app.screen;
+        const camera = this.pixiManager.app.stage;
+        const target = { x: (Math.random() - 0.5) * screen.width, y: (Math.random() - 0.5) * screen.height };
+        const duration = 1.5;
+
+        new this.TWEEN.Tween(camera.position)
+            .to(target, duration * 1000)
+            .easing(this.TWEEN.Easing.Cubic.Out)
+            .onComplete(() => {
+                console.log("Map move complete. Populating new scene.");
+                const newSceneData = [];
+
+                // 1. 나무, 토끼, 늑대 20개 랜덤 생성
+                for (let i = 0; i < 20; i++) {
+                    const x = (Math.random() * screen.width) - target.x;
+                    const y = (Math.random() * screen.height) - target.y;
+                    const rand = Math.random();
+                    if (rand < 0.1) newSceneData.push({ type: 'tree', stage: Math.floor(Math.random() * 12), x, y });
+                    else if (rand < 0.6) newSceneData.push({ type: 'rabbit', x, y, baseScale: 0.4 + Math.random() * 0.4 });
+                    else newSceneData.push({ type: 'wolf', x, y, baseScale: 1.0 });
+                }
+
+                // 2. 잡초 50개 랜덤 생성 (추가된 부분)
+                for (let i = 0; i < 50; i++) {
+                    const x = (Math.random() * screen.width) - target.x;
+                    const y = (Math.random() * screen.height) - target.y;
+                    newSceneData.push({
+                        type: 'grass',
+                        stage: Math.floor(Math.random() * 17),
+                        x: x,
+                        y: y,
+                        baseScale: 0.1
+                    });
+                }
+
+                // 3. 생성된 모든 데이터로 씬을 다시 그림
+                this.populateScene(newSceneData);
+            })
+            .start();
     }
 }

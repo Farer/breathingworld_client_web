@@ -1,6 +1,7 @@
 'use strict';
 export class PixiManager {
     constructor(targetElement) {
+        this.isReady = false;
         this.app = null;
         this.textures = {
             shadow: null,
@@ -38,20 +39,17 @@ export class PixiManager {
 
         this.app.stage.addChild(this.grassLayer, this.shadowLayer, this.entityLayer);
         await this.loadAssets();
+        this.isReady = true;
     }
     
     async loadAssets() {
         // --- 그림자 텍스처를 코드로 생성 ---
         const graphics = new PIXI.Graphics();
         graphics.beginFill(0x000000, 0.2);
-        graphics.drawEllipse(0, 0, 400, 200); // 더 큰 기본 크기 (반지름 400, 200)
+        graphics.drawEllipse(0, 0, 400, 200);
         graphics.endFill();
-
-        // 텍스처 생성 시 bounds 명시
         const bounds = new PIXI.Rectangle(-400, -200, 800, 400);
-        this.textures.shadow = this.app.renderer.generateTexture(graphics, {
-            region: bounds
-        });
+        this.textures.shadow = this.app.renderer.generateTexture(graphics, { region: bounds });
 
         const assetManifest = {
             bundles: [{
@@ -112,37 +110,25 @@ export class PixiManager {
         
         const tree = new PIXI.Sprite(this.textures.trees[stageIndex]);
         tree.anchor.set(0.5, 1.0);
+        tree.entityType = 'tree'; // <<< 타입 저장
         this.entityLayer.addChild(tree);
 
         const shadow = new PIXI.Sprite(this.textures.shadow);
         shadow.anchor.set(0.5, 0.5);
-        shadow.x = tree.x;
-        shadow.y = tree.y;
-        shadow.scale.set(1.5);
-
-        tree.shadowOffsetY = -200;
         this.shadowLayer.addChild(shadow);
         tree.shadow = shadow;
+        tree.shadowOffsetY = -200;
 
         return tree;
     }
     
-    /**
-     * 지정된 스테이지의 잡초 스프라이트를 생성합니다.
-     * @param {number} stageIndex - 0부터 시작하는 잡초 스테이지 인덱스
-     * @returns {PIXI.Sprite}
-     */
     createGrass(stageIndex) {
-        if (stageIndex < 0 || stageIndex >= this.textures.grass.length) {
-            console.error("잘못된 잡초 스테이지 인덱스:", stageIndex);
-            return null;
-        }
+        if (stageIndex < 0 || stageIndex >= this.textures.grass.length) return null;
+
         const grass = new PIXI.Sprite(this.textures.grass[stageIndex]);
         grass.anchor.set(0.5, 1.0);
-        
-        // 잡초를 grassLayer에 추가
+        grass.entityType = 'grass'; // <<< 타입 저장
         this.grassLayer.addChild(grass);
-        
         return grass;
     }
 
@@ -155,22 +141,19 @@ export class PixiManager {
         animal.animationSpeed = 0.2;
         animal.play();
         animal.animations = animalTextures;
+        animal.entityType = name; // <<< 타입 저장 ('rabbit' 또는 'wolf')
         this.entityLayer.addChild(animal);
 
         const shadow = new PIXI.Sprite(this.textures.shadow);
         shadow.anchor.set(0.5, 0.5);
-        shadow.x = animal.x;
-        shadow.y = animal.y;
-
-        animal.shadowOffsetY = -20; // 그림자 높이 오프셋 저장
-        if(name == 'rabbit') {
-            animal.shadowWidthRatio = 0.6; // 그림자 높이 오프셋 저장
-        }
-        else if(name == 'wolf') {
-            animal.shadowWidthRatio = 0.8; // 그림자 높이 오프셋 저장
-        }
         this.shadowLayer.addChild(shadow);
         animal.shadow = shadow;
+        animal.shadowOffsetY = -20;
+        if(name == 'rabbit') {
+            animal.shadowWidthRatio = 0.6;
+        } else if(name == 'wolf') {
+            animal.shadowWidthRatio = 0.8;
+        }
 
         return animal;
     }
