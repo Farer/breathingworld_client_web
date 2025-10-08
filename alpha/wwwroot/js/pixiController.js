@@ -6,8 +6,8 @@ export class PixiController {
         this.pixiManager = new PixiManager(container);
         this.TWEEN = TWEEN;
         
-        this.allEntities = [];
-        this.activeGrass = [];
+        this.allEntities = new Map();
+        this.activeGrass = new Map();
 
         this.pools = {
             tree: [],
@@ -122,13 +122,16 @@ export class PixiController {
 
     clearScene() {
         this.TWEEN.removeAll();
-        while (this.allEntities.length > 0) {
-            this.returnObject(this.allEntities.pop());
+        // Map을 순회하며 모든 객체를 풀로 반납
+        for (const entity of this.allEntities.values()) {
+            this.returnObject(entity);
         }
-        // activeGrass 배열도 깨끗하게 비웁니다.
-        while (this.activeGrass.length > 0) {
-            this.returnObject(this.activeGrass.pop());
+        for (const entity of this.activeGrass.values()) {
+            this.returnObject(entity);
         }
+        // Map을 깨끗하게 비움
+        this.allEntities.clear();
+        this.activeGrass.clear();
     }
 
     populateScene(sceneData) {
@@ -137,6 +140,7 @@ export class PixiController {
             try {
                 const entity = this.borrowObject(data.type, data.stage);
                 if (entity) {
+                    entity.id = entity.id || `${data.type}_${Math.random()}`;
                     entity.x = data.x;
                     entity.y = data.y;
                     entity.baseScale = data.baseScale || 1.0;
@@ -144,9 +148,9 @@ export class PixiController {
                     
                     // 타입에 따라 올바른 활성 목록에 추가합니다.
                     if (data.type === 'grass') {
-                        this.activeGrass.push(entity);
+                        this.activeGrass.set(entity.id, entity);
                     } else {
-                        this.allEntities.push(entity);
+                        this.allEntities.set(entity.id, entity);
                     }
                 }
             }
@@ -156,11 +160,11 @@ export class PixiController {
                 // console.log(this.pools[data.type])
             }
         });
-        this.allEntities.forEach(entity => {
+        for (const entity of this.allEntities.values()) {
             if (entity.animations) {
                 this.thinkAndAct(entity);
             }
-        });
+        }
     }
 
     showStat() {
@@ -191,12 +195,12 @@ export class PixiController {
 
         
         // 1. 활성화된 잡초만 순회하여 Y-Sorting (최적화 적용)
-        for (const grass of this.activeGrass) {
+        for (const grass of this.activeGrass.values()) {
             grass.zIndex = grass.y;
         }
 
         // 2. 활성화된 엔티티(나무, 동물)만 순회하여 모든 작업을 한 번에 처리
-        for (const entity of this.allEntities) {
+        for (const entity of this.allEntities.values()) {
             if (entity.animations) {
                 if (entity.lastX === undefined) { entity.lastX = entity.x; entity.lastY = entity.y; }
                 const distanceMoved = Math.sqrt(Math.pow(entity.x - entity.lastX, 2) + Math.pow(entity.y - entity.lastY, 2));
