@@ -21,6 +21,12 @@ export class PixiController {
             wolf: [],
             grass: []
         };
+
+        this.stats = {
+            fps: 0,
+            entityCount: 0,
+            drawCalls: 0
+        };
     }
 
     static async create(container, TWEEN) {
@@ -51,7 +57,13 @@ export class PixiController {
         initialSceneData.push({ type: 'wolf', x: this.pixiManager.app.screen.width * 0.2, y: this.pixiManager.app.screen.height * 0.8, baseScale: 1.0 });
 
         this.populateScene(initialSceneData);
-        this.pixiManager.app.ticker.add((ticker) => this.update(ticker));
+
+        // 기존 리스너 제거
+        if (this.updateHandler) {
+            this.pixiManager.app.ticker.remove(this.updateHandler);
+        }
+        this.updateHandler = (ticker) => this.update(ticker);
+        this.pixiManager.app.ticker.add(this.updateHandler);
     }
 
     borrowObject(type, stage) {
@@ -78,15 +90,39 @@ export class PixiController {
     }
 
     returnObject(entity) {
-        entity.visible = false;
-        if (entity.shadow) entity.shadow.visible = false;
-        if (entity.animations) entity.stop();
+        // 진행 중인 타이머나 트윈을 먼저 정리합니다.
+        if (entity.thinkTimer) {
+            clearTimeout(entity.thinkTimer);
+            entity.thinkTimer = null;
+        }
         if (entity.activeTween) {
             this.TWEEN.remove(entity.activeTween);
             entity.activeTween = null;
         }
+        if (entity.animations) {
+            entity.stop();
+        }
+
         if (entity.entityType && this.pools[entity.entityType]) {
-            this.pools[entity.entityType].push(entity);
+            const pool = this.pools[entity.entityType];
+            const MAX_POOL_SIZE = 100;
+
+            // === 핵심 수정 로직 ===
+            if (pool.length < MAX_POOL_SIZE) {
+                // 풀에 자리가 있으면, 객체를 비활성화하고 풀에 넣습니다.
+                entity.visible = false;
+                if (entity.shadow) {
+                    entity.shadow.visible = false;
+                }
+                pool.push(entity);
+            } else {
+                // 풀이 가득 찼으면, 객체를 완전히 파괴합니다.
+                // 이 객체는 풀에 들어가지 않습니다.
+                entity.destroy({ children: true });
+            }
+        } else {
+            // 풀이 없는 타입의 객체는 그냥 파괴합니다.
+            entity.destroy({ children: true });
         }
     }
 
@@ -104,19 +140,26 @@ export class PixiController {
     populateScene(sceneData) {
         this.clearScene();
         sceneData.forEach(data => {
-            const entity = this.borrowObject(data.type, data.stage);
-            if (entity) {
-                entity.x = data.x;
-                entity.y = data.y;
-                entity.baseScale = data.baseScale || 1.0;
-                entity.scale.set(entity.baseScale);
-                
-                // 타입에 따라 올바른 활성 목록에 추가합니다.
-                if (data.type === 'grass') {
-                    this.activeGrass.push(entity);
-                } else {
-                    this.allEntities.push(entity);
+            try {
+                const entity = this.borrowObject(data.type, data.stage);
+                if (entity) {
+                    entity.x = data.x;
+                    entity.y = data.y;
+                    entity.baseScale = data.baseScale || 1.0;
+                    entity.scale.set(entity.baseScale);
+                    
+                    // 타입에 따라 올바른 활성 목록에 추가합니다.
+                    if (data.type === 'grass') {
+                        this.activeGrass.push(entity);
+                    } else {
+                        this.allEntities.push(entity);
+                    }
                 }
+            }
+            catch(e) {
+                console.log(e)
+                // console.log(data.type, data.stage)
+                // console.log(this.pools[data.type])
             }
         });
         this.allEntities.forEach(entity => {
@@ -126,29 +169,64 @@ export class PixiController {
         });
     }
 
+    showStat() {
+        const domId = 'webGlStatDom';
+        let dom = document.getElementById(domId);
+        if(dom == null) {
+            dom = document.createElement(domId);
+            dom.id = domId;
+            dom.style.position = 'absolute';
+            dom.style.left = '0px';
+            dom.style.top = '0px';
+            dom.style.width = '100px';
+            dom.style.height = '50px';
+            document.body.appendChild(dom);
+        }
+        let html = '';
+        html += this.stats.fps;
+        html += '<br>'+this.stats.entityCount;
+        dom.innerHTML = html;
+    }
+
     update(ticker) {
+        this.stats.fps = ticker.FPS;
+        this.stats.entityCount = this.allEntities.length + this.activeGrass.length;
+        this.showStat();
+
         this.TWEEN.update();
 
+        
         // 1. 활성화된 잡초만 순회하여 Y-Sorting (최적화 적용)
         for (const grass of this.activeGrass) {
             grass.zIndex = grass.y;
         }
+
+
+        const bounds = this.pixiManager.app.screen;
+        const margin = 100; // 화면 밖 여유 공간
         
         // 2. 활성화된 엔티티(나무, 동물)만 순회하여 모든 작업을 한 번에 처리
         for (const entity of this.allEntities) {
-            
+            // 화면 밖 객체는 렌더링 제외
+            entity.renderable = (
+                entity.x > -margin && 
+                entity.x < bounds.width + margin &&
+                entity.y > -margin && 
+                entity.y < bounds.height + margin
+            );
             if (entity.animations) {
                 if (entity.lastX === undefined) { entity.lastX = entity.x; entity.lastY = entity.y; }
                 const distanceMoved = Math.sqrt(Math.pow(entity.x - entity.lastX, 2) + Math.pow(entity.y - entity.lastY, 2));
                 if (distanceMoved > 0.1) {
                     const currentSpeed = distanceMoved / ticker.deltaTime;
                     entity.animationSpeed = 0.1 + currentSpeed * 0.2;
+                    entity.zIndex = entity.y;
                 }
                 entity.lastX = entity.x;
                 entity.lastY = entity.y;
             }
 
-            entity.zIndex = entity.y;
+            
 
             if (entity.shadow) {
                 const baseScale = entity.baseScale || 1.0;
@@ -179,7 +257,12 @@ export class PixiController {
                 character.textures = character.animations.idle;
                 character.play();
                 character.activeTween = null;
-                setTimeout(() => this.thinkAndAct(character), 1000 + Math.random() * 3000);
+                // character에 타이머 ID 저장
+                character.thinkTimer = setTimeout(() => {
+                    if (character.visible) { // 활성 상태인지 확인
+                        this.thinkAndAct(character);
+                    }
+                }, 1000 + Math.random() * 3000);
             })
             .start();
         character.activeTween = tween;

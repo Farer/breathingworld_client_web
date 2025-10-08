@@ -65,14 +65,21 @@ export class PixiManager {
         for (let i = 0; i < totalTreeStages; i++) {
             assetManifest.bundles[0].assets[`treeStage${i}`] = `img/tree_${i}_tiny.png`;
         }
-        await PIXI.Assets.init({ manifest: assetManifest });
-        const loadedAssets = await PIXI.Assets.loadBundle('game-assets');
-        for (let i = 0; i < totalTreeStages; i++) {
-            this.textures.trees.push(loadedAssets[`treeStage${i}`]);
+
+        try {
+            await PIXI.Assets.init({ manifest: assetManifest });
+            const loadedAssets = await PIXI.Assets.loadBundle('game-assets');
+            for (let i = 0; i < totalTreeStages; i++) {
+                this.textures.trees.push(loadedAssets[`treeStage${i}`]);
+            }
+            this.textures.grass = this._parseGridSpriteSheet(loadedAssets.grassSheet, 512, 512, 4, 17);
+            this.textures.rabbit = this._parseAnimalSheet(loadedAssets.rabbitSheet, 256, { idle: 10, run: 24, eat: 21, jump: 61, sleep: 61 });
+            this.textures.wolf = this._parseAnimalSheet(loadedAssets.wolfSheet, 256, { idle: 60, run: 41, eat: 20, jump: 51, sleep: 60, howl: 60 });
+        } catch (error) {
+            console.error('Asset loading failed:', error);
+            // 폴백 처리 또는 사용자에게 알림
+            throw error;
         }
-        this.textures.grass = this._parseGridSpriteSheet(loadedAssets.grassSheet, 512, 512, 4, 17);
-        this.textures.rabbit = this._parseAnimalSheet(loadedAssets.rabbitSheet, 256, { idle: 10, run: 24, eat: 21, jump: 61, sleep: 61 });
-        this.textures.wolf = this._parseAnimalSheet(loadedAssets.wolfSheet, 256, { idle: 60, run: 41, eat: 20, jump: 51, sleep: 60, howl: 60 });
     }
     
     _parseAnimalSheet(sheetTexture, frameSize, animationConfig) {
