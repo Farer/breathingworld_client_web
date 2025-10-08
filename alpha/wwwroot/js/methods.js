@@ -129,6 +129,7 @@ const Methods = {
         Methods.GetDistrictDataOneByOneByFromBucket(-1);
     },
     CleanPrepareWeedWrapDom: () => {
+        return;
         if(Data.UserPaused == true && Variables.UserDragged == true) { return; }
         if(Data.UserPaused == false && Variables.UserDragged == false) { return; }
         let weedWrapDom = document.getElementById('weedWrapDom');
@@ -151,6 +152,7 @@ const Methods = {
         mapWrap.appendChild(weedWrapDom);
     },
     CleanPrepareEarthWormWrapDom: () => {
+        return;
         let earthWormWrapDom = document.getElementById('earthWormWrapDom');
         if(earthWormWrapDom != null) { earthWormWrapDom.parentNode.removeChild(earthWormWrapDom); }
         earthWormWrapDom = document.createElement('div');
@@ -171,6 +173,7 @@ const Methods = {
         mapWrap.appendChild(earthWormWrapDom);
     },
     CleanPrepareShadowWrapDom: () => {
+        return;
         let shadowWrapDom = document.getElementById('shadowWrapDom');
         if(shadowWrapDom != null) { shadowWrapDom.parentNode.removeChild(shadowWrapDom); }
         shadowWrapDom = document.createElement('div');
@@ -183,6 +186,7 @@ const Methods = {
         mapWrap.appendChild(shadowWrapDom);
     },
     CleanPrepareAnimalWrapDom: () => {
+        return;
         let animalWrapDom = document.getElementById('animalWrapDom');
         if(animalWrapDom != null) { animalWrapDom.parentNode.removeChild(animalWrapDom); }
         animalWrapDom = document.createElement('div');
@@ -195,6 +199,7 @@ const Methods = {
         mapWrap.appendChild(animalWrapDom);
     },
     CleanPrepareTreeWrapDom: () => {
+        return;
         let treeWrapDom = document.getElementById('treeWrapDom');
         if(treeWrapDom != null) { treeWrapDom.parentNode.removeChild(treeWrapDom); }
         treeWrapDom = document.createElement('div');
@@ -207,30 +212,35 @@ const Methods = {
         mapWrap.appendChild(treeWrapDom);
     },
     RemoveEarthWormWrapDom: () => {
+        return;
         const earthWormWrapDom = document.getElementById('earthWormWrapDom');
         if(earthWormWrapDom != null) {
             earthWormWrapDom.parentNode.removeChild(earthWormWrapDom);
         }
     },
     RemoveShadowWrapDom: () => {
+        return;
         const shadowWrapDom = document.getElementById('shadowWrapDom');
         if(shadowWrapDom != null) {
             shadowWrapDom.parentNode.removeChild(shadowWrapDom);
         }
     },
     RemoveWeedWrapDom: () => {
+        return;
         const weedWrapDom = document.getElementById('weedWrapDom');
         if(weedWrapDom != null) {
             weedWrapDom.parentNode.removeChild(weedWrapDom);
         }
     },
     RemoveTreeWrapDom: () => {
+        return;
         const treeWrapDom = document.getElementById('treeWrapDom');
         if(treeWrapDom != null) {
             treeWrapDom.parentNode.removeChild(treeWrapDom);
         }
     },
     RemoveAnimalWrapDom: () => {
+        return;
         const animalWrapDom = document.getElementById('animalWrapDom');
         if(animalWrapDom != null) {
             animalWrapDom.parentNode.removeChild(animalWrapDom);

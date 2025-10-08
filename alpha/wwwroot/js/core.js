@@ -407,10 +407,24 @@ const Core = {
         canvas.id = domId;
         canvas.width = windowWidth;
         canvas.height = windowHeight;
-        canvas.style.cursor = 'grab';
         const mapWrap = Variables.Doms.get('mapWrap');
         mapWrap.appendChild(canvas);
         Variables.Doms.set(domId, canvas);
+    },
+    PrepareWebGlDom: () => {
+        const dom = document.createElement('div');
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        const domId = 'webGlDom';
+        dom.id = domId;
+        dom.width = windowWidth;
+        dom.height = windowHeight;
+        dom.style.position = "absolute";
+        dom.style.left = "0px";
+        dom.style.top = "0px";
+        const mapWrap = Variables.Doms.get('mapWrap');
+        mapWrap.appendChild(dom);
+        Variables.Doms.set(domId, dom);
     },
     PrepareWeatherCanvas: () => {
         const canvas = document.createElement('canvas');

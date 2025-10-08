@@ -1,9 +1,5 @@
 'use strict';
-class PixiManager {
-    /**
-     * PixiManager 생성자
-     * @param {HTMLElement} targetElement - PixiJS 캔버스를 추가할 DOM 요소입니다.
-     */
+export class PixiManager {
     constructor(targetElement) {
         this.app = null;
         this.textures = {
@@ -18,25 +14,19 @@ class PixiManager {
         this.entityLayer = null;
 
         if (!targetElement) {
-            throw new Error("PixiManager를 초기화할 대상 DOM 요소가 필요합니다.");
+            throw new Error("invalid targetElement");
         }
         this._init(targetElement);
     }
 
-    /**
-     * PixiJS 애플리케이션을 초기화하고 에셋을 로드합니다.
-     * @private
-     */
     async _init(targetElement) {
-        // 1. PixiJS 애플리케이션 생성
         this.app = new PIXI.Application();
         await this.app.init({
-            backgroundColor: 0x2c3e50,
+            backgroundAlpha: 0,
             resizeTo: window,
         });
         targetElement.appendChild(this.app.view);
 
-        // 2. 렌더링 레이어 생성 및 설정
         this.shadowLayer = new PIXI.Container();
         this.shadowLayer.sortableChildren = true;
 
@@ -46,24 +36,19 @@ class PixiManager {
         this.entityLayer = new PIXI.Container();
         this.entityLayer.sortableChildren = true;
 
-        // 3. Stage에 레이어를 올바른 렌더링 순서대로 추가
-        // grass -> shadow -> entity 순서로 그려집니다.
         this.app.stage.addChild(this.grassLayer, this.shadowLayer, this.entityLayer);
-        
-        console.log("PixiJS 초기화 완료. 에셋 로딩을 시작합니다...");
         await this.loadAssets();
-        console.log("모든 에셋 로딩 및 처리 완료. PixiManager가 준비되었습니다.");
     }
     
     async loadAssets() {
         // --- 그림자 텍스처를 코드로 생성 ---
         const graphics = new PIXI.Graphics();
-        graphics.beginFill(0x000000, 0.3);
-        graphics.drawEllipse(0, 0, 100, 50); // 더 큰 기본 크기 (반지름 100, 50)
+        graphics.beginFill(0x000000, 0.2);
+        graphics.drawEllipse(0, 0, 400, 200); // 더 큰 기본 크기 (반지름 400, 200)
         graphics.endFill();
 
         // 텍스처 생성 시 bounds 명시
-        const bounds = new PIXI.Rectangle(-100, -50, 200, 100);
+        const bounds = new PIXI.Rectangle(-400, -200, 800, 400);
         this.textures.shadow = this.app.renderer.generateTexture(graphics, {
             region: bounds
         });
@@ -122,8 +107,6 @@ class PixiManager {
         return frames;
     }
 
-    // --- Public 팩토리 메소드 ---
-
     createTree(stageIndex) {
         if (stageIndex < 0 || stageIndex >= this.textures.trees.length) return null;
         
@@ -131,15 +114,13 @@ class PixiManager {
         tree.anchor.set(0.5, 1.0);
         this.entityLayer.addChild(tree);
 
-        // 그림자 생성 및 연결 (수정됨)
         const shadow = new PIXI.Sprite(this.textures.shadow);
         shadow.anchor.set(0.5, 0.5);
-        // 그림자 초기 위치를 나무 위치에 맞춤
         shadow.x = tree.x;
-        shadow.y = tree.y; // 발 아래 약간 아래쪽에 위치
-        shadow.scale.set(1.5); // 나무는 크므로 그림자도 크게
+        shadow.y = tree.y;
+        shadow.scale.set(1.5);
 
-        tree.shadowOffsetY = -200; // 그림자 높이 오프셋 저장
+        tree.shadowOffsetY = -200;
         this.shadowLayer.addChild(shadow);
         tree.shadow = shadow;
 
@@ -176,13 +157,10 @@ class PixiManager {
         animal.animations = animalTextures;
         this.entityLayer.addChild(animal);
 
-        // 그림자 생성 및 연결 (수정됨)
         const shadow = new PIXI.Sprite(this.textures.shadow);
         shadow.anchor.set(0.5, 0.5);
-        // 그림자 초기 위치를 동물 위치에 맞춤
         shadow.x = animal.x;
         shadow.y = animal.y;
-        shadow.scale.set(0.8); // 동물 크기에 맞게 조정
 
         animal.shadowOffsetY = -20; // 그림자 높이 오프셋 저장
         if(name == 'rabbit') {
