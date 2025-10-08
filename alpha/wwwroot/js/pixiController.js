@@ -6,15 +6,9 @@ export class PixiController {
         this.pixiManager = new PixiManager(container);
         this.TWEEN = TWEEN;
         
-        // ==========================================================
-        // ===            ★★★ 누락되었던 부분 복원 ★★★           ===
-        // ==========================================================
-        // 활성화된 객체 목록
         this.allEntities = [];
-        this.activeGrass = []; // 활성 잡초 목록
-        // ==========================================================
+        this.activeGrass = [];
 
-        // 오브젝트 풀
         this.pools = {
             tree: [],
             rabbit: [],
@@ -201,19 +195,8 @@ export class PixiController {
             grass.zIndex = grass.y;
         }
 
-
-        const bounds = this.pixiManager.app.screen;
-        const margin = 100; // 화면 밖 여유 공간
-        
         // 2. 활성화된 엔티티(나무, 동물)만 순회하여 모든 작업을 한 번에 처리
         for (const entity of this.allEntities) {
-            // 화면 밖 객체는 렌더링 제외
-            entity.renderable = (
-                entity.x > -margin && 
-                entity.x < bounds.width + margin &&
-                entity.y > -margin && 
-                entity.y < bounds.height + margin
-            );
             if (entity.animations) {
                 if (entity.lastX === undefined) { entity.lastX = entity.x; entity.lastY = entity.y; }
                 const distanceMoved = Math.sqrt(Math.pow(entity.x - entity.lastX, 2) + Math.pow(entity.y - entity.lastY, 2));
