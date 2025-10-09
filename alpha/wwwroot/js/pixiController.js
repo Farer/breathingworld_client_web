@@ -207,12 +207,12 @@ export class PixiController {
                 if (distanceMoved > 0.1) {
                     const currentSpeed = distanceMoved / ticker.deltaTime;
                     entity.animationSpeed = 0.1 + currentSpeed * 0.2;
-                    entity.zIndex = entity.y;
                 }
                 entity.lastX = entity.x;
                 entity.lastY = entity.y;
             }
-
+            
+            entity.zIndex = entity.y;
             
 
             if (entity.shadow) {
