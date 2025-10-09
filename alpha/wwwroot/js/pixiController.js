@@ -7,13 +7,13 @@ export class PixiController {
         this.TWEEN = TWEEN;
         
         this.allEntities = new Map();
-        this.activeGrass = new Map();
+        this.activeWeed = new Map();
 
         this.pools = {
+            weed: [],
             tree: [],
             rabbit: [],
             wolf: [],
-            grass: []
         };
 
         this.stats = {
@@ -43,7 +43,7 @@ export class PixiController {
 
         initialSceneData.push({ type: 'tree', stage: 8, x: this.pixiManager.app.screen.width * 0.7, y: this.pixiManager.app.screen.height * 0.5 });
         for (let i = 0; i < 50; i++) {
-            initialSceneData.push({ type: 'grass', stage: Math.floor(Math.random() * 17), x: Math.random() * this.pixiManager.app.screen.width, y: Math.random() * this.pixiManager.app.screen.height, baseScale: 0.1 });
+            initialSceneData.push({ type: 'weed', stage: Math.floor(Math.random() * 17), x: Math.random() * this.pixiManager.app.screen.width, y: Math.random() * this.pixiManager.app.screen.height, baseScale: 0.1 });
         }
         for (let i = 0; i < 10; i++) {
             initialSceneData.push({ type: 'rabbit', x: Math.random() * this.pixiManager.app.screen.width, y: Math.random() * this.pixiManager.app.screen.height, baseScale: 0.4 + Math.random() * 0.4 });
@@ -67,8 +67,8 @@ export class PixiController {
             entity = pool.pop();
             entity.visible = true;
             if (entity.shadow) entity.shadow.visible = true;
-            if (type === 'tree' || type === 'grass') {
-                const textureKey = (type === 'tree') ? 'trees' : 'grass';
+            if (type === 'tree' || type === 'weed') {
+                const textureKey = (type === 'tree') ? 'trees' : 'weed';
                 if (entity.texture !== this.pixiManager.textures[textureKey][stage]) {
                     entity.texture = this.pixiManager.textures[textureKey][stage];
                 }
@@ -77,7 +77,7 @@ export class PixiController {
             switch (type) {
                 case 'tree': entity = this.pixiManager.createTree(stage); break;
                 case 'rabbit': case 'wolf': entity = this.pixiManager.createAnimal(type, 'idle'); break;
-                case 'grass': entity = this.pixiManager.createGrass(stage); break;
+                case 'weed': entity = this.pixiManager.createWeed(stage); break;
             }
         }
         return entity;
@@ -126,12 +126,12 @@ export class PixiController {
         for (const entity of this.allEntities.values()) {
             this.returnObject(entity);
         }
-        for (const entity of this.activeGrass.values()) {
+        for (const entity of this.activeWeed.values()) {
             this.returnObject(entity);
         }
         // Map을 깨끗하게 비움
         this.allEntities.clear();
-        this.activeGrass.clear();
+        this.activeWeed.clear();
     }
 
     populateScene(sceneData) {
@@ -147,8 +147,8 @@ export class PixiController {
                     entity.scale.set(entity.baseScale);
                     
                     // 타입에 따라 올바른 활성 목록에 추가합니다.
-                    if (data.type === 'grass') {
-                        this.activeGrass.set(entity.id, entity);
+                    if (data.type === 'weed') {
+                        this.activeWeed.set(entity.id, entity);
                     } else {
                         this.allEntities.set(entity.id, entity);
                     }
@@ -188,15 +188,15 @@ export class PixiController {
 
     update(ticker) {
         this.stats.fps = ticker.FPS;
-        this.stats.entityCount = this.allEntities.length + this.activeGrass.length;
+        this.stats.entityCount = this.allEntities.length + this.activeWeed.length;
         this.showStat();
 
         this.TWEEN.update();
 
         
         // 1. 활성화된 잡초만 순회하여 Y-Sorting (최적화 적용)
-        for (const grass of this.activeGrass.values()) {
-            grass.zIndex = grass.y;
+        for (const weed of this.activeWeed.values()) {
+            weed.zIndex = weed.y;
         }
 
         // 2. 활성화된 엔티티(나무, 동물)만 순회하여 모든 작업을 한 번에 처리
@@ -292,7 +292,7 @@ export class PixiController {
                     const x = (Math.random() * screen.width) - target.x;
                     const y = (Math.random() * screen.height) - target.y;
                     newSceneData.push({
-                        type: 'grass',
+                        type: 'weed',
                         stage: Math.floor(Math.random() * 17),
                         x: x,
                         y: y,
