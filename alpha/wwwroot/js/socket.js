@@ -243,7 +243,7 @@ const Socket = {
         }
         else if(Variables.MapInfo.viewDistrictIds.length > 0) {
             Variables.MapInfo.viewDistrictIds = [];
-            Methods.RemoveEarthWormWrapDom();
+            Methods.DeactivateEarthWormWrapDom();
             Methods.RemoveWeedWrapDom();
             Methods.RemoveTreeWrapDom();
             Methods.RemoveAnimalWrapDom();

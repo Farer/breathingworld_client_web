@@ -152,25 +152,38 @@ const Methods = {
         mapWrap.appendChild(weedWrapDom);
     },
     CleanPrepareEarthWormWrapDom: () => {
-        return;
-        let earthWormWrapDom = document.getElementById('earthWormWrapDom');
-        if(earthWormWrapDom != null) { earthWormWrapDom.parentNode.removeChild(earthWormWrapDom); }
-        earthWormWrapDom = document.createElement('div');
-        earthWormWrapDom.id = 'earthWormWrapDom';
-        earthWormWrapDom.style.position = 'absolute';
-        earthWormWrapDom.style.left = '0px';
-        earthWormWrapDom.style.top = '0px';
-
-        const canvas = document.createElement('canvas');
+        if(Variables.MapScaleInfo.current != 128) { Methods.DeactivateEarthWormWrapDom(); return; }
+        const wrapId = 'earthWormWrapDom';
+        const canvasId = 'earthWormCanvas';
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
-        canvas.id = 'earthWormCanvas';
-        canvas.width = windowWidth;
-        canvas.height = windowHeight;
-        earthWormWrapDom.appendChild(canvas);
-        Variables.EarthWormController = new EarthWormController(canvas);
-        const mapWrap = Variables.Doms.get('mapWrap');
-        mapWrap.appendChild(earthWormWrapDom);
+        if(!Variables.Doms.has(wrapId)) {
+            const earthWormWrapDom = document.createElement('div');
+            earthWormWrapDom.id = wrapId;
+            earthWormWrapDom.style.position = 'absolute';
+            earthWormWrapDom.style.left = '0px';
+            earthWormWrapDom.style.top = '0px';
+
+            const canvas = document.createElement('canvas');
+            canvas.id = canvasId;
+            canvas.width = windowWidth;
+            canvas.height = windowHeight;
+            earthWormWrapDom.appendChild(canvas);
+            Variables.EarthWormController = new EarthWormController(canvas);
+
+            const mapWrap = Variables.Doms.get('mapWrap');
+            mapWrap.appendChild(earthWormWrapDom);
+            Variables.Doms.set(wrapId, earthWormWrapDom);
+            Variables.Doms.set(canvasId, canvas);
+        }
+        const wrapDom = Variables.Doms.get(wrapId);
+        wrapDom.style.left = '0px';
+        wrapDom.style.top = '0px';
+        wrapDom.style.display = '';
+        const canvasDom = Variables.Doms.get(canvasId);
+        canvasDom.width = windowWidth;
+        canvasDom.height = windowHeight;
+        canvasDom.getContext('2d').clearRect(0, 0, windowWidth, windowHeight);
     },
     CleanPrepareShadowWrapDom: () => {
         return;
@@ -211,11 +224,11 @@ const Methods = {
         const mapWrap = Variables.Doms.get('mapWrap');
         mapWrap.appendChild(treeWrapDom);
     },
-    RemoveEarthWormWrapDom: () => {
-        return;
-        const earthWormWrapDom = document.getElementById('earthWormWrapDom');
-        if(earthWormWrapDom != null) {
-            earthWormWrapDom.parentNode.removeChild(earthWormWrapDom);
+    DeactivateEarthWormWrapDom: () => {
+        const wrapId = 'earthWormWrapDom';
+        if(Variables.Doms.has(wrapId)) {
+            const wrapDom = Variables.Doms.get(wrapId);
+            wrapDom.style.display = 'none';
         }
     },
     RemoveShadowWrapDom: () => {

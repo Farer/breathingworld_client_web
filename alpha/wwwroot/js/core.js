@@ -615,6 +615,7 @@ const Core = {
         }
     },
     RelocateEarthWormWrapWhenDrag: (movedX, movedY) => {
+        if(Variables.MapScaleInfo.current != 128) { return; }
         const earthWormWrapDom = document.getElementById('earthWormWrapDom');
         const newLeft = -movedX;
         const newTop = -movedY;
