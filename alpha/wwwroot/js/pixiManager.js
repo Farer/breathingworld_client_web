@@ -117,14 +117,15 @@ export class PixiManager {
         
         const tree = new PIXI.Sprite(this.textures.trees[stageIndex]);
         tree.anchor.set(0.5, 1.0);
-        tree.entityType = 'tree'; // <<< 타입 저장
+        tree.entityType = 'tree';
         this.entityLayer.addChild(tree);
 
         const shadow = new PIXI.Sprite(this.textures.shadow);
         shadow.anchor.set(0.5, 0.5);
         this.shadowLayer.addChild(shadow);
         tree.shadow = shadow;
-        tree.shadowOffsetY = -200;
+        tree.shadowWidthRatio = 1.4;
+        tree.shadowOffsetY = -250;
 
         return tree;
     }
@@ -134,7 +135,7 @@ export class PixiManager {
 
         const grass = new PIXI.Sprite(this.textures.grass[stageIndex]);
         grass.anchor.set(0.5, 1.0);
-        grass.entityType = 'grass'; // <<< 타입 저장
+        grass.entityType = 'grass';
         this.grassLayer.addChild(grass);
         return grass;
     }
@@ -148,7 +149,7 @@ export class PixiManager {
         animal.animationSpeed = 0.2;
         animal.play();
         animal.animations = animalTextures;
-        animal.entityType = name; // <<< 타입 저장 ('rabbit' 또는 'wolf')
+        animal.entityType = name;
         this.entityLayer.addChild(animal);
 
         const shadow = new PIXI.Sprite(this.textures.shadow);
@@ -157,9 +158,9 @@ export class PixiManager {
         animal.shadow = shadow;
         animal.shadowOffsetY = -20;
         if(name == 'rabbit') {
-            animal.shadowWidthRatio = 0.6;
+            animal.shadowWidthRatio = 0.2;
         } else if(name == 'wolf') {
-            animal.shadowWidthRatio = 0.8;
+            animal.shadowWidthRatio = 0.3;
         }
 
         return animal;
