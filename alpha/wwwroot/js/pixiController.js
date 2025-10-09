@@ -221,7 +221,7 @@ export class PixiController {
                 entity.shadow.x = entity.x;
                 entity.shadow.y = entity.y + scaledOffsetY;
                 entity.shadow.zIndex = entity.y;
-                const shadowScale = baseScale * (entity.shadowWidthRatio || 0.8);
+                const shadowScale = baseScale * (entity.shadowWidthRatio || 1.0);
                 entity.shadow.scale.set(shadowScale);
             }
         }
