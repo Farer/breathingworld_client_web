@@ -6,10 +6,12 @@ export class PixiController {
         this.pixiManager = new PixiManager(container);
         this.TWEEN = TWEEN;
         
-        this.allEntities = new Map();
+        this.activeGround = new Map();
         this.activeWeed = new Map();
+        this.allEntities = new Map();
 
         this.pools = {
+            ground: [],
             weed: [],
             tree: [],
             rabbit: [],
@@ -19,7 +21,6 @@ export class PixiController {
         this.stats = {
             fps: 0,
             entityCount: 0,
-            drawCalls: 0
         };
     }
 
@@ -39,14 +40,17 @@ export class PixiController {
         });
 
         const initialSceneData = [];
-        initialSceneData.push({
-            category: 'plant',
-            species: 'tree',
-            stage: 8,
-            x: this.pixiManager.app.screen.width * 0.7,
-            y: this.pixiManager.app.screen.height * 0.5,
-            baseScale: 0.1 + Math.random() * 0.4 
-        });
+        
+        for (let i = 0; i < 50; i++) {
+            initialSceneData.push({
+                category: 'environment',
+                species: 'ground',
+                stage: Math.floor(Math.random() * 4),
+                x: Math.random() * this.pixiManager.app.screen.width,
+                y: Math.random() * this.pixiManager.app.screen.height,
+                baseScale: 1.0
+            });
+        }
         for (let i = 0; i < 50; i++) {
             initialSceneData.push({
                 category: 'plant',
@@ -57,6 +61,14 @@ export class PixiController {
                 baseScale: 0.1 
             });
         }
+        initialSceneData.push({
+            category: 'plant',
+            species: 'tree',
+            stage: 8,
+            x: this.pixiManager.app.screen.width * 0.7,
+            y: this.pixiManager.app.screen.height * 0.5,
+            baseScale: 0.1 + Math.random() * 0.4 
+        });
         for (let i = 0; i < 10; i++) {
             initialSceneData.push({
                 category: 'animal',
@@ -96,9 +108,10 @@ export class PixiController {
             }
         } else {
             switch (species) {
+                case 'ground': entity = this.pixiManager.createGround(stage); break;
+                case 'weed': entity = this.pixiManager.createWeed(stage); break;
                 case 'tree': entity = this.pixiManager.createTree(stage); break;
                 case 'rabbit': case 'wolf': entity = this.pixiManager.createAnimal(species, 'idle'); break;
-                case 'weed': entity = this.pixiManager.createWeed(stage); break;
             }
         }
         return entity;
@@ -136,10 +149,13 @@ export class PixiController {
 
     clearScene() {
         this.TWEEN.removeAll();
-        for (const entity of this.allEntities.values()) {
+        for (const entity of this.activeGround.values()) {
             this.returnObject(entity);
         }
         for (const entity of this.activeWeed.values()) {
+            this.returnObject(entity);
+        }
+        for (const entity of this.allEntities.values()) {
             this.returnObject(entity);
         }
         this.allEntities.clear();
@@ -157,7 +173,10 @@ export class PixiController {
                 entity.baseScale = data.baseScale || 1.0;
                 entity.scale.set(entity.baseScale);
                 
-                if (data.species === 'weed') {
+                if (data.species === 'ground') {
+                    this.activeGround.set(entity.id, entity);
+                }
+                else if (data.species === 'weed') {
                     this.activeWeed.set(entity.id, entity);
                 } else {
                     this.allEntities.set(entity.id, entity);
@@ -195,14 +214,14 @@ export class PixiController {
             document.body.appendChild(dom);
         }
         let html = '';
-        html += this.stats.fps;
-        html += '<br>'+this.stats.entityCount;
+        html += 'FPS:' + this.stats.fps;
+        html += '<br>Entities' + this.stats.entityCount;
         dom.innerHTML = html;
     }
 
     update(ticker) {
         this.stats.fps = ticker.FPS;
-        this.stats.entityCount = this.allEntities.length + this.activeWeed.length;
+        this.stats.entityCount = this.allEntities.size + this.activeWeed.size +  + this.activeGround.size;
         this.showStat();
 
         this.TWEEN.update();
@@ -315,7 +334,7 @@ export class PixiController {
                     });
                 }
 
-                // 2. 잡초 50개 랜덤 생성 (추가된 부분)
+                // 2. 잡초 50개 랜덤 생성
                 for (let i = 0; i < 50; i++) {
                     const x = (Math.random() * screen.width) - target.x;
                     const y = (Math.random() * screen.height) - target.y;
@@ -329,7 +348,20 @@ export class PixiController {
                     });
                 }
 
-                // 3. 생성된 모든 데이터로 씬을 다시 그림
+                // 3. ground 50개 랜덤 생성
+                for (let i = 0; i < 50; i++) {
+                    const x = (Math.random() * screen.width) - target.x;
+                    const y = (Math.random() * screen.height) - target.y;
+                    newSceneData.push({
+                        category: 'environment',
+                        species: 'ground',
+                        stage: Math.floor(Math.random() * 4),
+                        x: x,
+                        y: y,
+                        baseScale: 1.0
+                    });
+                }
+
                 this.populateScene(newSceneData);
             })
             .start();

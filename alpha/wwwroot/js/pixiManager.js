@@ -4,12 +4,14 @@ export class PixiManager {
         this.isReady = false;
         this.app = null;
         this.textures = {
+            ground: [],
+            weed: [],
             shadow: null,
             trees: [],
-            weed: [],
             rabbit: {},
             wolf: {},
         };
+        this.groundLayer = null;
         this.shadowLayer = null;
         this.weedLayer = null;
         this.entityLayer = null;
@@ -28,6 +30,8 @@ export class PixiManager {
         });
         targetElement.appendChild(this.app.view);
 
+        this.groundLayer = new PIXI.Container();
+
         this.shadowLayer = new PIXI.Container();
         this.shadowLayer.sortableChildren = true;
 
@@ -37,7 +41,7 @@ export class PixiManager {
         this.entityLayer = new PIXI.Container();
         this.entityLayer.sortableChildren = true;
 
-        this.app.stage.addChild(this.weedLayer, this.shadowLayer, this.entityLayer);
+        this.app.stage.addChild(this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer);
         await this.loadAssets();
         this.isReady = true;
     }
@@ -55,6 +59,7 @@ export class PixiManager {
             bundles: [{
                 name: 'game-assets',
                 assets: {
+                    'groundSheet': '/img/sprites/sprite_ground_with_droppings_rgba_opti.png',
                     'weedSheet': '/img/sprites/sprite_weed_512_opti.png',
                     'rabbitSheet': '/img/sprites/sprite_rabbit_256_tiny.png',
                     'wolfSheet': '/img/sprites/sprite_wolf_256_tiny.png',
@@ -72,6 +77,7 @@ export class PixiManager {
             for (let i = 0; i < totalTreeStages; i++) {
                 this.textures.trees.push(loadedAssets[`treeStage${i}`]);
             }
+            this.textures.ground = this._parseGridSpriteSheet(loadedAssets.groundSheet, 128, 128, 4, 4);
             this.textures.weed = this._parseGridSpriteSheet(loadedAssets.weedSheet, 512, 512, 4, 17);
             this.textures.rabbit = this._parseAnimalSheet(loadedAssets.rabbitSheet, 256, { idle: 10, run: 24, eat: 21, jump: 61, sleep: 61 });
             this.textures.wolf = this._parseAnimalSheet(loadedAssets.wolfSheet, 256, { idle: 60, run: 41, eat: 20, jump: 51, sleep: 60, howl: 60 });
@@ -111,6 +117,26 @@ export class PixiManager {
         }
         return frames;
     }
+    
+    createGround(stageIndex) {
+        if (stageIndex < 0 || stageIndex >= this.textures.ground.length) return null;
+
+        const ground = new PIXI.Sprite(this.textures.ground[stageIndex]);
+        ground.anchor.set(0.0, 0.0);
+        ground.entityType = 'ground';
+        this.groundLayer.addChild(ground);
+        return ground;
+    }
+
+    createWeed(stageIndex) {
+        if (stageIndex < 0 || stageIndex >= this.textures.weed.length) return null;
+
+        const weed = new PIXI.Sprite(this.textures.weed[stageIndex]);
+        weed.anchor.set(0.5, 1.0);
+        weed.entityType = 'weed';
+        this.weedLayer.addChild(weed);
+        return weed;
+    }
 
     createTree(stageIndex) {
         if (stageIndex < 0 || stageIndex >= this.textures.trees.length) return null;
@@ -128,16 +154,6 @@ export class PixiManager {
         tree.shadowOffsetY = -250;
 
         return tree;
-    }
-    
-    createWeed(stageIndex) {
-        if (stageIndex < 0 || stageIndex >= this.textures.weed.length) return null;
-
-        const weed = new PIXI.Sprite(this.textures.weed[stageIndex]);
-        weed.anchor.set(0.5, 1.0);
-        weed.entityType = 'weed';
-        this.weedLayer.addChild(weed);
-        return weed;
     }
 
     createAnimal(name, initialAnimation) {
