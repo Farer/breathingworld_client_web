@@ -41,15 +41,16 @@ export class PixiController {
         const initialSceneData = [];
         initialSceneData.push({
             category: 'plant',
-            type: 'tree',
+            species: 'tree',
             stage: 8,
             x: this.pixiManager.app.screen.width * 0.7,
-            y: this.pixiManager.app.screen.height * 0.5 
+            y: this.pixiManager.app.screen.height * 0.5,
+            baseScale: 0.1 + Math.random() * 0.4 
         });
         for (let i = 0; i < 50; i++) {
             initialSceneData.push({
                 category: 'plant',
-                type: 'weed',
+                species: 'weed',
                 stage: Math.floor(Math.random() * 17),
                 x: Math.random() * this.pixiManager.app.screen.width,
                 y: Math.random() * this.pixiManager.app.screen.height,
@@ -59,7 +60,7 @@ export class PixiController {
         for (let i = 0; i < 10; i++) {
             initialSceneData.push({
                 category: 'animal',
-                type: 'rabbit',
+                species: 'rabbit',
                 x: Math.random() * this.pixiManager.app.screen.width,
                 y: Math.random() * this.pixiManager.app.screen.height,
                 baseScale: 0.4 + Math.random() * 0.4 
@@ -67,7 +68,7 @@ export class PixiController {
         }
         initialSceneData.push({
             category: 'animal',
-            type: 'wolf',
+            species: 'wolf',
             x: this.pixiManager.app.screen.width * 0.2,
             y: this.pixiManager.app.screen.height * 0.8,
             baseScale: 1.0
@@ -80,23 +81,23 @@ export class PixiController {
         this.pixiManager.app.ticker.add(this.updateHandler);
     }
 
-    borrowObject(type, stage) {
-        const pool = this.pools[type];
+    borrowObject(species, stage) {
+        const pool = this.pools[species];
         let entity = null;
         if (pool.length > 0) {
             entity = pool.pop();
             entity.visible = true;
             if (entity.shadow) entity.shadow.visible = true;
-            if (type === 'tree' || type === 'weed') {
-                const textureKey = (type === 'tree') ? 'trees' : 'weed';
+            if (species === 'tree' || species === 'weed') {
+                const textureKey = (species === 'tree') ? 'trees' : 'weed';
                 if (entity.texture !== this.pixiManager.textures[textureKey][stage]) {
                     entity.texture = this.pixiManager.textures[textureKey][stage];
                 }
             }
         } else {
-            switch (type) {
+            switch (species) {
                 case 'tree': entity = this.pixiManager.createTree(stage); break;
-                case 'rabbit': case 'wolf': entity = this.pixiManager.createAnimal(type, 'idle'); break;
+                case 'rabbit': case 'wolf': entity = this.pixiManager.createAnimal(species, 'idle'); break;
                 case 'weed': entity = this.pixiManager.createWeed(stage); break;
             }
         }
@@ -147,16 +148,16 @@ export class PixiController {
 
     addEntity(data) {
         try {
-            const entity = this.borrowObject(data.type, data.stage);
+            const entity = this.borrowObject(data.species, data.stage);
             if (entity) {
                 entity.category = data.category;
-                entity.id = entity.id || `${data.type}_${Math.random()}`;
+                entity.id = entity.id || `${data.species}_${Math.random()}`;
                 entity.x = data.x;
                 entity.y = data.y;
                 entity.baseScale = data.baseScale || 1.0;
                 entity.scale.set(entity.baseScale);
                 
-                if (data.type === 'weed') {
+                if (data.species === 'weed') {
                     this.activeWeed.set(entity.id, entity);
                 } else {
                     this.allEntities.set(entity.id, entity);
@@ -292,21 +293,22 @@ export class PixiController {
                     const rand = Math.random();
                     if (rand < 0.1) newSceneData.push({
                         category: 'plant',
-                        type: 'tree',
+                        species: 'tree',
                         stage: Math.floor(Math.random() * 12),
                         x: x,
                         y: y,
+                        baseScale: 0.1 + Math.random() * 0.4
                     });
                     else if (rand < 0.6) newSceneData.push({
                         category: 'animal',
-                        type: 'rabbit',
+                        species: 'rabbit',
                         x: x,
                         y: y,
                         baseScale: 0.4 + Math.random() * 0.4
                     });
                     else newSceneData.push({
                         category: 'animal',
-                        type: 'wolf',
+                        species: 'wolf',
                         x: x,
                         y: y,
                         baseScale: 1.0
@@ -319,7 +321,7 @@ export class PixiController {
                     const y = (Math.random() * screen.height) - target.y;
                     newSceneData.push({
                         category: 'plant',
-                        type: 'weed',
+                        species: 'weed',
                         stage: Math.floor(Math.random() * 17),
                         x: x,
                         y: y,
