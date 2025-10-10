@@ -41,14 +41,39 @@ export class PixiController {
         // --- 초기 씬 구성 ---
         const initialSceneData = [];
 
-        initialSceneData.push({ type: 'tree', stage: 8, x: this.pixiManager.app.screen.width * 0.7, y: this.pixiManager.app.screen.height * 0.5 });
+        initialSceneData.push({
+            category: 'plant',
+            type: 'tree',
+            stage: 8,
+            x: this.pixiManager.app.screen.width * 0.7,
+            y: this.pixiManager.app.screen.height * 0.5 
+        });
         for (let i = 0; i < 50; i++) {
-            initialSceneData.push({ type: 'weed', stage: Math.floor(Math.random() * 17), x: Math.random() * this.pixiManager.app.screen.width, y: Math.random() * this.pixiManager.app.screen.height, baseScale: 0.1 });
+            initialSceneData.push({
+                category: 'plant',
+                type: 'weed',
+                stage: Math.floor(Math.random() * 17),
+                x: Math.random() * this.pixiManager.app.screen.width,
+                y: Math.random() * this.pixiManager.app.screen.height,
+                baseScale: 0.1 
+            });
         }
         for (let i = 0; i < 10; i++) {
-            initialSceneData.push({ type: 'rabbit', x: Math.random() * this.pixiManager.app.screen.width, y: Math.random() * this.pixiManager.app.screen.height, baseScale: 0.4 + Math.random() * 0.4 });
+            initialSceneData.push({
+                category: 'animal',
+                type: 'rabbit',
+                x: Math.random() * this.pixiManager.app.screen.width,
+                y: Math.random() * this.pixiManager.app.screen.height,
+                baseScale: 0.4 + Math.random() * 0.4 
+            });
         }
-        initialSceneData.push({ type: 'wolf', x: this.pixiManager.app.screen.width * 0.2, y: this.pixiManager.app.screen.height * 0.8, baseScale: 1.0 });
+        initialSceneData.push({
+            category: 'animal',
+            type: 'wolf',
+            x: this.pixiManager.app.screen.width * 0.2,
+            y: this.pixiManager.app.screen.height * 0.8,
+            baseScale: 1.0
+        });
 
         this.populateScene(initialSceneData);
 
@@ -138,6 +163,7 @@ export class PixiController {
         try {
             const entity = this.borrowObject(data.type, data.stage);
             if (entity) {
+                entity.category = data.category;
                 entity.id = entity.id || `${data.type}_${Math.random()}`;
                 entity.x = data.x;
                 entity.y = data.y;
@@ -195,13 +221,10 @@ export class PixiController {
 
         this.TWEEN.update();
 
-        
-        // 1. 활성화된 잡초만 순회하여 Y-Sorting (최적화 적용)
         for (const weed of this.activeWeed.values()) {
             weed.zIndex = weed.y;
         }
 
-        // 2. 활성화된 엔티티(나무, 동물)만 순회하여 모든 작업을 한 번에 처리
         for (const entity of this.allEntities.values()) {
             if (entity.animations) {
                 if (entity.lastX === undefined) { entity.lastX = entity.x; entity.lastY = entity.y; }
@@ -213,9 +236,7 @@ export class PixiController {
                 entity.lastX = entity.x;
                 entity.lastY = entity.y;
             }
-            
             entity.zIndex = entity.y;
-            
 
             if (entity.shadow) {
                 const baseScale = entity.baseScale || 1.0;
@@ -285,18 +306,21 @@ export class PixiController {
                     const y = (Math.random() * screen.height) - target.y;
                     const rand = Math.random();
                     if (rand < 0.1) newSceneData.push({
+                        category: 'plant',
                         type: 'tree',
                         stage: Math.floor(Math.random() * 12),
                         x: x,
                         y: y,
                     });
                     else if (rand < 0.6) newSceneData.push({
+                        category: 'animal',
                         type: 'rabbit',
                         x: x,
                         y: y,
                         baseScale: 0.4 + Math.random() * 0.4
                     });
                     else newSceneData.push({
+                        category: 'animal',
                         type: 'wolf',
                         x: x,
                         y: y,
@@ -309,6 +333,7 @@ export class PixiController {
                     const x = (Math.random() * screen.width) - target.x;
                     const y = (Math.random() * screen.height) - target.y;
                     newSceneData.push({
+                        category: 'plant',
                         type: 'weed',
                         stage: Math.floor(Math.random() * 17),
                         x: x,
