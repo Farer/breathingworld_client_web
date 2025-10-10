@@ -134,31 +134,33 @@ export class PixiController {
         this.activeWeed.clear();
     }
 
+    addEntity(data) {
+        try {
+            const entity = this.borrowObject(data.type, data.stage);
+            if (entity) {
+                entity.id = entity.id || `${data.type}_${Math.random()}`;
+                entity.x = data.x;
+                entity.y = data.y;
+                entity.baseScale = data.baseScale || 1.0;
+                entity.scale.set(entity.baseScale);
+                
+                // 타입에 따라 올바른 활성 목록에 추가합니다.
+                if (data.type === 'weed') {
+                    this.activeWeed.set(entity.id, entity);
+                } else {
+                    this.allEntities.set(entity.id, entity);
+                }
+            }
+        }
+        catch(e) {
+            console.log(e)
+        }
+    }
+
     populateScene(sceneData) {
         this.clearScene();
         sceneData.forEach(data => {
-            try {
-                const entity = this.borrowObject(data.type, data.stage);
-                if (entity) {
-                    entity.id = entity.id || `${data.type}_${Math.random()}`;
-                    entity.x = data.x;
-                    entity.y = data.y;
-                    entity.baseScale = data.baseScale || 1.0;
-                    entity.scale.set(entity.baseScale);
-                    
-                    // 타입에 따라 올바른 활성 목록에 추가합니다.
-                    if (data.type === 'weed') {
-                        this.activeWeed.set(entity.id, entity);
-                    } else {
-                        this.allEntities.set(entity.id, entity);
-                    }
-                }
-            }
-            catch(e) {
-                console.log(e)
-                // console.log(data.type, data.stage)
-                // console.log(this.pools[data.type])
-            }
+            this.addEntity(data);
         });
         for (const entity of this.allEntities.values()) {
             if (entity.animations) {
@@ -282,9 +284,24 @@ export class PixiController {
                     const x = (Math.random() * screen.width) - target.x;
                     const y = (Math.random() * screen.height) - target.y;
                     const rand = Math.random();
-                    if (rand < 0.1) newSceneData.push({ type: 'tree', stage: Math.floor(Math.random() * 12), x, y });
-                    else if (rand < 0.6) newSceneData.push({ type: 'rabbit', x, y, baseScale: 0.4 + Math.random() * 0.4 });
-                    else newSceneData.push({ type: 'wolf', x, y, baseScale: 1.0 });
+                    if (rand < 0.1) newSceneData.push({
+                        type: 'tree',
+                        stage: Math.floor(Math.random() * 12),
+                        x: x,
+                        y: y,
+                    });
+                    else if (rand < 0.6) newSceneData.push({
+                        type: 'rabbit',
+                        x: x,
+                        y: y,
+                        baseScale: 0.4 + Math.random() * 0.4
+                    });
+                    else newSceneData.push({
+                        type: 'wolf',
+                        x: x,
+                        y: y,
+                        baseScale: 1.0
+                    });
                 }
 
                 // 2. 잡초 50개 랜덤 생성 (추가된 부분)
