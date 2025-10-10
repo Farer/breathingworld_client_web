@@ -38,9 +38,7 @@ export class PixiController {
             checkReady();
         });
 
-        // --- 초기 씬 구성 ---
         const initialSceneData = [];
-
         initialSceneData.push({
             category: 'plant',
             type: 'tree',
@@ -77,10 +75,7 @@ export class PixiController {
 
         this.populateScene(initialSceneData);
 
-        // 기존 리스너 제거
-        if (this.updateHandler) {
-            this.pixiManager.app.ticker.remove(this.updateHandler);
-        }
+        if (this.updateHandler) { this.pixiManager.app.ticker.remove(this.updateHandler); }
         this.updateHandler = (ticker) => this.update(ticker);
         this.pixiManager.app.ticker.add(this.updateHandler);
     }
@@ -109,7 +104,6 @@ export class PixiController {
     }
 
     returnObject(entity) {
-        // 진행 중인 타이머나 트윈을 먼저 정리합니다.
         if (entity.thinkTimer) {
             clearTimeout(entity.thinkTimer);
             entity.thinkTimer = null;
@@ -125,36 +119,28 @@ export class PixiController {
         if (entity.entityType && this.pools[entity.entityType]) {
             const pool = this.pools[entity.entityType];
             const MAX_POOL_SIZE = 100;
-
-            // === 핵심 수정 로직 ===
             if (pool.length < MAX_POOL_SIZE) {
-                // 풀에 자리가 있으면, 객체를 비활성화하고 풀에 넣습니다.
                 entity.visible = false;
                 if (entity.shadow) {
                     entity.shadow.visible = false;
                 }
                 pool.push(entity);
             } else {
-                // 풀이 가득 찼으면, 객체를 완전히 파괴합니다.
-                // 이 객체는 풀에 들어가지 않습니다.
                 entity.destroy({ children: true });
             }
         } else {
-            // 풀이 없는 타입의 객체는 그냥 파괴합니다.
             entity.destroy({ children: true });
         }
     }
 
     clearScene() {
         this.TWEEN.removeAll();
-        // Map을 순회하며 모든 객체를 풀로 반납
         for (const entity of this.allEntities.values()) {
             this.returnObject(entity);
         }
         for (const entity of this.activeWeed.values()) {
             this.returnObject(entity);
         }
-        // Map을 깨끗하게 비움
         this.allEntities.clear();
         this.activeWeed.clear();
     }
@@ -170,7 +156,6 @@ export class PixiController {
                 entity.baseScale = data.baseScale || 1.0;
                 entity.scale.set(entity.baseScale);
                 
-                // 타입에 따라 올바른 활성 목록에 추가합니다.
                 if (data.type === 'weed') {
                     this.activeWeed.set(entity.id, entity);
                 } else {
