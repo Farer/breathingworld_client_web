@@ -196,6 +196,7 @@ export class PixiManager {
             const frames = dirs[chosenDir];
 
             const sprite = new PIXI.AnimatedSprite(frames);
+            sprite.currentDir = chosenDir; // ✅ 현재 방향 저장
             sprite.anchor.set(0.5, 1.0);
             sprite.animationSpeed = 0.2;
             sprite.play();
@@ -207,8 +208,8 @@ export class PixiManager {
             shadow.anchor.set(0.5, 0.5);
             this.shadowLayer.addChild(shadow);
             sprite.shadow = shadow;
-            sprite.shadowOffsetY = -20;
-            sprite.shadowWidthRatio = 0.25;
+            sprite.shadowOffsetY = -130;
+            sprite.shadowWidthRatio = 0.4;
             return sprite;
         }
 

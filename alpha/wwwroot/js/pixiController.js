@@ -42,34 +42,34 @@ export class PixiController {
 
         const initialSceneData = [];
         
-        for (let i = 0; i < 50; i++) {
-            initialSceneData.push({
-                category: 'environment',
-                species: 'ground',
-                stage: Math.floor(Math.random() * 4),
-                x: Math.random() * this.pixiManager.app.screen.width,
-                y: Math.random() * this.pixiManager.app.screen.height,
-                baseScale: 1.0
-            });
-        }
-        for (let i = 0; i < 50; i++) {
-            initialSceneData.push({
-                category: 'plant',
-                species: 'weed',
-                stage: Math.floor(Math.random() * 17),
-                x: Math.random() * this.pixiManager.app.screen.width,
-                y: Math.random() * this.pixiManager.app.screen.height,
-                baseScale: 0.1 
-            });
-        }
-        initialSceneData.push({
-            category: 'plant',
-            species: 'tree',
-            stage: 8,
-            x: this.pixiManager.app.screen.width * 0.7,
-            y: this.pixiManager.app.screen.height * 0.5,
-            baseScale: 0.1 + Math.random() * 0.4 
-        });
+        // for (let i = 0; i < 50; i++) {
+        //     initialSceneData.push({
+        //         category: 'environment',
+        //         species: 'ground',
+        //         stage: Math.floor(Math.random() * 4),
+        //         x: Math.random() * this.pixiManager.app.screen.width,
+        //         y: Math.random() * this.pixiManager.app.screen.height,
+        //         baseScale: 1.0
+        //     });
+        // }
+        // for (let i = 0; i < 50; i++) {
+        //     initialSceneData.push({
+        //         category: 'plant',
+        //         species: 'weed',
+        //         stage: Math.floor(Math.random() * 17),
+        //         x: Math.random() * this.pixiManager.app.screen.width,
+        //         y: Math.random() * this.pixiManager.app.screen.height,
+        //         baseScale: 0.1 
+        //     });
+        // }
+        // initialSceneData.push({
+        //     category: 'plant',
+        //     species: 'tree',
+        //     stage: 8,
+        //     x: this.pixiManager.app.screen.width * 0.7,
+        //     y: this.pixiManager.app.screen.height * 0.5,
+        //     baseScale: 0.1 + Math.random() * 0.4 
+        // });
         for (let i = 0; i < 10; i++) {
             initialSceneData.push({
                 category: 'animal',
@@ -79,13 +79,13 @@ export class PixiController {
                 baseScale: 0.4 + Math.random() * 0.4 
             });
         }
-        initialSceneData.push({
-            category: 'animal',
-            species: 'wolf',
-            x: this.pixiManager.app.screen.width * 0.2,
-            y: this.pixiManager.app.screen.height * 0.8,
-            baseScale: 1.0
-        });
+        // initialSceneData.push({
+        //     category: 'animal',
+        //     species: 'wolf',
+        //     x: this.pixiManager.app.screen.width * 0.2,
+        //     y: this.pixiManager.app.screen.height * 0.8,
+        //     baseScale: 1.0
+        // });
 
         this.populateScene(initialSceneData);
 
@@ -256,32 +256,59 @@ export class PixiController {
             }
         }
     }
+
+    getDirectionIndex(fromX, fromY, toX, toY) {
+        // atan2(y, x) → 라디안 각도 (-π~π)
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        let angle = Math.atan2(dy, dx); // 라디안
+        angle = (angle + Math.PI * 2) % (Math.PI * 2); // 0~2π로 보정
+        const degree = angle * 180 / Math.PI; // 도(degree)
+        // direction_00 = 북쪽 = -90°, 즉 270°
+        const adjusted = (degree + 90) % 360;
+        const index = Math.round(adjusted / 22.5) % 16;
+        return index.toString().padStart(2, '0');
+    }
     
     moveTo(character, target, duration) {
-        const direction = (target.x > character.x) ? -1 : 1;
-        const baseScale = character.baseScale || 1.0;
-        character.scale.y = baseScale;
-        character.scale.x = direction * baseScale;
-        if (character.animations && character.animations.run) {
+        // 1️⃣ 이동 방향 계산
+        const dirIndex = this.getDirectionIndex(character.x, character.y, target.x, target.y);
+        const dirKey = `direction_${dirIndex}`;
+
+        // 2️⃣ 애니메이션 전환
+        if (character.entityType === 'rabbit') {
+            const animSet = character.animations['run_1'];
+            if (animSet && animSet[dirKey]) {
+                character.textures = animSet[dirKey];
+                character.play();
+                character.currentDir = dirKey;
+            }
+        } else if (character.animations && character.animations.run) {
             character.textures = character.animations.run;
             character.play();
         }
-        if (character.activeTween) {
-            this.TWEEN.remove(character.activeTween);
-        }
+
+        // 3️⃣ 트윈 이동
+        if (character.activeTween) this.TWEEN.remove(character.activeTween);
         const tween = new this.TWEEN.Tween(character.position)
             .to(target, duration * 1000)
             .easing(this.TWEEN.Easing.Quadratic.InOut)
             .onComplete(() => {
-                if (character.animations && character.animations.idle) {
+                // ✅ 이동 완료 후 idle_1로 전환
+                if (character.entityType === 'rabbit') {
+                    const idleSet = character.animations['idle_1'];
+                    if (idleSet && idleSet[character.currentDir]) {
+                        character.textures = idleSet[character.currentDir];
+                        character.play();
+                    }
+                } else if (character.animations && character.animations.idle) {
                     character.textures = character.animations.idle;
                     character.play();
                 }
+
                 character.activeTween = null;
                 character.thinkTimer = setTimeout(() => {
-                    if (character.visible) { 
-                        this.thinkAndAct(character);
-                    }
+                    if (character.visible) this.thinkAndAct(character);
                 }, 1000 + Math.random() * 3000);
             })
             .start();
