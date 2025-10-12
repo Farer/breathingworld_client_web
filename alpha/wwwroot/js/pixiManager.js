@@ -5,18 +5,17 @@ export class PixiManager {
         this.worker = worker;
         this.isReady = false;
         this.app = null;
-        this.currentScale = 128; // ✅ 현재 스케일 상태 추가
-        this._rabbitCache = {};
+        this.currentScale = 128;
+
+        // ✅ species별 캐시
+        this._animalCache = {};
 
         this.textures = {
             ground: [], weed: [], shadow: null, trees: [],
-            rabbit: {}, wolf: {}
+            rabbit: {}, wolf: {}, eagle: {}
         };
 
-        this.groundLayer = null;
-        this.shadowLayer = null;
-        this.weedLayer = null;
-        this.entityLayer = null;
+        this.sharedInterpFilters = {}; // species별 공유 필터
 
         this._init(targetElement);
     }
@@ -33,156 +32,93 @@ export class PixiManager {
         this.app.stage.addChild(this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer);
 
         await this.loadAssets();
-        await this.loadRabbitFrames(); // ✅ 새 애니메이션 로딩
+        await this.loadAnimalFrames('rabbit');
+        await this.loadAnimalFrames('wolf');
         this.isReady = true;
     }
 
     async loadAssets() {
-        const graphics = new PIXI.Graphics();
-        graphics.beginFill(0x000000, 0.2);
-        graphics.drawEllipse(0, 0, 400, 200);
-        graphics.endFill();
+        const g = new PIXI.Graphics();
+        g.beginFill(0x000000, 0.2);
+        g.drawEllipse(0, 0, 400, 200);
+        g.endFill();
         const bounds = new PIXI.Rectangle(-400, -200, 800, 400);
-        this.textures.shadow = this.app.renderer.generateTexture(graphics, { region: bounds });
+        this.textures.shadow = this.app.renderer.generateTexture(g, { region: bounds });
 
-        const assetManifest = {
+        const manifest = {
             bundles: [{
                 name: 'game-assets',
                 assets: {
                     'groundSheet': '/img/sprites/sprite_ground_with_droppings_rgba_opti.png',
                     'weedSheet': '/img/sprites/sprite_weed_512_opti.png',
-                    'wolfSheet': '/img/sprites/sprite_wolf_256_tiny.png',
-                },
-            }],
+                    'wolfSheet': '/img/sprites/sprite_wolf_256_tiny.png'
+                }
+            }]
         };
 
         const totalTreeStages = 12;
-        for (let i = 0; i < totalTreeStages; i++) {
-            assetManifest.bundles[0].assets[`treeStage${i}`] = `img/tree_${i}_tiny.png`;
-        }
+        for (let i = 0; i < totalTreeStages; i++)
+            manifest.bundles[0].assets[`treeStage${i}`] = `img/tree_${i}_tiny.png`;
 
-        await PIXI.Assets.init({ manifest: assetManifest });
+        await PIXI.Assets.init({ manifest });
         const loaded = await PIXI.Assets.loadBundle('game-assets');
 
-        for (let i = 0; i < totalTreeStages; i++) this.textures.trees.push(loaded[`treeStage${i}`]);
+        for (let i = 0; i < totalTreeStages; i++)
+            this.textures.trees.push(loaded[`treeStage${i}`]);
         this.textures.ground = this._parseGridSpriteSheet(loaded.groundSheet, 128, 128, 4, 4);
         this.textures.weed = this._parseGridSpriteSheet(loaded.weedSheet, 512, 512, 4, 17);
         this.textures.wolf = this._parseAnimalSheet(loaded.wolfSheet, 256, {
-            idle: 60, run: 41, eat: 20, jump: 51, sleep: 60, howl: 60
+            idle: 60, run: 41, howl: 60
         });
     }
 
-    // ✅ scale 전환 메서드
-    async setScale(newScale) {
-        // 이미 동일한 스케일이라면 무시
-        if (this.currentScale === newScale) return;
-
-        // 캐시 저장소 초기화
-        this._rabbitCache = this._rabbitCache || {};
-        const scaleDir = `${newScale}`;
-
-        // 🧩 scale < 8 → 토끼 비활성화
-        if (newScale < 8) {
-            for (const entity of this.entityLayer.children) {
-                if (entity.entityType === 'rabbit') entity.visible = false;
-            }
-            this.currentScale = newScale;
+    // ✅ 종(species)별 로드
+    async loadAnimalFrames(species) {
+        const scaleDir = `${this.currentScale}`;
+        this._animalCache[species] = this._animalCache[species] || {};
+        if (this._animalCache[species][scaleDir]) {
+            this.textures[species] = this._animalCache[species][scaleDir];
             return;
         }
 
-        // 🧠 새 스케일 로딩 전 참조 해제 (destroy는 하지 않음)
-        // 기존 객체를 직접 지우지 않고, 새로운 객체로 교체 (캐시 참조 보존)
-        this.textures.rabbit = {};
-
-        // 🧠 캐시에 있으면 즉시 복원
-        if (this._rabbitCache[scaleDir]) {
-            this.textures.rabbit = this._rabbitCache[scaleDir];
-            this.currentScale = newScale;
-            console.log(`♻️ Rabbit textures restored from cache for scale ${newScale}`);
-        } 
-        else {
-            // 새 스케일 로딩
-            console.log(`⬇️ Loading new rabbit frames for scale ${newScale}...`);
-            this.currentScale = newScale;
-            await this.loadRabbitFrames();
-
-            // 로딩 완료 후 캐시에 저장
-            this._rabbitCache[scaleDir] = this.textures.rabbit;
-            console.log(`✅ Cached rabbit frames for scale ${newScale}`);
+        if (species === 'rabbit') {
+            await this._loadDirectionalFrames(species, ['idle_1', 'run_1']);
+        } else if (species === 'eagle') {
+            await this._loadDirectionalFrames(species, ['idle', 'fly', 'attack']);
+        } else if (species === 'wolf') {
+            // wolf는 sprite sheet 기반이므로 이미 loadAssets에서 처리됨
+            return;
         }
 
-        // ✅ 스케일 변경 후 rabbit 다시 활성화
-        for (const entity of this.entityLayer.children) {
-            if (entity.entityType !== 'rabbit') continue;
-
-            entity.visible = true;
-
-            // 🧭 방향 보정
-            const dir = entity.currentDir || 'direction_00';
-            const idleSet = this.textures.rabbit['idle_1'];
-            if (idleSet && idleSet[dir]) {
-                entity.textures = idleSet[dir];
-                entity.gotoAndPlay(0);
-            } else {
-                // 폴백 방향
-                const validDirs = Object.keys(idleSet || {}).filter(k => idleSet[k]?.length > 0);
-                if (validDirs.length > 0) {
-                    entity.textures = idleSet[validDirs[0]];
-                    entity.gotoAndPlay(0);
-                    entity.currentDir = validDirs[0];
-                }
-            }
-        }
-
-        // ✅ 디버그 로그
-        console.log(`🐇 setScale(${newScale}) complete. Rabbit assets active.`);
+        this._animalCache[species][scaleDir] = this.textures[species];
+        console.log(`✅ ${species} frames cached for scale ${scaleDir}`);
     }
 
-
-
-    // ✅ Rabbit 전용 디렉토리 기반 로더
-    async loadRabbitFrames() {
+    // ✅ 방향별 WebP 프레임 로더
+    async _loadDirectionalFrames(species, animations) {
         const scaleDir = `${this.currentScale}`;
-        this._rabbitCache = this._rabbitCache || {};
-        if (this._rabbitCache[scaleDir]) {
-            this.textures.rabbit = this._rabbitCache[scaleDir];
-            return;
-        }
-
-        const basePath = `/img/sprites/rabbit/${scaleDir}`;
-        const animations = ['idle_1', 'run_1'];
-        const directions = Array.from({ length: 16 }, (_, i) => `direction_${i.toString().padStart(2, '0')}`);
-
-        this.textures.rabbit = {};
+        const basePath = `/img/sprites/${species}/${scaleDir}`;
+        const dirs = Array.from({ length: 16 }, (_, i) => `direction_${i.toString().padStart(2, '0')}`);
+        this.textures[species] = {};
 
         for (const anim of animations) {
-            this.textures.rabbit[anim] = {};
-            for (const dir of directions) {
-                const framePath = `${basePath}/${anim}/${dir}`;
-                const frameUrls = [];
+            this.textures[species][anim] = {};
+            for (const dir of dirs) {
+                const path = `${basePath}/${anim}/${dir}`;
+                const frames = [];
                 for (let i = 0; i < 100; i++) {
                     const num = i.toString().padStart(4, '0');
-                    const url = `${framePath}/webp/frame_${num}.webp`;
-                    frameUrls.push(url);
-                    
-                }
-
-                const validFrames = [];
-                for (const url of frameUrls) {
+                    const url = `${path}/webp/frame_${num}.webp`;
                     try {
                         const img = await this._decodeImage(url);
-                        const tex = PIXI.Texture.from(img);
-                        validFrames.push(tex);
-                    } catch (err) {
+                        frames.push(PIXI.Texture.from(img));
+                    } catch {
                         break;
                     }
                 }
-                if (validFrames.length > 0)
-                this.textures.rabbit[anim][dir] = validFrames;
+                if (frames.length > 0) this.textures[species][anim][dir] = frames;
             }
         }
-        console.log(`✅ Rabbit frames loaded for scale ${this.currentScale}`, this.textures.rabbit);
-        this._rabbitCache[scaleDir] = this.textures.rabbit;
     }
 
     async _decodeImage(url) {
@@ -204,197 +140,154 @@ export class PixiManager {
     _parseAnimalSheet(sheetTexture, frameSize, animationConfig) {
         const animations = {};
         let currentY = 0;
-        for (const [name, frameCount] of Object.entries(animationConfig)) {
-            animations[name] = this._parseRowSpriteSheet(sheetTexture, frameSize, frameSize, currentY, frameCount);
+        for (const [name, count] of Object.entries(animationConfig)) {
+            animations[name] = this._parseRowSpriteSheet(sheetTexture, frameSize, frameSize, currentY, count);
             currentY += frameSize;
         }
         return animations;
     }
 
-    _parseRowSpriteSheet(texture, frameWidth, frameHeight, yOffset, frameCount) {
+    _parseRowSpriteSheet(texture, fw, fh, yOffset, count) {
         const frames = [];
-        for (let i = 0; i < frameCount; i++) {
-            const frameRect = new PIXI.Rectangle(i * frameWidth, yOffset, frameWidth, frameHeight);
-            frames.push(new PIXI.Texture({ source: texture.source, frame: frameRect }));
+        for (let i = 0; i < count; i++) {
+            const rect = new PIXI.Rectangle(i * fw, yOffset, fw, fh);
+            frames.push(new PIXI.Texture({ source: texture.source, frame: rect }));
         }
         return frames;
     }
 
-    _parseGridSpriteSheet(texture, frameWidth, frameHeight, cols, totalFrames) {
+    _parseGridSpriteSheet(texture, fw, fh, cols, total) {
         const frames = [];
-        for (let i = 0; i < totalFrames; i++) {
+        for (let i = 0; i < total; i++) {
             const col = i % cols;
             const row = Math.floor(i / cols);
-            const frameRect = new PIXI.Rectangle(col * frameWidth, row * frameHeight, frameWidth, frameHeight);
-            frames.push(new PIXI.Texture({ source: texture.source, frame: frameRect }));
+            const rect = new PIXI.Rectangle(col * fw, row * fh, fw, fh);
+            frames.push(new PIXI.Texture({ source: texture.source, frame: rect }));
         }
         return frames;
     }
 
-    createGround(stageIndex) {
-        if (stageIndex < 0 || stageIndex >= this.textures.ground.length) return null;
-
-        const ground = new PIXI.Sprite(this.textures.ground[stageIndex]);
-        ground.anchor.set(0.0, 0.0);
-        ground.entityType = 'ground';
-        this.groundLayer.addChild(ground);
-        return ground;
+    createGround(stage) {
+        const g = new PIXI.Sprite(this.textures.ground[stage]);
+        g.anchor.set(0);
+        g.entityType = 'ground';
+        this.groundLayer.addChild(g);
+        return g;
     }
 
-    createWeed(stageIndex) {
-        if (stageIndex < 0 || stageIndex >= this.textures.weed.length) return null;
-
-        const weed = new PIXI.Sprite(this.textures.weed[stageIndex]);
-        weed.anchor.set(0.5, 1.0);
-        weed.entityType = 'weed';
-        this.weedLayer.addChild(weed);
-        return weed;
+    createWeed(stage) {
+        const w = new PIXI.Sprite(this.textures.weed[stage]);
+        w.anchor.set(0.5, 1);
+        w.entityType = 'weed';
+        this.weedLayer.addChild(w);
+        return w;
     }
 
-    createTree(stageIndex) {
-        if (stageIndex < 0 || stageIndex >= this.textures.trees.length) return null;
-        
-        const tree = new PIXI.Sprite(this.textures.trees[stageIndex]);
-        tree.anchor.set(0.5, 1.0);
-        tree.entityType = 'tree';
-        this.entityLayer.addChild(tree);
-
-        const shadow = new PIXI.Sprite(this.textures.shadow);
-        shadow.anchor.set(0.5, 0.5);
-        this.shadowLayer.addChild(shadow);
-        tree.shadow = shadow;
-        tree.shadowWidthRatio = 1.4;
-        tree.shadowOffsetY = -250;
-
-        return tree;
+    createTree(stage) {
+        const t = new PIXI.Sprite(this.textures.trees[stage]);
+        t.anchor.set(0.5, 1);
+        t.entityType = 'tree';
+        this.entityLayer.addChild(t);
+        this._addShadow(t, -250, 1.4);
+        return t;
     }
 
-    createAnimal(name, initialAnimation) {
-        if (name === 'rabbit') {
-            const animKey = initialAnimation.endsWith('_1') ? initialAnimation : `${initialAnimation}_1`;
-            const dirs = this.textures.rabbit[animKey];
-            if (!dirs) {
-                console.warn(`Rabbit animation set not found: ${animKey}`);
-                return null;
-            }
-
-            const validDirs = Object.keys(dirs).filter(k => dirs[k]?.length > 0);
-            if (validDirs.length === 0) {
-                console.warn(`No valid direction frames found for ${animKey}`);
-                return null;
-            }
-
-            const chosenDir = validDirs[Math.floor(Math.random() * validDirs.length)];
-            const frames = dirs[chosenDir];
-            if (!frames?.length) return null;
-
-            const sprite = new PIXI.AnimatedSprite(frames);
-            sprite.currentDir = chosenDir;
-            sprite.anchor.set(0.5, 1.0);
-            sprite.animationSpeed = animKey === 'idle_1' ? 0.37 : 0.55;
-            sprite.play();
-
-            // ✅ FrameInterpFilter 캐시 적용 (idle_1 전용)
-            if (window.FrameInterpFilter && animKey === 'idle_1') {
-                // 한 번만 생성해서 공유
-                if (!this.sharedInterpFilter) {
-                    this.sharedInterpFilter = new FrameInterpFilter();
-                    console.log('🎨 Created shared FrameInterpFilter');
-                }
-
-                sprite.filters = [this.sharedInterpFilter];
-                sprite.interpFilter = this.sharedInterpFilter;
-
-                setTimeout(() => {
-                    const tex = sprite.textures[0];
-                    const f = sprite.interpFilter;
-                    if (f?.uniforms) {
-                        f.setFrames(tex, tex, 0.0);
-                        f.uniforms.uMix = 0.0;
-                    }
-
-                    sprite._interpMix = 0.0;
-                    sprite._interpTime = 0.0;
-                    sprite._frameDuration = 1000 / 22; // 22fps 기준
-
-                    sprite.onFrameChange = (idx) => {
-                        const next = (idx + 1) % sprite.textures.length;
-                        const f2 = sprite.interpFilter;
-                        if (!f2?.uniforms) return;
-                        f2.setFrames(sprite.textures[idx], sprite.textures[next], 0.0);
-                        sprite._interpMix = 0.0;
-                        sprite._interpTime = 0.0;
-                    };
-
-                    sprite._tick = (delta) => {
-                        const now = performance.now();
-                        if (!sprite._lastTime) sprite._lastTime = now;
-                        const dt = now - sprite._lastTime;
-                        sprite._lastTime = now;
-
-                        sprite._interpTime += dt;
-                        sprite._interpMix = Math.min(sprite._interpTime / sprite._frameDuration, 1.0);
-
-                        const f3 = sprite.interpFilter;
-                        if (f3?.uniforms) {
-                            // 🔹 Linear 보간 (필요 시 Math.pow 로 커브 조절 가능)
-                            f3.uniforms.uMix = sprite._interpMix;
-                        }
-
-                        sprite.update(delta);
-                    };
-                }, 0);
-            } else {
-                // run_1 등 고프레임 애니메이션은 일반 업데이트만
-                sprite._tick = (delta) => sprite.update(delta);
-            }
-
-            this.app.ticker.add(sprite._tick);
-
-            sprite.on('destroyed', () => {
-                this.app.ticker.remove(sprite._tick);
-                sprite.filters = null;
-                sprite.interpFilter = null;
-            });
-
-            sprite.animations = this.textures.rabbit;
-            sprite.entityType = name;
-            this.entityLayer.addChild(sprite);
-
-            // ✅ 그림자 설정
-            const shadow = new PIXI.Sprite(this.textures.shadow);
-            shadow.anchor.set(0.5, 0.5);
-            this.shadowLayer.addChild(shadow);
-            sprite.shadow = shadow;
-            sprite.shadowOffsetY = -130;
-            sprite.shadowWidthRatio = 0.4;
-
-            return sprite;
-        }
-
-        // 🐺 다른 동물 (wolf 등)
-        const animalTextures = this.textures[name];
-        if (!animalTextures || !animalTextures[initialAnimation]) return null;
-
-        const animal = new PIXI.AnimatedSprite(animalTextures[initialAnimation]);
-        animal.anchor.set(0.5, 1.0);
-        animal.animationSpeed = 0.2;
-        animal.play();
-        animal.animations = animalTextures;
-        animal.entityType = name;
-        this.entityLayer.addChild(animal);
-
-        const shadow = new PIXI.Sprite(this.textures.shadow);
-        shadow.anchor.set(0.5, 0.5);
-        this.shadowLayer.addChild(shadow);
-        animal.shadow = shadow;
-        animal.shadowOffsetY = -20;
-        animal.shadowWidthRatio = (name === 'wolf') ? 0.3 : 0.2;
-
-        return animal;
+    // ✅ 통합 동물 생성기
+    createAnimal(name, anim) {
+        const t = this.textures[name];
+        if (!t) return null;
+        if (name === 'rabbit') return this._createRabbit(anim);
+        if (name === 'wolf') return this._createWolf(anim);
+        return this._createGeneric(name, anim);
     }
 
+    _createRabbit(animKey) {
+        const anim = animKey.endsWith('_1') ? animKey : `${animKey}_1`;
+        const dirs = this.textures.rabbit[anim];
+        const validDirs = Object.keys(dirs).filter(k => dirs[k]?.length);
+        const dir = validDirs[Math.floor(Math.random() * validDirs.length)];
+        const sprite = new PIXI.AnimatedSprite(dirs[dir]);
+        sprite.entityType = 'rabbit';
+        sprite.currentDir = dir;
+        sprite.anchor.set(0.5, 1);
+        sprite.animationSpeed = anim === 'idle_1' ? 0.37 : 0.55;
+        sprite.play();
 
+        if (window.FrameInterpFilter && anim === 'idle_1') {
+            if (!this.sharedInterpFilters.rabbit)
+                this.sharedInterpFilters.rabbit = new FrameInterpFilter();
+            const f = this.sharedInterpFilters.rabbit;
+            sprite.filters = [f];
+            this._applyInterpTick(sprite, f);
+        } else sprite._tick = d => sprite.update(d);
 
+        this.app.ticker.add(sprite._tick);
+        sprite.on('destroyed', () => this.app.ticker.remove(sprite._tick));
 
+        this._addShadow(sprite, -130, 0.4);
+        this.entityLayer.addChild(sprite);
+        sprite.animations = this.textures.rabbit;
+        return sprite;
+    }
+
+    _createWolf(anim) {
+        const frames = this.textures.wolf[anim];
+        const s = new PIXI.AnimatedSprite(frames);
+        s.entityType = 'wolf';
+        s.anchor.set(0.5, 1);
+        s.animationSpeed = 0.25;
+        s.play();
+        this._addShadow(s, -20, 0.3);
+        this.entityLayer.addChild(s);
+        s.animations = this.textures.wolf;
+        return s;
+    }
+
+    _createGeneric(name, anim) {
+        const dirs = this.textures[name][anim];
+        const valid = Object.keys(dirs).filter(k => dirs[k]?.length);
+        const dir = valid[Math.floor(Math.random() * valid.length)];
+        const s = new PIXI.AnimatedSprite(dirs[dir]);
+        s.entityType = name;
+        s.anchor.set(0.5, 1);
+        s.animationSpeed = 0.4;
+        s.play();
+        this._addShadow(s, -100, 0.25);
+        this.entityLayer.addChild(s);
+        s.animations = this.textures[name];
+        return s;
+    }
+
+    _addShadow(sprite, offsetY, ratio) {
+        const sh = new PIXI.Sprite(this.textures.shadow);
+        sh.anchor.set(0.5);
+        this.shadowLayer.addChild(sh);
+        sprite.shadow = sh;
+        sprite.shadowOffsetY = offsetY;
+        sprite.shadowWidthRatio = ratio;
+    }
+
+    _applyInterpTick(sprite, filter) {
+        setTimeout(() => {
+            const tex = sprite.textures[0];
+            filter.setFrames(tex, tex, 0.0);
+            sprite._frameDuration = 1000 / 22;
+            sprite._interpTime = 0;
+            sprite.onFrameChange = (i) => {
+                const next = (i + 1) % sprite.textures.length;
+                filter.setFrames(sprite.textures[i], sprite.textures[next], 0.0);
+                sprite._interpTime = 0;
+            };
+            sprite._tick = (d) => {
+                const now = performance.now();
+                sprite._lastTime ??= now;
+                const dt = now - sprite._lastTime;
+                sprite._lastTime = now;
+                sprite._interpTime += dt;
+                const mix = Math.min(sprite._interpTime / sprite._frameDuration, 1.0);
+                filter.uniforms.uMix = mix;
+                sprite.update(d);
+            };
+        }, 0);
+    }
 }
