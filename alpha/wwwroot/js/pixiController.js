@@ -258,7 +258,7 @@ export class PixiController {
                 const distanceMoved = Math.sqrt(Math.pow(entity.x - entity.lastX, 2) + Math.pow(entity.y - entity.lastY, 2));
                 if (distanceMoved > 0.1) {
                     const currentSpeed = distanceMoved / ticker.deltaTime;
-                    entity.animationSpeed = Math.min(0.45, 0.12 + currentSpeed * 0.015);
+                    entity.animationSpeed = Math.min(0.45, 0.12 + currentSpeed * 0.1);
                 }
                 entity.lastX = entity.x;
                 entity.lastY = entity.y;

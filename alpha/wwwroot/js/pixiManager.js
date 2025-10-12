@@ -291,30 +291,37 @@ export class PixiManager {
             const sprite = new PIXI.AnimatedSprite(frames);
             sprite.currentDir = chosenDir;
             sprite.anchor.set(0.5, 1.0);
-            sprite.animationSpeed = animKey === 'idle_1' ? 0.37 : 0.55; // 실제 프레임 속도 (22fps → 약 0.37)
+            sprite.animationSpeed = animKey === 'idle_1' ? 0.37 : 0.55;
             sprite.play();
 
-            // ✅ GPU 프레임 보간 필터 활성화
+            // ✅ FrameInterpFilter 캐시 적용 (idle_1 전용)
             if (window.FrameInterpFilter && animKey === 'idle_1') {
-                const interpFilter = new FrameInterpFilter();
-                sprite.filters = [interpFilter];
-                sprite.interpFilter = interpFilter;
+                // 한 번만 생성해서 공유
+                if (!this.sharedInterpFilter) {
+                    this.sharedInterpFilter = new FrameInterpFilter();
+                    console.log('🎨 Created shared FrameInterpFilter');
+                }
+
+                sprite.filters = [this.sharedInterpFilter];
+                sprite.interpFilter = this.sharedInterpFilter;
 
                 setTimeout(() => {
                     const tex = sprite.textures[0];
-                    if (interpFilter.uniforms) {
-                        interpFilter.setFrames(tex, tex, 0.0);
-                        interpFilter.uniforms.uMix = 0.0;
+                    const f = sprite.interpFilter;
+                    if (f?.uniforms) {
+                        f.setFrames(tex, tex, 0.0);
+                        f.uniforms.uMix = 0.0;
                     }
 
                     sprite._interpMix = 0.0;
                     sprite._interpTime = 0.0;
-                    sprite._frameDuration = 1000 / 22; // 🔹 원본 22fps 기준
+                    sprite._frameDuration = 1000 / 22; // 22fps 기준
 
                     sprite.onFrameChange = (idx) => {
                         const next = (idx + 1) % sprite.textures.length;
-                        if (!interpFilter.uniforms) return;
-                        interpFilter.setFrames(sprite.textures[idx], sprite.textures[next], 0.0);
+                        const f2 = sprite.interpFilter;
+                        if (!f2?.uniforms) return;
+                        f2.setFrames(sprite.textures[idx], sprite.textures[next], 0.0);
                         sprite._interpMix = 0.0;
                         sprite._interpTime = 0.0;
                     };
@@ -325,24 +332,25 @@ export class PixiManager {
                         const dt = now - sprite._lastTime;
                         sprite._lastTime = now;
 
-                        // GPU 상 보간 시간 축적
                         sprite._interpTime += dt;
                         sprite._interpMix = Math.min(sprite._interpTime / sprite._frameDuration, 1.0);
 
-                        // 부드럽게 텍스처 블렌딩
-                        if (interpFilter.uniforms) {
-                            interpFilter.uniforms.uMix = sprite._interpMix;
+                        const f3 = sprite.interpFilter;
+                        if (f3?.uniforms) {
+                            // 🔹 Linear 보간 (필요 시 Math.pow 로 커브 조절 가능)
+                            f3.uniforms.uMix = sprite._interpMix;
                         }
 
-                        // 22fps 단위로 실제 프레임 교체
                         sprite.update(delta);
                     };
                 }, 0);
             } else {
+                // run_1 등 고프레임 애니메이션은 일반 업데이트만
                 sprite._tick = (delta) => sprite.update(delta);
             }
 
             this.app.ticker.add(sprite._tick);
+
             sprite.on('destroyed', () => {
                 this.app.ticker.remove(sprite._tick);
                 sprite.filters = null;
@@ -353,7 +361,7 @@ export class PixiManager {
             sprite.entityType = name;
             this.entityLayer.addChild(sprite);
 
-            // ✅ 그림자
+            // ✅ 그림자 설정
             const shadow = new PIXI.Sprite(this.textures.shadow);
             shadow.anchor.set(0.5, 0.5);
             this.shadowLayer.addChild(shadow);
@@ -367,6 +375,7 @@ export class PixiManager {
         // 🐺 다른 동물 (wolf 등)
         const animalTextures = this.textures[name];
         if (!animalTextures || !animalTextures[initialAnimation]) return null;
+
         const animal = new PIXI.AnimatedSprite(animalTextures[initialAnimation]);
         animal.anchor.set(0.5, 1.0);
         animal.animationSpeed = 0.2;
@@ -384,6 +393,7 @@ export class PixiManager {
 
         return animal;
     }
+
 
 
 
