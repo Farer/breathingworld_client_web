@@ -271,7 +271,6 @@ export class PixiManager {
 
     createAnimal(name, initialAnimation) {
         if (name === 'rabbit') {
-            // ✅ "idle" → "idle_1" 자동 보정
             const animKey = initialAnimation.endsWith('_1') ? initialAnimation : `${initialAnimation}_1`;
             const dirs = this.textures.rabbit[animKey];
             if (!dirs) {
@@ -279,7 +278,6 @@ export class PixiManager {
                 return null;
             }
 
-            // ✅ 존재하는 방향만 필터링
             const validDirs = Object.keys(dirs).filter(k => dirs[k] && dirs[k].length > 0);
             if (validDirs.length === 0) {
                 console.warn(`No valid direction frames found for ${animKey}`);
@@ -295,33 +293,68 @@ export class PixiManager {
             }
 
             const sprite = new PIXI.AnimatedSprite(frames);
-            sprite.currentDir = chosenDir; // ✅ 현재 방향 저장
+            sprite.currentDir = chosenDir;
             sprite.anchor.set(0.5, 1.0);
             sprite.animationSpeed = 0.1;
             sprite.play();
 
-            if (sprite._tick) this.app.ticker.remove(sprite._tick);
-            sprite._tick = delta => sprite.update(delta);
-            this.app.ticker.add(sprite._tick);
+            // ✅ GPU 보간용 필터 (전역 PIXI.Filter 기반)
+            if (window.FrameInterpFilter && (animKey === 'idle_1' || animKey === 'run_1')) {
+                const interpFilter = new FrameInterpFilter();
+                sprite.filters = [interpFilter];
+                sprite.interpFilter = interpFilter;
 
+                // 🎯 Pixi가 필터 uniforms를 초기화할 시간을 주기 위해 1프레임 지연
+                setTimeout(() => {
+                    // 첫 프레임 수동 초기화
+                    const firstTex = sprite.textures[0];
+                    if (interpFilter.uniforms) {
+                        interpFilter.setFrames(firstTex, firstTex, 0.0);
+                    }
+
+                    sprite.onFrameChange = (idx) => {
+                        const next = (idx + 1) % sprite.textures.length;
+                        if (!interpFilter.uniforms) return;
+                        interpFilter.setFrames(sprite.textures[idx], sprite.textures[next], 0.0);
+                    };
+
+                    sprite._interpMix = 0.0;
+                    sprite._tick = (delta) => {
+                        sprite.update(delta);
+                        sprite._interpMix += delta * 0.04;
+                        if (sprite._interpMix >= 1.0) sprite._interpMix = 0.0;
+                        if (interpFilter.uniforms) {
+                            interpFilter.uniforms.uMix = sprite._interpMix;
+                        }
+                    };
+                }, 0);
+            } else {
+                // 일반 애니메이션용
+                sprite._tick = (delta) => sprite.update(delta);
+            }
+
+            // ✅ Ticker 등록 및 정리
+            this.app.ticker.add(sprite._tick);
             sprite.on('destroyed', () => {
-                if (sprite._tick) this.app.ticker.remove(sprite._tick);
+                this.app.ticker.remove(sprite._tick);
             });
-            
+
             sprite.animations = this.textures.rabbit;
             sprite.entityType = name;
             this.entityLayer.addChild(sprite);
 
+            // ✅ 그림자 추가
             const shadow = new PIXI.Sprite(this.textures.shadow);
             shadow.anchor.set(0.5, 0.5);
             this.shadowLayer.addChild(shadow);
             sprite.shadow = shadow;
             sprite.shadowOffsetY = -130;
             sprite.shadowWidthRatio = 0.4;
+
             return sprite;
         }
 
-        // 기존 동물 로직 (wolf 등)
+        // 🐺 기타 동물 (wolf 등)
         const animalTextures = this.textures[name];
         if (!animalTextures || !animalTextures[initialAnimation]) return null;
         const animal = new PIXI.AnimatedSprite(animalTextures[initialAnimation]);
@@ -331,12 +364,15 @@ export class PixiManager {
         animal.animations = animalTextures;
         animal.entityType = name;
         this.entityLayer.addChild(animal);
+
         const shadow = new PIXI.Sprite(this.textures.shadow);
         shadow.anchor.set(0.5, 0.5);
         this.shadowLayer.addChild(shadow);
         animal.shadow = shadow;
         animal.shadowOffsetY = -20;
         animal.shadowWidthRatio = (name === 'wolf') ? 0.3 : 0.2;
+
         return animal;
     }
+
 }

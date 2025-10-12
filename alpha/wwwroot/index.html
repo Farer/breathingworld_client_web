@@ -45,7 +45,8 @@
             "/js/earthWorm.js?1",
             "/js/colorCalculator.js",
             "/js/mapCache.js",
-            "https://cdn.jsdelivr.net/npm/pixi.js@8.14.0/dist/pixi.min.js"
+            "https://cdn.jsdelivr.net/npm/pixi.js@8.14.0/dist/pixi.min.js",
+            "/js/frameInterpFilter.js"
         ];
         function updateProgress() { completedTasks++; const percent = Math.round((completedTasks / totalTasks) * 100); document.getElementById("progress-bar").style.width = percent + "%"; }
         function loadScriptsSequentially(index = 0) { if (index < scripts.length) { loadScript(scripts[index], () => { updateProgress(); loadScriptsSequentially(index + 1); }); } }
