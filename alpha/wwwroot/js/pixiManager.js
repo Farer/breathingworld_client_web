@@ -162,7 +162,7 @@ export class PixiManager {
                 const frameUrls = [];
                 for (let i = 0; i < 100; i++) {
                     const num = i.toString().padStart(4, '0');
-                    const url = `${framePath}/frame_${num}.png`;
+                    const url = `${framePath}/webp/frame_${num}.webp`;
                     frameUrls.push(url);
                     
                 }
