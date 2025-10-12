@@ -2,9 +2,10 @@
 import { PixiManager } from './pixiManager.js';
 
 export class PixiController {
-    constructor(container, TWEEN) {
-        this.pixiManager = new PixiManager(container);
+    constructor(container, TWEEN, worker) {
+        this.pixiManager = new PixiManager(container, worker);
         this.TWEEN = TWEEN;
+        this.worker = worker;
         
         this.activeGround = new Map();
         this.activeWeed = new Map();
@@ -24,8 +25,8 @@ export class PixiController {
         };
     }
 
-    static async create(container, TWEEN) {
-        const controller = new PixiController(container, TWEEN);
+    static async create(container, TWEEN, worker) {
+        const controller = new PixiController(container, TWEEN, worker);
         await controller._init();
         return controller;
     }
@@ -160,6 +161,7 @@ export class PixiController {
         }
         this.allEntities.clear();
         this.activeWeed.clear();
+        this.activeGround.clear();
     }
 
     addEntity(data) {
@@ -204,7 +206,7 @@ export class PixiController {
         const domId = 'webGlStatDom';
         let dom = document.getElementById(domId);
         if(dom == null) {
-            dom = document.createElement(domId);
+            dom = document.createElement('div'); // ✅ fix
             dom.id = domId;
             dom.style.position = 'absolute';
             dom.style.left = '0px';
@@ -215,13 +217,13 @@ export class PixiController {
         }
         let html = '';
         html += 'FPS:' + this.stats.fps;
-        html += '<br>Entities' + this.stats.entityCount;
+        html += '<br>Entities:' + this.stats.entityCount;
         dom.innerHTML = html;
     }
 
     update(ticker) {
         this.stats.fps = ticker.FPS;
-        this.stats.entityCount = this.allEntities.size + this.activeWeed.size +  + this.activeGround.size;
+        this.stats.entityCount = this.allEntities.size + this.activeWeed.size + this.activeGround.size; // ✅ fix
         this.showStat();
 
         this.TWEEN.update();
@@ -260,8 +262,10 @@ export class PixiController {
         const baseScale = character.baseScale || 1.0;
         character.scale.y = baseScale;
         character.scale.x = direction * baseScale;
-        character.textures = character.animations.run;
-        character.play();
+        if (character.animations && character.animations.run) {
+            character.textures = character.animations.run;
+            character.play();
+        }
         if (character.activeTween) {
             this.TWEEN.remove(character.activeTween);
         }
@@ -269,12 +273,13 @@ export class PixiController {
             .to(target, duration * 1000)
             .easing(this.TWEEN.Easing.Quadratic.InOut)
             .onComplete(() => {
-                character.textures = character.animations.idle;
-                character.play();
+                if (character.animations && character.animations.idle) {
+                    character.textures = character.animations.idle;
+                    character.play();
+                }
                 character.activeTween = null;
-                // character에 타이머 ID 저장
                 character.thinkTimer = setTimeout(() => {
-                    if (character.visible) { // 활성 상태인지 확인
+                    if (character.visible) { 
                         this.thinkAndAct(character);
                     }
                 }, 1000 + Math.random() * 3000);
@@ -305,7 +310,6 @@ export class PixiController {
                 console.log("Map move complete. Populating new scene.");
                 const newSceneData = [];
 
-                // 1. 나무, 토끼, 늑대 20개 랜덤 생성
                 for (let i = 0; i < 20; i++) {
                     const x = (Math.random() * screen.width) - target.x;
                     const y = (Math.random() * screen.height) - target.y;
@@ -334,7 +338,6 @@ export class PixiController {
                     });
                 }
 
-                // 2. 잡초 50개 랜덤 생성
                 for (let i = 0; i < 50; i++) {
                     const x = (Math.random() * screen.width) - target.x;
                     const y = (Math.random() * screen.height) - target.y;
@@ -348,7 +351,6 @@ export class PixiController {
                     });
                 }
 
-                // 3. ground 50개 랜덤 생성
                 for (let i = 0; i < 50; i++) {
                     const x = (Math.random() * screen.width) - target.x;
                     const y = (Math.random() * screen.height) - target.y;

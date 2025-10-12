@@ -27,7 +27,8 @@ window.onload = async function () {
     Core.PrepareImageSources();
     Core.UpdatePlantProceedAccelerated();
     Core.ApplyWeather();
-    window.pixiController = await PixiController.create(document.getElementById('webGlDom'), TWEEN);
+    window.textureWorker = new Worker('/js/textureWorker.js', { type: 'module' });
+    window.pixiController = await PixiController.create(document.getElementById('webGlDom'), TWEEN, window.textureWorker);
 }
 window.onresize = function () {
     Core.DrawMap(true, false, false);

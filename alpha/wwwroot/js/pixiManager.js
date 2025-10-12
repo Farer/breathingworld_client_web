@@ -1,53 +1,41 @@
 'use strict';
 export class PixiManager {
-    constructor(targetElement) {
+    constructor(targetElement, worker) {
+        if (!targetElement) throw new Error("invalid targetElement");
+        this.worker = worker;
         this.isReady = false;
         this.app = null;
+
         this.textures = {
-            ground: [],
-            weed: [],
-            shadow: null,
-            trees: [],
-            rabbit: {},
-            wolf: {},
+            ground: [], weed: [], shadow: null, trees: [],
+            rabbit: {}, wolf: {}
         };
+
         this.groundLayer = null;
         this.shadowLayer = null;
         this.weedLayer = null;
         this.entityLayer = null;
 
-        if (!targetElement) {
-            throw new Error("invalid targetElement");
-        }
         this._init(targetElement);
     }
 
     async _init(targetElement) {
         this.app = new PIXI.Application();
-        await this.app.init({
-            backgroundAlpha: 0,
-            resizeTo: window,
-        });
+        await this.app.init({ backgroundAlpha: 0, resizeTo: window });
         targetElement.appendChild(this.app.view);
 
         this.groundLayer = new PIXI.Container();
-
-        this.shadowLayer = new PIXI.Container();
-        this.shadowLayer.sortableChildren = true;
-
-        this.weedLayer = new PIXI.Container();
-        this.weedLayer.sortableChildren = true;
-
-        this.entityLayer = new PIXI.Container();
-        this.entityLayer.sortableChildren = true;
-
+        this.shadowLayer = new PIXI.Container(); this.shadowLayer.sortableChildren = true;
+        this.weedLayer = new PIXI.Container(); this.weedLayer.sortableChildren = true;
+        this.entityLayer = new PIXI.Container(); this.entityLayer.sortableChildren = true;
         this.app.stage.addChild(this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer);
+
         await this.loadAssets();
+        await this.loadRabbitFrames(); // ✅ 새 애니메이션 로딩
         this.isReady = true;
     }
-    
+
     async loadAssets() {
-        // --- 그림자 텍스처를 코드로 생성 ---
         const graphics = new PIXI.Graphics();
         graphics.beginFill(0x000000, 0.2);
         graphics.drawEllipse(0, 0, 400, 200);
@@ -61,33 +49,77 @@ export class PixiManager {
                 assets: {
                     'groundSheet': '/img/sprites/sprite_ground_with_droppings_rgba_opti.png',
                     'weedSheet': '/img/sprites/sprite_weed_512_opti.png',
-                    'rabbitSheet': '/img/sprites/sprite_rabbit_256_tiny.png',
                     'wolfSheet': '/img/sprites/sprite_wolf_256_tiny.png',
                 },
             }],
         };
+
         const totalTreeStages = 12;
         for (let i = 0; i < totalTreeStages; i++) {
             assetManifest.bundles[0].assets[`treeStage${i}`] = `img/tree_${i}_tiny.png`;
         }
 
-        try {
-            await PIXI.Assets.init({ manifest: assetManifest });
-            const loadedAssets = await PIXI.Assets.loadBundle('game-assets');
-            for (let i = 0; i < totalTreeStages; i++) {
-                this.textures.trees.push(loadedAssets[`treeStage${i}`]);
-            }
-            this.textures.ground = this._parseGridSpriteSheet(loadedAssets.groundSheet, 128, 128, 4, 4);
-            this.textures.weed = this._parseGridSpriteSheet(loadedAssets.weedSheet, 512, 512, 4, 17);
-            this.textures.rabbit = this._parseAnimalSheet(loadedAssets.rabbitSheet, 256, { idle: 10, run: 24, eat: 21, jump: 61, sleep: 61 });
-            this.textures.wolf = this._parseAnimalSheet(loadedAssets.wolfSheet, 256, { idle: 60, run: 41, eat: 20, jump: 51, sleep: 60, howl: 60 });
-        } catch (error) {
-            console.error('Asset loading failed:', error);
-            // 폴백 처리 또는 사용자에게 알림
-            throw error;
-        }
+        await PIXI.Assets.init({ manifest: assetManifest });
+        const loaded = await PIXI.Assets.loadBundle('game-assets');
+
+        for (let i = 0; i < totalTreeStages; i++) this.textures.trees.push(loaded[`treeStage${i}`]);
+        this.textures.ground = this._parseGridSpriteSheet(loaded.groundSheet, 128, 128, 4, 4);
+        this.textures.weed = this._parseGridSpriteSheet(loaded.weedSheet, 512, 512, 4, 17);
+        this.textures.wolf = this._parseAnimalSheet(loaded.wolfSheet, 256, {
+            idle: 60, run: 41, eat: 20, jump: 51, sleep: 60, howl: 60
+        });
     }
-    
+
+    // ✅ Rabbit 전용 디렉토리 기반 로더
+    async loadRabbitFrames() {
+        const basePath = '/img/sprites/rabbit';
+        const animations = ['idle_1', 'run_1'];
+        const directions = Array.from({ length: 16 }, (_, i) => `direction_${i.toString().padStart(2, '0')}`);
+
+        this.textures.rabbit = {};
+
+        for (const anim of animations) {
+            this.textures.rabbit[anim] = {};
+            for (const dir of directions) {
+                const framePath = `${basePath}/${anim}/${dir}`;
+                const frameUrls = [];
+                for (let i = 0; i < 100; i++) {
+                    const num = i.toString().padStart(4, '0');
+                    const url = `${framePath}/frame_${num}.png`;
+                    frameUrls.push(url);
+                }
+
+                const validFrames = [];
+                for (const url of frameUrls) {
+                    try {
+                        const img = await this._decodeImage(url);
+                        const tex = PIXI.Texture.from(img);
+                        validFrames.push(tex);
+                    } catch { break; }
+                }
+                if (validFrames.length > 0)
+                    this.textures.rabbit[anim][dir] = validFrames;
+            }
+        }
+        console.log('✅ Rabbit frames loaded:', this.textures.rabbit);
+    }
+
+    async _decodeImage(url) {
+        if (!this.worker) return await createImageBitmap(await (await fetch(url)).blob());
+        return new Promise((resolve, reject) => {
+            const id = Math.random().toString(36).slice(2);
+            const onMsg = (e) => {
+                if (e.data && e.data.id === id) {
+                    this.worker.removeEventListener('message', onMsg);
+                    if (e.data.error) reject(e.data.error);
+                    else resolve(e.data.bitmap);
+                }
+            };
+            this.worker.addEventListener('message', onMsg);
+            this.worker.postMessage({ type: 'decode', url, id });
+        });
+    }
+
     _parseAnimalSheet(sheetTexture, frameSize, animationConfig) {
         const animations = {};
         let currentY = 0;
@@ -97,7 +129,7 @@ export class PixiManager {
         }
         return animations;
     }
-    
+
     _parseRowSpriteSheet(texture, frameWidth, frameHeight, yOffset, frameCount) {
         const frames = [];
         for (let i = 0; i < frameCount; i++) {
@@ -106,7 +138,7 @@ export class PixiManager {
         }
         return frames;
     }
-    
+
     _parseGridSpriteSheet(texture, frameWidth, frameHeight, cols, totalFrames) {
         const frames = [];
         for (let i = 0; i < totalFrames; i++) {
@@ -117,7 +149,7 @@ export class PixiManager {
         }
         return frames;
     }
-    
+
     createGround(stageIndex) {
         if (stageIndex < 0 || stageIndex >= this.textures.ground.length) return null;
 
@@ -157,9 +189,32 @@ export class PixiManager {
     }
 
     createAnimal(name, initialAnimation) {
+        if (name === 'rabbit') {
+            const dirs = this.textures.rabbit[`${initialAnimation}_1`];
+            const dirKeys = Object.keys(dirs);
+            const chosenDir = dirKeys[Math.floor(Math.random() * dirKeys.length)];
+            const frames = dirs[chosenDir];
+
+            const sprite = new PIXI.AnimatedSprite(frames);
+            sprite.anchor.set(0.5, 1.0);
+            sprite.animationSpeed = 0.2;
+            sprite.play();
+            sprite.animations = this.textures.rabbit;
+            sprite.entityType = name;
+            this.entityLayer.addChild(sprite);
+
+            const shadow = new PIXI.Sprite(this.textures.shadow);
+            shadow.anchor.set(0.5, 0.5);
+            this.shadowLayer.addChild(shadow);
+            sprite.shadow = shadow;
+            sprite.shadowOffsetY = -20;
+            sprite.shadowWidthRatio = 0.25;
+            return sprite;
+        }
+
+        // 기존 동물 로직 (wolf 등)
         const animalTextures = this.textures[name];
         if (!animalTextures || !animalTextures[initialAnimation]) return null;
-        
         const animal = new PIXI.AnimatedSprite(animalTextures[initialAnimation]);
         animal.anchor.set(0.5, 1.0);
         animal.animationSpeed = 0.2;
@@ -167,18 +222,12 @@ export class PixiManager {
         animal.animations = animalTextures;
         animal.entityType = name;
         this.entityLayer.addChild(animal);
-
         const shadow = new PIXI.Sprite(this.textures.shadow);
         shadow.anchor.set(0.5, 0.5);
         this.shadowLayer.addChild(shadow);
         animal.shadow = shadow;
         animal.shadowOffsetY = -20;
-        if(name == 'rabbit') {
-            animal.shadowWidthRatio = 0.2;
-        } else if(name == 'wolf') {
-            animal.shadowWidthRatio = 0.3;
-        }
-
+        animal.shadowWidthRatio = (name === 'wolf') ? 0.3 : 0.2;
         return animal;
     }
 }
