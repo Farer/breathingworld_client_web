@@ -267,11 +267,14 @@ export class PixiController {
 
             if (entity.shadow) {
                 const baseScale = entity.baseScale || 1.0;
-                const scaledOffsetY = (entity.shadowOffsetY || 0) * baseScale;
+                const globalScale = this.pixiManager.currentScale / 128; // 기본 스케일 기준 보정
+
+                const scaledOffsetY = (entity.shadowOffsetY || 0) * baseScale * globalScale;
                 entity.shadow.x = entity.x;
                 entity.shadow.y = entity.y + scaledOffsetY;
                 entity.shadow.zIndex = entity.y;
-                const shadowScale = baseScale * (entity.shadowWidthRatio || 1.0);
+
+                const shadowScale = baseScale * globalScale * (entity.shadowWidthRatio || 1.0);
                 entity.shadow.scale.set(shadowScale);
             }
         }
