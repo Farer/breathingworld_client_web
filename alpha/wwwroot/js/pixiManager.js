@@ -278,7 +278,7 @@ export class PixiManager {
                 return null;
             }
 
-            const validDirs = Object.keys(dirs).filter(k => dirs[k] && dirs[k].length > 0);
+            const validDirs = Object.keys(dirs).filter(k => dirs[k]?.length > 0);
             if (validDirs.length === 0) {
                 console.warn(`No valid direction frames found for ${animKey}`);
                 return null;
@@ -286,76 +286,74 @@ export class PixiManager {
 
             const chosenDir = validDirs[Math.floor(Math.random() * validDirs.length)];
             const frames = dirs[chosenDir];
-
-            if (!frames || frames.length === 0) {
-                console.warn(`Rabbit frames missing for ${animKey}/${chosenDir}`);
-                return null;
-            }
+            if (!frames?.length) return null;
 
             const sprite = new PIXI.AnimatedSprite(frames);
             sprite.currentDir = chosenDir;
             sprite.anchor.set(0.5, 1.0);
-            sprite.animationSpeed = 0.1;
+            sprite.animationSpeed = animKey === 'idle_1' ? 0.37 : 0.55; // 실제 프레임 속도 (22fps → 약 0.37)
             sprite.play();
 
-            // ✅ GPU 보간용 필터 (FPS 보정 적용)
-            if (window.FrameInterpFilter && (animKey === 'idle_1' || animKey === 'run_1')) {
+            // ✅ GPU 프레임 보간 필터 활성화
+            if (window.FrameInterpFilter && animKey === 'idle_1') {
                 const interpFilter = new FrameInterpFilter();
                 sprite.filters = [interpFilter];
                 sprite.interpFilter = interpFilter;
 
-                // 🎯 uniforms 초기화 타이밍 안전 확보
                 setTimeout(() => {
-                    const firstTex = sprite.textures[0];
+                    const tex = sprite.textures[0];
                     if (interpFilter.uniforms) {
-                        interpFilter.setFrames(firstTex, firstTex, 0.0);
+                        interpFilter.setFrames(tex, tex, 0.0);
+                        interpFilter.uniforms.uMix = 0.0;
                     }
+
+                    sprite._interpMix = 0.0;
+                    sprite._interpTime = 0.0;
+                    sprite._frameDuration = 1000 / 22; // 🔹 원본 22fps 기준
 
                     sprite.onFrameChange = (idx) => {
                         const next = (idx + 1) % sprite.textures.length;
                         if (!interpFilter.uniforms) return;
                         interpFilter.setFrames(sprite.textures[idx], sprite.textures[next], 0.0);
+                        sprite._interpMix = 0.0;
+                        sprite._interpTime = 0.0;
                     };
 
-                    sprite._interpMix = 0.0;
                     sprite._tick = (delta) => {
-                        sprite.update(delta);
+                        const now = performance.now();
+                        if (!sprite._lastTime) sprite._lastTime = now;
+                        const dt = now - sprite._lastTime;
+                        sprite._lastTime = now;
 
-                        // 🔹 FPS 보정 (60FPS 기준)
-                        const fps = sprite._lastFPS || 60;
-                        const targetFPS = 60;
-                        const mixSpeed = 0.04 * (fps / targetFPS); // fps 낮으면 더 느리게, 높으면 빠르게
+                        // GPU 상 보간 시간 축적
+                        sprite._interpTime += dt;
+                        sprite._interpMix = Math.min(sprite._interpTime / sprite._frameDuration, 1.0);
 
-                        sprite._interpMix += delta * mixSpeed;
-                        if (sprite._interpMix >= 1.0) sprite._interpMix = 0.0;
+                        // 부드럽게 텍스처 블렌딩
                         if (interpFilter.uniforms) {
                             interpFilter.uniforms.uMix = sprite._interpMix;
                         }
 
-                        // FPS 갱신 (매 프레임마다 계산)
-                        const now = performance.now();
-                        if (sprite._lastTime) {
-                            const frameTime = now - sprite._lastTime;
-                            sprite._lastFPS = 1000 / frameTime;
-                        }
-                        sprite._lastTime = now;
+                        // 22fps 단위로 실제 프레임 교체
+                        sprite.update(delta);
                     };
                 }, 0);
             } else {
                 sprite._tick = (delta) => sprite.update(delta);
             }
 
-            // ✅ Ticker 등록 및 정리
             this.app.ticker.add(sprite._tick);
             sprite.on('destroyed', () => {
                 this.app.ticker.remove(sprite._tick);
+                sprite.filters = null;
+                sprite.interpFilter = null;
             });
 
             sprite.animations = this.textures.rabbit;
             sprite.entityType = name;
             this.entityLayer.addChild(sprite);
 
-            // ✅ 그림자 생성
+            // ✅ 그림자
             const shadow = new PIXI.Sprite(this.textures.shadow);
             shadow.anchor.set(0.5, 0.5);
             this.shadowLayer.addChild(shadow);
@@ -366,7 +364,7 @@ export class PixiManager {
             return sprite;
         }
 
-        // 🐺 기존 동물 (예: wolf)
+        // 🐺 다른 동물 (wolf 등)
         const animalTextures = this.textures[name];
         if (!animalTextures || !animalTextures[initialAnimation]) return null;
         const animal = new PIXI.AnimatedSprite(animalTextures[initialAnimation]);
@@ -386,6 +384,7 @@ export class PixiManager {
 
         return animal;
     }
+
 
 
 }
