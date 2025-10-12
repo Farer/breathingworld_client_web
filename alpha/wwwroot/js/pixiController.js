@@ -235,7 +235,7 @@ export class PixiController {
         dom.innerHTML = html;
     }
 
-    update(ticker) {
+    async update(ticker) {
         this.stats.fps = Math.round(1000 / ticker.deltaMS);
         this.stats.entityCount = this.allEntities.size + this.activeWeed.size + this.activeGround.size; // ✅ fix
         this.showStat();
@@ -245,7 +245,7 @@ export class PixiController {
         // ✅ scale 변화 감지 및 반영 (예시)
         const globalScale = window.currentMapScale || 128;
         if (this.pixiManager.currentScale !== globalScale) {
-            this.pixiManager.setScale(globalScale);
+            await this.pixiManager.setScale(globalScale);
         }
 
         for (const weed of this.activeWeed.values()) {
@@ -291,18 +291,29 @@ export class PixiController {
     }
 
     _pickDir(animSet, dirKey) {
+        // 1️⃣ 정확히 일치하는 방향이 있으면 그대로 반환
         if (animSet[dirKey]?.length) return dirKey;
-        // 근사 방향 탐색
+
+        // 2️⃣ 근사 방향 탐색 (양쪽으로 1~7스텝 이내)
         const idx = parseInt(dirKey.slice(-2), 10);
         for (let step = 1; step < 8; step++) {
-            const cw = `direction_${String((idx + step) % 16).padStart(2,'0')}`;
-            const ccw = `direction_${String((idx - step + 16) % 16).padStart(2,'0')}`;
+            const cw = `direction_${String((idx + step) % 16).padStart(2, '0')}`;
+            const ccw = `direction_${String((idx - step + 16) % 16).padStart(2, '0')}`;
             if (animSet[cw]?.length) return cw;
             if (animSet[ccw]?.length) return ccw;
         }
-        // 최후 폴백: 아무거나
-        const keys = Object.keys(animSet).filter(k => animSet[k]?.length);
-        return keys.length ? keys[0] : null;
+
+        // 3️⃣ 폴백: 남아 있는 유효 키 중 아무거나 선택
+        const validKeys = Object.keys(animSet).filter(k => animSet[k]?.length);
+        if (validKeys.length > 0) return validKeys[0];
+
+        // 4️⃣ 최후의 방어선: 경고 1초에 한 번만 출력 + 현재 방향 유지
+        if (!this._warnedMissingDir) {
+            console.warn(`⚠️ _pickDir(): No valid direction found for ${dirKey}, keeping current texture.`);
+            this._warnedMissingDir = true;
+            setTimeout(() => this._warnedMissingDir = false, 1000);
+        }
+        return dirKey;
     }
     
     moveTo(character, target, duration) {
@@ -375,6 +386,12 @@ export class PixiController {
 
     moveMap() {
         console.log("Simulating map drag...");
+        if (this._isMovingMap) {
+            console.log('already moving...')
+            return;
+        }
+        this._isMovingMap = true;
+
         const screen = this.pixiManager.app.screen;
         const camera = this.pixiManager.app.stage;
         const target = { x: (Math.random() - 0.5) * screen.width, y: (Math.random() - 0.5) * screen.height };
@@ -385,6 +402,7 @@ export class PixiController {
             .easing(this.TWEEN.Easing.Cubic.Out)
             .onComplete(() => {
                 console.log("Map move complete. Populating new scene.");
+                this._isMovingMap = false;
                 const newSceneData = [];
 
                 for (let i = 0; i < 20; i++) {
