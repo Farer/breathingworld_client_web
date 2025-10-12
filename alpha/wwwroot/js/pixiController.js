@@ -101,6 +101,12 @@ export class PixiController {
             entity = pool.pop();
             entity.visible = true;
             if (entity.shadow) entity.shadow.visible = true;
+            // ✅ 토끼라면 틱 재등록
+            if (entity.entityType === 'rabbit') {
+                if (entity._tick) this.pixiManager.app.ticker.remove(entity._tick);
+                entity._tick = delta => entity.update(delta);
+                this.pixiManager.app.ticker.add(entity._tick);
+            }
             if (species === 'tree' || species === 'weed') {
                 const textureKey = (species === 'tree') ? 'trees' : 'weed';
                 if (entity.texture !== this.pixiManager.textures[textureKey][stage]) {
@@ -115,6 +121,9 @@ export class PixiController {
                 case 'rabbit': case 'wolf': entity = this.pixiManager.createAnimal(species, 'idle'); break;
             }
         }
+        // ⚠️ AnimatedSprite가 아닐 수도 있으니 방어적으로
+        if (entity && entity.animations) entity.animationSpeed = 0.1;
+        if (entity) entity.zIndex = 0;
         return entity;
     }
 
@@ -129,6 +138,11 @@ export class PixiController {
         }
         if (entity.animations) {
             entity.stop();
+        }
+        // ✅ 개별 틱 제거
+        if (entity._tick && this.pixiManager && this.pixiManager.app) {
+            this.pixiManager.app.ticker.remove(entity._tick);
+            entity._tick = null;
         }
 
         if (entity.entityType && this.pools[entity.entityType]) {
@@ -222,11 +236,17 @@ export class PixiController {
     }
 
     update(ticker) {
-        this.stats.fps = ticker.FPS;
+        this.stats.fps = Math.round(1000 / ticker.deltaMS);
         this.stats.entityCount = this.allEntities.size + this.activeWeed.size + this.activeGround.size; // ✅ fix
         this.showStat();
 
         this.TWEEN.update();
+
+        // ✅ scale 변화 감지 및 반영 (예시)
+        const globalScale = window.currentMapScale || 128;
+        if (this.pixiManager.currentScale !== globalScale) {
+            this.pixiManager.setScale(globalScale);
+        }
 
         for (const weed of this.activeWeed.values()) {
             weed.zIndex = weed.y;
@@ -238,7 +258,7 @@ export class PixiController {
                 const distanceMoved = Math.sqrt(Math.pow(entity.x - entity.lastX, 2) + Math.pow(entity.y - entity.lastY, 2));
                 if (distanceMoved > 0.1) {
                     const currentSpeed = distanceMoved / ticker.deltaTime;
-                    entity.animationSpeed = 0.1 + currentSpeed * 0.2;
+                    entity.animationSpeed = Math.min(0.45, 0.12 + currentSpeed * 0.015);
                 }
                 entity.lastX = entity.x;
                 entity.lastY = entity.y;
@@ -269,6 +289,21 @@ export class PixiController {
         const index = Math.round(adjusted / 22.5) % 16;
         return index.toString().padStart(2, '0');
     }
+
+    _pickDir(animSet, dirKey) {
+        if (animSet[dirKey]?.length) return dirKey;
+        // 근사 방향 탐색
+        const idx = parseInt(dirKey.slice(-2), 10);
+        for (let step = 1; step < 8; step++) {
+            const cw = `direction_${String((idx + step) % 16).padStart(2,'0')}`;
+            const ccw = `direction_${String((idx - step + 16) % 16).padStart(2,'0')}`;
+            if (animSet[cw]?.length) return cw;
+            if (animSet[ccw]?.length) return ccw;
+        }
+        // 최후 폴백: 아무거나
+        const keys = Object.keys(animSet).filter(k => animSet[k]?.length);
+        return keys.length ? keys[0] : null;
+    }
     
     moveTo(character, target, duration) {
         // 1️⃣ 이동 방향 계산
@@ -278,10 +313,15 @@ export class PixiController {
         // 2️⃣ 애니메이션 전환
         if (character.entityType === 'rabbit') {
             const animSet = character.animations['run_1'];
-            if (animSet && animSet[dirKey]) {
-                character.textures = animSet[dirKey];
-                character.play();
-                character.currentDir = dirKey;
+            if (animSet) {
+                const pickedDir = this._pickDir(animSet, dirKey);
+                if (pickedDir) {
+                    character.textures = animSet[pickedDir];
+                    character.gotoAndPlay(0);
+                    character.currentDir = pickedDir;
+                } else {
+                    console.warn(`🐇 No valid run_1 direction found for ${dirKey}`);
+                }
             }
         } else if (character.animations && character.animations.run) {
             character.textures = character.animations.run;
@@ -290,6 +330,8 @@ export class PixiController {
 
         // 3️⃣ 트윈 이동
         if (character.activeTween) this.TWEEN.remove(character.activeTween);
+        if (character.thinkTimer) clearTimeout(character.thinkTimer);
+
         const tween = new this.TWEEN.Tween(character.position)
             .to(target, duration * 1000)
             .easing(this.TWEEN.Easing.Quadratic.InOut)
@@ -297,9 +339,15 @@ export class PixiController {
                 // ✅ 이동 완료 후 idle_1로 전환
                 if (character.entityType === 'rabbit') {
                     const idleSet = character.animations['idle_1'];
-                    if (idleSet && idleSet[character.currentDir]) {
-                        character.textures = idleSet[character.currentDir];
-                        character.play();
+                    if (idleSet) {
+                        const pickedDir = this._pickDir(idleSet, character.currentDir);
+                        if (pickedDir) {
+                            character.textures = idleSet[pickedDir];
+                            character.gotoAndPlay(0);
+                            character.currentDir = pickedDir;
+                        } else {
+                            console.warn(`🐇 No valid idle_1 direction found for ${character.currentDir}`);
+                        }
                     }
                 } else if (character.animations && character.animations.idle) {
                     character.textures = character.animations.idle;
@@ -312,8 +360,10 @@ export class PixiController {
                 }, 1000 + Math.random() * 3000);
             })
             .start();
+
         character.activeTween = tween;
     }
+
     
     thinkAndAct(character) {
         const screen = this.pixiManager.app.screen;

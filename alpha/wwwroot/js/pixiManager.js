@@ -5,6 +5,8 @@ export class PixiManager {
         this.worker = worker;
         this.isReady = false;
         this.app = null;
+        this.currentScale = 128; // ✅ 현재 스케일 상태 추가
+        this._rabbitCache = {};
 
         this.textures = {
             ground: [], weed: [], shadow: null, trees: [],
@@ -70,9 +72,84 @@ export class PixiManager {
         });
     }
 
+    // ✅ scale 전환 메서드
+    async setScale(newScale) {
+        // 이미 동일한 스케일이라면 무시
+        if (this.currentScale === newScale) return;
+
+        // 캐시 저장소 초기화
+        this._rabbitCache = this._rabbitCache || {};
+        const scaleDir = `${newScale}`;
+
+        // 🧩 scale < 8 → 토끼 비활성화
+        if (newScale < 8) {
+            for (const entity of this.entityLayer.children) {
+                if (entity.entityType === 'rabbit') entity.visible = false;
+            }
+            this.currentScale = newScale;
+            return;
+        }
+
+        // 🧠 새 스케일 로딩 전 참조 해제 (destroy는 하지 않음)
+        // 기존 객체를 직접 지우지 않고, 새로운 객체로 교체 (캐시 참조 보존)
+        this.textures.rabbit = {};
+
+        // 🧠 캐시에 있으면 즉시 복원
+        if (this._rabbitCache[scaleDir]) {
+            this.textures.rabbit = this._rabbitCache[scaleDir];
+            this.currentScale = newScale;
+            console.log(`♻️ Rabbit textures restored from cache for scale ${newScale}`);
+        } 
+        else {
+            // 새 스케일 로딩
+            console.log(`⬇️ Loading new rabbit frames for scale ${newScale}...`);
+            this.currentScale = newScale;
+            await this.loadRabbitFrames();
+
+            // 로딩 완료 후 캐시에 저장
+            this._rabbitCache[scaleDir] = this.textures.rabbit;
+            console.log(`✅ Cached rabbit frames for scale ${newScale}`);
+        }
+
+        // ✅ 스케일 변경 후 rabbit 다시 활성화
+        for (const entity of this.entityLayer.children) {
+            if (entity.entityType !== 'rabbit') continue;
+
+            entity.visible = true;
+
+            // 🧭 방향 보정
+            const dir = entity.currentDir || 'direction_00';
+            const idleSet = this.textures.rabbit['idle_1'];
+            if (idleSet && idleSet[dir]) {
+                entity.textures = idleSet[dir];
+                entity.gotoAndPlay(0);
+            } else {
+                // 폴백 방향
+                const validDirs = Object.keys(idleSet || {}).filter(k => idleSet[k]?.length > 0);
+                if (validDirs.length > 0) {
+                    entity.textures = idleSet[validDirs[0]];
+                    entity.gotoAndPlay(0);
+                    entity.currentDir = validDirs[0];
+                }
+            }
+        }
+
+        // ✅ 디버그 로그
+        console.log(`🐇 setScale(${newScale}) complete. Rabbit assets active.`);
+    }
+
+
+
     // ✅ Rabbit 전용 디렉토리 기반 로더
     async loadRabbitFrames() {
-        const basePath = '/img/sprites/rabbit';
+        const scaleDir = `${this.currentScale}`;
+        this._rabbitCache = this._rabbitCache || {};
+        if (this._rabbitCache[scaleDir]) {
+            this.textures.rabbit = this._rabbitCache[scaleDir];
+            return;
+        }
+
+        const basePath = `/img/sprites/rabbit/${scaleDir}`;
         const animations = ['idle_1', 'run_1'];
         const directions = Array.from({ length: 16 }, (_, i) => `direction_${i.toString().padStart(2, '0')}`);
 
@@ -87,6 +164,7 @@ export class PixiManager {
                     const num = i.toString().padStart(4, '0');
                     const url = `${framePath}/frame_${num}.png`;
                     frameUrls.push(url);
+                    
                 }
 
                 const validFrames = [];
@@ -95,13 +173,16 @@ export class PixiManager {
                         const img = await this._decodeImage(url);
                         const tex = PIXI.Texture.from(img);
                         validFrames.push(tex);
-                    } catch { break; }
+                    } catch (err) {
+                        break;
+                    }
                 }
                 if (validFrames.length > 0)
-                    this.textures.rabbit[anim][dir] = validFrames;
+                this.textures.rabbit[anim][dir] = validFrames;
             }
         }
-        console.log('✅ Rabbit frames loaded:', this.textures.rabbit);
+        console.log(`✅ Rabbit frames loaded for scale ${this.currentScale}`, this.textures.rabbit);
+        this._rabbitCache[scaleDir] = this.textures.rabbit;
     }
 
     async _decodeImage(url) {
@@ -190,16 +271,43 @@ export class PixiManager {
 
     createAnimal(name, initialAnimation) {
         if (name === 'rabbit') {
-            const dirs = this.textures.rabbit[`${initialAnimation}_1`];
-            const dirKeys = Object.keys(dirs);
-            const chosenDir = dirKeys[Math.floor(Math.random() * dirKeys.length)];
+            // ✅ "idle" → "idle_1" 자동 보정
+            const animKey = initialAnimation.endsWith('_1') ? initialAnimation : `${initialAnimation}_1`;
+            const dirs = this.textures.rabbit[animKey];
+            if (!dirs) {
+                console.warn(`Rabbit animation set not found: ${animKey}`);
+                return null;
+            }
+
+            // ✅ 존재하는 방향만 필터링
+            const validDirs = Object.keys(dirs).filter(k => dirs[k] && dirs[k].length > 0);
+            if (validDirs.length === 0) {
+                console.warn(`No valid direction frames found for ${animKey}`);
+                return null;
+            }
+
+            const chosenDir = validDirs[Math.floor(Math.random() * validDirs.length)];
             const frames = dirs[chosenDir];
+
+            if (!frames || frames.length === 0) {
+                console.warn(`Rabbit frames missing for ${animKey}/${chosenDir}`);
+                return null;
+            }
 
             const sprite = new PIXI.AnimatedSprite(frames);
             sprite.currentDir = chosenDir; // ✅ 현재 방향 저장
             sprite.anchor.set(0.5, 1.0);
-            sprite.animationSpeed = 0.2;
+            sprite.animationSpeed = 0.1;
             sprite.play();
+
+            if (sprite._tick) this.app.ticker.remove(sprite._tick);
+            sprite._tick = delta => sprite.update(delta);
+            this.app.ticker.add(sprite._tick);
+
+            sprite.on('destroyed', () => {
+                if (sprite._tick) this.app.ticker.remove(sprite._tick);
+            });
+            
             sprite.animations = this.textures.rabbit;
             sprite.entityType = name;
             this.entityLayer.addChild(sprite);
