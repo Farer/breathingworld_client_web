@@ -298,15 +298,14 @@ export class PixiManager {
             sprite.animationSpeed = 0.1;
             sprite.play();
 
-            // ✅ GPU 보간용 필터 (전역 PIXI.Filter 기반)
+            // ✅ GPU 보간용 필터 (FPS 보정 적용)
             if (window.FrameInterpFilter && (animKey === 'idle_1' || animKey === 'run_1')) {
                 const interpFilter = new FrameInterpFilter();
                 sprite.filters = [interpFilter];
                 sprite.interpFilter = interpFilter;
 
-                // 🎯 Pixi가 필터 uniforms를 초기화할 시간을 주기 위해 1프레임 지연
+                // 🎯 uniforms 초기화 타이밍 안전 확보
                 setTimeout(() => {
-                    // 첫 프레임 수동 초기화
                     const firstTex = sprite.textures[0];
                     if (interpFilter.uniforms) {
                         interpFilter.setFrames(firstTex, firstTex, 0.0);
@@ -321,15 +320,28 @@ export class PixiManager {
                     sprite._interpMix = 0.0;
                     sprite._tick = (delta) => {
                         sprite.update(delta);
-                        sprite._interpMix += delta * 0.04;
+
+                        // 🔹 FPS 보정 (60FPS 기준)
+                        const fps = sprite._lastFPS || 60;
+                        const targetFPS = 60;
+                        const mixSpeed = 0.04 * (fps / targetFPS); // fps 낮으면 더 느리게, 높으면 빠르게
+
+                        sprite._interpMix += delta * mixSpeed;
                         if (sprite._interpMix >= 1.0) sprite._interpMix = 0.0;
                         if (interpFilter.uniforms) {
                             interpFilter.uniforms.uMix = sprite._interpMix;
                         }
+
+                        // FPS 갱신 (매 프레임마다 계산)
+                        const now = performance.now();
+                        if (sprite._lastTime) {
+                            const frameTime = now - sprite._lastTime;
+                            sprite._lastFPS = 1000 / frameTime;
+                        }
+                        sprite._lastTime = now;
                     };
                 }, 0);
             } else {
-                // 일반 애니메이션용
                 sprite._tick = (delta) => sprite.update(delta);
             }
 
@@ -343,7 +355,7 @@ export class PixiManager {
             sprite.entityType = name;
             this.entityLayer.addChild(sprite);
 
-            // ✅ 그림자 추가
+            // ✅ 그림자 생성
             const shadow = new PIXI.Sprite(this.textures.shadow);
             shadow.anchor.set(0.5, 0.5);
             this.shadowLayer.addChild(shadow);
@@ -354,7 +366,7 @@ export class PixiManager {
             return sprite;
         }
 
-        // 🐺 기타 동물 (wolf 등)
+        // 🐺 기존 동물 (예: wolf)
         const animalTextures = this.textures[name];
         if (!animalTextures || !animalTextures[initialAnimation]) return null;
         const animal = new PIXI.AnimatedSprite(animalTextures[initialAnimation]);
@@ -374,5 +386,6 @@ export class PixiManager {
 
         return animal;
     }
+
 
 }
