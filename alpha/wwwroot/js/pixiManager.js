@@ -133,7 +133,7 @@ export class PixiManager {
                 const path = `${basePath}/${anim}/${dir}`;
                 const urls = Array.from({ length: MAX_FRAMES }, (_, i) => {
                     const num = i.toString().padStart(4, '0');
-                    return `${path}/webp/frame_${num}.webp`;
+                    return `${path}/frame_${num}.webp`;
                 });
                 
                 const frames = [];
@@ -148,7 +148,7 @@ export class PixiManager {
                     const validFrames = batchResults.filter(frame => frame !== null);
                     frames.push(...validFrames);
                     if (validFrames.length < batchResults.length) break;
-                    
+
                     // ✅ 배치마다 카운터 초기화 (Safari)
                     if (this._isSafari) {
                         this._consecutiveDecodes = 0;
