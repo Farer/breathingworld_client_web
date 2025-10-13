@@ -109,7 +109,7 @@ export class PixiManager {
         console.log(`✅ ${species} frames cached for scale ${scaleDir}`);
     }
 
-    // ✅ 방향별 WebP 프레임 로더
+    // ✅ 방향별 WebP 프레임 로더 (병렬 디코딩)
     async _loadDirectionalFrames(species, animations) {
         const scaleDir = `${this.currentScale}`;
         const basePath = `/img/sprites/${species}/${scaleDir}`;
@@ -118,46 +118,102 @@ export class PixiManager {
 
         // 🧩 Safari-safe patch: Safari에서는 frame 수 줄임
         const MAX_FRAMES = this._isSafari ? 30 : 100;
+        
+        // 🚀 병렬 처리를 위한 배치 크기 (동시 다운로드 수 제한)
+        const BATCH_SIZE = this._isSafari ? 5 : 10;
 
         for (const anim of animations) {
             this.textures[species][anim] = {};
-            for (const dir of dirs) {
+            
+            // 🚀 모든 방향을 병렬로 로드
+            const dirPromises = dirs.map(async dir => {
                 const path = `${basePath}/${anim}/${dir}`;
-                const frames = [];
-                for (let i = 0; i < MAX_FRAMES; i++) {
+                const urls = Array.from({ length: MAX_FRAMES }, (_, i) => {
                     const num = i.toString().padStart(4, '0');
-                    const url = `${path}/webp/frame_${num}.webp`;
-                    try {
-                        const img = await this._decodeImage(url);
-                        frames.push(PIXI.Texture.from(img));
-                    } catch {
-                        break;
-                    }
+                    return `${path}/webp/frame_${num}.webp`;
+                });
+                
+                const frames = [];
+                for (let batchStart = 0; batchStart < urls.length; batchStart += BATCH_SIZE) {
+                    const batchUrls = urls.slice(batchStart, batchStart + BATCH_SIZE);
+                    const batchPromises = batchUrls.map(url => 
+                        this._decodeImage(url)
+                            .then(img => PIXI.Texture.from(img))
+                            .catch(() => null)
+                    );
+                    const batchResults = await Promise.all(batchPromises);
+                    const validFrames = batchResults.filter(frame => frame !== null);
+                    frames.push(...validFrames);
+                    if (validFrames.length < batchResults.length) break;
                 }
-                if (frames.length > 0) this.textures[species][anim][dir] = frames;
-            }
+                
+                return { dir, frames };
+            });
+            
+            const results = await Promise.all(dirPromises);
+            results.forEach(({ dir, frames }) => {
+                if (frames.length > 0) {
+                    this.textures[species][anim][dir] = frames;
+                }
+            });
         }
     }
 
     async _decodeImage(url) {
-        // 🧩 Safari-safe patch: Safari는 Worker 디코딩 제한이 있으므로 main thread 처리
-        if (!this.worker || this._isSafari) {
-            const blob = await (await fetch(url)).blob();
-            return await createImageBitmap(blob);
-        }
-
-        return new Promise((resolve, reject) => {
-            const id = Math.random().toString(36).slice(2);
-            const onMsg = (e) => {
-                if (e.data && e.data.id === id) {
-                    this.worker.removeEventListener('message', onMsg);
-                    if (e.data.error) reject(e.data.error);
-                    else resolve(e.data.bitmap);
+        try {
+            // 🧩 Safari-safe patch: Safari는 Worker 디코딩 제한이 있으므로 main thread 처리
+            if (!this.worker || this._isSafari) {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Failed to fetch: ${url}`);
+                
+                const blob = await response.blob();
+                
+                // Safari: 배치 크기를 더 줄이고 프레임 간 딜레이 추가
+                if (this._isSafari && this._consecutiveDecodes > 5) {
+                    await new Promise(resolve => setTimeout(resolve, 16)); // 1프레임 대기
+                    this._consecutiveDecodes = 0;
                 }
-            };
-            this.worker.addEventListener('message', onMsg);
-            this.worker.postMessage({ type: 'decode', url, id });
-        });
+                this._consecutiveDecodes = (this._consecutiveDecodes || 0) + 1;
+                
+                return await createImageBitmap(blob);
+            }
+
+            return new Promise((resolve, reject) => {
+                const id = Math.random().toString(36).slice(2);
+                const onMsg = (e) => {
+                    if (e.data && e.data.id === id) {
+                        this.worker.removeEventListener('message', onMsg);
+                        if (e.data.error) reject(e.data.error);
+                        else resolve(e.data.bitmap);
+                    }
+                };
+                this.worker.addEventListener('message', onMsg);
+                this.worker.postMessage({ type: 'decode', url, id });
+            });
+        } catch (error) {
+            console.warn(`Image decode failed for ${url}:`, error);
+            return null; // null 반환으로 처리 계속 진행
+        }
+    }
+
+    async setScale(newScale) {
+        if (this.currentScale === newScale) return;
+        
+        const oldScale = this.currentScale;
+        this.currentScale = newScale;
+        
+        // 캐시에 있으면 즉시 전환, 없으면 백그라운드 로드
+        for (const species of ['rabbit', 'wolf', 'eagle']) {
+            const cached = this._animalCache[species]?.[`${newScale}`];
+            if (cached) {
+                this.textures[species] = cached;
+            } else {
+                // 비동기로 로드하되, 기존 텍스처는 유지
+                this.loadAnimalFrames(species).catch(err => {
+                    console.warn(`Failed to load ${species} at scale ${newScale}:`, err);
+                });
+            }
+        }
     }
 
     _parseAnimalSheet(sheetTexture, frameSize, animationConfig) {
