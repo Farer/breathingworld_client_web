@@ -2,6 +2,14 @@
 export class PixiManager {
     constructor(targetElement, worker) {
         if (!targetElement) throw new Error("invalid targetElement");
+
+        // 🧩 Safari-safe patch: Safari 감지 및 worker 제한
+        this._isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        if (this._isSafari) {
+            console.warn("🧩 Safari detected — worker decoding disabled for safety.");
+            worker = null;
+        }
+
         this.worker = worker;
         this.isReady = false;
         this.app = null;
@@ -22,7 +30,14 @@ export class PixiManager {
 
     async _init(targetElement) {
         this.app = new PIXI.Application();
-        await this.app.init({ backgroundAlpha: 0, resizeTo: window });
+
+        // 🧩 Safari-safe patch: iOS GPU 발열 완화용 옵션 추가
+        await this.app.init({
+            backgroundAlpha: 0,
+            resizeTo: window,
+            powerPreference: 'low-power'
+        });
+
         targetElement.appendChild(this.app.view);
 
         this.groundLayer = new PIXI.Container();
@@ -101,12 +116,15 @@ export class PixiManager {
         const dirs = Array.from({ length: 16 }, (_, i) => `direction_${i.toString().padStart(2, '0')}`);
         this.textures[species] = {};
 
+        // 🧩 Safari-safe patch: Safari에서는 frame 수 줄임
+        const MAX_FRAMES = this._isSafari ? 30 : 100;
+
         for (const anim of animations) {
             this.textures[species][anim] = {};
             for (const dir of dirs) {
                 const path = `${basePath}/${anim}/${dir}`;
                 const frames = [];
-                for (let i = 0; i < 100; i++) {
+                for (let i = 0; i < MAX_FRAMES; i++) {
                     const num = i.toString().padStart(4, '0');
                     const url = `${path}/webp/frame_${num}.webp`;
                     try {
@@ -122,7 +140,12 @@ export class PixiManager {
     }
 
     async _decodeImage(url) {
-        if (!this.worker) return await createImageBitmap(await (await fetch(url)).blob());
+        // 🧩 Safari-safe patch: Safari는 Worker 디코딩 제한이 있으므로 main thread 처리
+        if (!this.worker || this._isSafari) {
+            const blob = await (await fetch(url)).blob();
+            return await createImageBitmap(blob);
+        }
+
         return new Promise((resolve, reject) => {
             const id = Math.random().toString(36).slice(2);
             const onMsg = (e) => {
