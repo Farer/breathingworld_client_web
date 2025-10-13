@@ -360,6 +360,11 @@ export class PixiController {
                 if (e.visible) count++;
             }
             this._cachedVisibleCount = count;
+            
+            // ✅ poolStats도 같은 주기에 업데이트
+            this._cachedPoolStats = Object.entries(this.pools)
+                .map(([type, pool]) => `${type[0].toUpperCase()}:${pool.length}`)
+                .join(' ');
         }
         this._statUpdateCounter++;
 
@@ -381,18 +386,9 @@ export class PixiController {
             document.body.appendChild(dom);
         }
         
-        if (this._statUpdateCounter % 10 === 0) {
-            this._cachedPoolStats = Object.entries(this.pools)
-                .map(([type, pool]) => `${type[0].toUpperCase()}:${pool.length}`)
-                .join(' ');
-        }
-        
-        // ✅ 실제 렌더링되는 스프라이트 수 계산
-        const visibleSprites = Array.from(this.allEntities.values()).filter(e => e.visible).length;
-        
         let html = '';
         html += `FPS: ${this.stats.fps} / ${this._targetFPS}`;
-        html += `<br>Entities: ${this.stats.entityCount} (${visibleSprites} visible)`;
+        html += `<br>Entities: ${this.stats.entityCount} (${this._cachedVisibleCount} visible)`; // ✅ 캐시 사용
         html += `<br>Active: G:${this.activeGround.size} W:${this.activeWeed.size} E:${this.allEntities.size}`;
         html += `<br>Pool: ${this._cachedPoolStats}`;
         html += `<br>Pool Efficiency: ${this.stats.poolEfficiency}`;
