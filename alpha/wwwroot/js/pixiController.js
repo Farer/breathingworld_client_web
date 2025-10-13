@@ -3,6 +3,13 @@ import { PixiManager } from './pixiManager.js';
 
 export class PixiController {
     constructor(container, TWEEN, worker) {
+
+        // 🧩 Safari-safe patch: Safari 감지
+        this._isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        if (this._isSafari) {
+            console.warn("🧩 Safari detected — enabling safety limits (lower frame load, FPS cap).");
+        }
+
         this.pixiManager = new PixiManager(container, worker);
         this.TWEEN = TWEEN;
         this.worker = worker;
@@ -23,6 +30,10 @@ export class PixiController {
             fps: 0,
             entityCount: 0,
         };
+
+        // 🧩 Safari-safe patch: FPS 제한용 타이머
+        this._lastFrameTime = 0;
+        this._targetFPS = this._isSafari ? 45 : 60;
     }
 
     static async create(container, TWEEN, worker) {
@@ -236,6 +247,13 @@ export class PixiController {
     }
 
     async update(ticker) {
+        // 🧩 Safari-safe patch: FPS 제한
+        const now = performance.now();
+        const elapsed = now - this._lastFrameTime;
+        const frameInterval = 1000 / this._targetFPS;
+        if (elapsed < frameInterval) return;
+        this._lastFrameTime = now;
+
         this.stats.fps = Math.round(1000 / ticker.deltaMS);
         this.stats.entityCount = this.allEntities.size + this.activeWeed.size + this.activeGround.size; // ✅ fix
         this.showStat();
