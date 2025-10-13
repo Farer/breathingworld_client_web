@@ -124,6 +124,9 @@ export class PixiManager {
 
         for (const anim of animations) {
             this.textures[species][anim] = {};
+
+            // ✅ 애니메이션마다 카운터 초기화
+            this._consecutiveDecodes = 0;
             
             // 🚀 모든 방향을 병렬로 로드
             const dirPromises = dirs.map(async dir => {
@@ -145,6 +148,11 @@ export class PixiManager {
                     const validFrames = batchResults.filter(frame => frame !== null);
                     frames.push(...validFrames);
                     if (validFrames.length < batchResults.length) break;
+                    
+                    // ✅ 배치마다 카운터 초기화 (Safari)
+                    if (this._isSafari) {
+                        this._consecutiveDecodes = 0;
+                    }
                 }
                 
                 return { dir, frames };
@@ -298,10 +306,21 @@ export class PixiManager {
             const f = this.sharedInterpFilters.rabbit;
             sprite.filters = [f];
             this._applyInterpTick(sprite, f);
-        } else sprite._tick = d => sprite.update(d);
+        } else {
+            sprite._tick = d => sprite.update(d);
+        }
 
         this.app.ticker.add(sprite._tick);
-        sprite.on('destroyed', () => this.app.ticker.remove(sprite._tick));
+        
+        // ✅ 더 안전한 정리 로직
+        const cleanup = () => {
+            if (sprite._tick) {
+                this.app.ticker.remove(sprite._tick);
+            }
+        };
+        sprite.on('destroyed', cleanup);
+        // ✅ 풀 반환 시에도 정리할 수 있도록 참조 저장
+        sprite._cleanup = cleanup;
 
         this._addShadow(sprite, -130, 0.4);
         this.entityLayer.addChild(sprite);

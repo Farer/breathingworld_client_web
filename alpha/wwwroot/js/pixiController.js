@@ -3,6 +3,10 @@ import { PixiManager } from './pixiManager.js';
 
 export class PixiController {
     constructor(container, TWEEN, worker) {
+        this._debug = false;
+        this._statUpdateCounter = 0;
+        this._cachedVisibleCount = 0;
+        this._cachedPoolStats = '';
 
         // 🧩 Safari-safe patch: Safari 감지
         this._isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -133,17 +137,26 @@ export class PixiController {
     borrowObject(species, stage) {
         const pool = this.pools[species];
         let entity = null;
-        if (pool.length > 0) {
+        
+        if (pool && pool.length > 0) {
             entity = pool.pop();
             entity.visible = true;
             if (entity.shadow) entity.shadow.visible = true;
-            // ✅ 토끼라면 틱 재등록
+            
+            // ✅ animations 참조 복원
+            if (species === 'rabbit' || species === 'wolf' || species === 'eagle') {
+                entity.animations = this.pixiManager.textures[species];
+            }
+            
+            // ✅ ticker 재등록 (rabbit만)
             if (entity.entityType === 'rabbit') {
                 if (!entity._tick) {
                     entity._tick = delta => entity.update(delta);
                 }
                 this.pixiManager.app.ticker.add(entity._tick);
             }
+            
+            // ✅ 텍스처 업데이트 (tree/weed)
             if (species === 'tree' || species === 'weed') {
                 const textureKey = (species === 'tree') ? 'trees' : 'weed';
                 if (entity.texture !== this.pixiManager.textures[textureKey][stage]) {
@@ -151,14 +164,20 @@ export class PixiController {
                 }
             }
         } else {
+            // ✅ 새로 생성
             switch (species) {
                 case 'ground': entity = this.pixiManager.createGround(stage); break;
                 case 'weed': entity = this.pixiManager.createWeed(stage); break;
                 case 'tree': entity = this.pixiManager.createTree(stage); break;
-                case 'rabbit': case 'wolf': entity = this.pixiManager.createAnimal(species, 'idle'); break;
+                case 'rabbit': case 'wolf': case 'eagle': 
+                    entity = this.pixiManager.createAnimal(species, 'idle'); 
+                    break;
+                default:
+                    console.warn(`Unknown species: ${species}`);
+                    return null;
             }
         }
-        // ⚠️ AnimatedSprite가 아닐 수도 있으니 방어적으로
+        
         if (entity && entity.animations) entity.animationSpeed = 0.1;
         if (entity) entity.zIndex = 0;
         return entity;
@@ -186,6 +205,12 @@ export class PixiController {
         // 4️⃣ 개별 틱 제거
         if (entity._tick && this.pixiManager && this.pixiManager.app) {
             this.pixiManager.app.ticker.remove(entity._tick);
+        }
+
+        // ✅ cleanup 콜백이 있으면 실행
+        if (entity._cleanup) {
+            entity._cleanup();
+            entity._cleanup = null;
         }
 
         // 5️⃣ 이벤트 리스너 명시적 제거
@@ -299,7 +324,45 @@ export class PixiController {
         }
     }
 
+    // pixiController.js에 추가
+    _profileFrame() {
+        const marks = {
+            updateStart: performance.now(),
+            tweenUpdate: 0,
+            entityLoop: 0,
+            sorting: 0,
+            statsCalc: 0,
+            updateEnd: 0
+        };
+        
+        return {
+            mark: (name) => { marks[name] = performance.now(); },
+            report: () => {
+                const total = marks.updateEnd - marks.updateStart;
+                if (total > 16) { // 60fps 초과시에만 로깅
+                    console.warn('🐌 Slow frame:', {
+                        total: total.toFixed(2) + 'ms',
+                        tween: (marks.tweenUpdate - marks.updateStart).toFixed(2) + 'ms',
+                        entities: (marks.entityLoop - marks.tweenUpdate).toFixed(2) + 'ms',
+                        sorting: (marks.sorting - marks.entityLoop).toFixed(2) + 'ms',
+                        stats: (marks.statsCalc - marks.sorting).toFixed(2) + 'ms'
+                    });
+                }
+            }
+        };
+    }
+
     showStat() {
+        // 10프레임마다 한 번만 계산
+        if (this._statUpdateCounter % 10 === 0) {
+            let count = 0;
+            for (const e of this.allEntities.values()) {
+                if (e.visible) count++;
+            }
+            this._cachedVisibleCount = count;
+        }
+        this._statUpdateCounter++;
+
         const domId = 'webGlStatDom';
         let dom = document.getElementById(domId);
         if(dom == null) {
@@ -318,9 +381,11 @@ export class PixiController {
             document.body.appendChild(dom);
         }
         
-        const poolStats = Object.entries(this.pools)
-            .map(([type, pool]) => `${type[0].toUpperCase()}:${pool.length}`)
-            .join(' ');
+        if (this._statUpdateCounter % 10 === 0) {
+            this._cachedPoolStats = Object.entries(this.pools)
+                .map(([type, pool]) => `${type[0].toUpperCase()}:${pool.length}`)
+                .join(' ');
+        }
         
         // ✅ 실제 렌더링되는 스프라이트 수 계산
         const visibleSprites = Array.from(this.allEntities.values()).filter(e => e.visible).length;
@@ -329,7 +394,7 @@ export class PixiController {
         html += `FPS: ${this.stats.fps} / ${this._targetFPS}`;
         html += `<br>Entities: ${this.stats.entityCount} (${visibleSprites} visible)`;
         html += `<br>Active: G:${this.activeGround.size} W:${this.activeWeed.size} E:${this.allEntities.size}`;
-        html += `<br>Pool: ${poolStats}`;
+        html += `<br>Pool: ${this._cachedPoolStats}`;
         html += `<br>Pool Efficiency: ${this.stats.poolEfficiency}`;
         html += `<br>Textures: ${PIXI.Assets.cache.size}`;
         html += `<br>Device: ${this._deviceTier.toUpperCase()}`;
@@ -337,7 +402,11 @@ export class PixiController {
     }
 
     async update(ticker) {
+        // 프로파일링은 디버그 모드에서만
+        const profile = this._debug ? this._profileFrame() : null;
+
         this.TWEEN.update();
+        profile?.mark('tweenUpdate');
 
         const now = performance.now();
         const elapsed = now - this._lastFrameTime;
@@ -370,6 +439,8 @@ export class PixiController {
 
         // ✅ 플래그 초기화
         let needsSort = false;
+
+        profile?.mark('entityLoop');
 
         for (const entity of this.allEntities.values()) {
             if (entity.animations) {
@@ -412,14 +483,19 @@ export class PixiController {
             }
         }
 
+        profile?.mark('sorting');
         // ✅ 루프 밖에서 한 번만 정렬
         if (needsSort) {
             this.pixiManager.entityLayer.sortChildren();
             this.pixiManager.shadowLayer.sortChildren();
         }
 
+        profile?.mark('statsCalc');
         this.stats.poolEfficiency = this._calculatePoolEfficiency();
         this.stats.textureMemory = PIXI.Assets.cache.size;
+
+        profile?.mark('updateEnd');
+        profile?.report();
     }
 
     getDirectionIndex(fromX, fromY, toX, toY) {
@@ -462,7 +538,33 @@ export class PixiController {
     }
     
     moveTo(character, target, duration) {
-        // 1️⃣ 이동 방향 계산
+        // ✅ animations가 없으면 복원 시도
+        if (!character.animations && character.entityType) {
+            character.animations = this.pixiManager.textures[character.entityType];
+        }
+        
+        // ✅ 여전히 없으면 이동만 수행
+        if (!character.animations) {
+            console.warn(`⚠️ No animations for ${character.entityType}, performing move only`);
+            // 트윈만 실행하고 리턴
+            if (character.activeTween) this.TWEEN.remove(character.activeTween);
+            if (character.thinkTimer) clearTimeout(character.thinkTimer);
+            
+            const tween = new this.TWEEN.Tween(character.position)
+                .to(target, duration * 1000)
+                .easing(this.TWEEN.Easing.Quadratic.InOut)
+                .onComplete(() => {
+                    character.activeTween = null;
+                    character.thinkTimer = setTimeout(() => {
+                        if (character.visible) this.thinkAndAct(character);
+                    }, 1000 + Math.random() * 3000);
+                })
+                .start();
+            
+            character.activeTween = tween;
+            return;
+        }
+
         const dirIndex = this.getDirectionIndex(character.x, character.y, target.x, target.y);
         const dirKey = `direction_${dirIndex}`;
 
