@@ -640,10 +640,11 @@ const Core = {
         treeWrapDom.style.top = newTop + 'px';
     },
     RelocateAnimalWrapWhenDrag: (movedX, movedY) => {
-        const animalWrapDom = document.getElementById('animalWrapDom');
+        const animalWrapDomId = 'animalWrapDom';
+        const animalWrapDom = Variables.Doms.get(animalWrapDomId);
+        if(!animalWrapDom) { return; }
         const newLeft = -movedX;
         const newTop = -movedY;
-        if (animalWrapDom == null) { return; }
         animalWrapDom.style.left = newLeft + 'px';
         animalWrapDom.style.top = newTop + 'px';
         

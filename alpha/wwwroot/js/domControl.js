@@ -75,7 +75,10 @@ const DomControll = {
 
             if (!moved && targetDom && targetDom.style && targetDom.style.zIndex !== '') {
                 targetDom.style.zIndex = '';
-                document.getElementById('animalWrapDom').appendChild(targetDom);
+                const animalWrapDomId = 'animalWrapDom';
+                const animalWrapDom = Variables.Doms.get(animalWrapDomId);
+                if(!animalWrapDom) { return; }
+                animalWrapDom.appendChild(targetDom);
             }
         });
         DomControll.AnimateId = requestAnimationFrame(DomControll.Control);

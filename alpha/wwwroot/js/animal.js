@@ -41,8 +41,10 @@ const Animal = {
         if(data.actionId == undefined) { data.actionId = 0; }
         const keyId = speciesName + '-' + data.id;
         let animalDom = document.getElementById(keyId);
-        const animalWrapDom = document.getElementById('animalWrapDom');
-        if(animalWrapDom == null) { return; }
+
+        const animalWrapDomId = 'animalWrapDom';
+        const animalWrapDom = Variables.Doms.get(animalWrapDomId);
+        if(!animalWrapDom) { return; }
         if(animalDom == null) {
             animalDom = document.createElement('div');
             animalDom.id = keyId;
@@ -312,8 +314,10 @@ const Animal = {
     },
     DrawAnimalBones: (speciesName, data) => {
         if(data == undefined) { return; }
-        const animalWrapDom = document.getElementById('animalWrapDom');
-        if(animalWrapDom == null) { return; }
+        
+        const animalWrapDomId = 'animalWrapDom';
+        const animalWrapDom = Variables.Doms.get(animalWrapDomId);
+        if(!animalWrapDom) { return; }
         
         const keyId = speciesName + '-' + data.id;
 

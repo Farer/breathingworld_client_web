@@ -199,17 +199,22 @@ const Methods = {
         mapWrap.appendChild(shadowWrapDom);
     },
     CleanPrepareAnimalWrapDom: () => {
-        return;
-        let animalWrapDom = document.getElementById('animalWrapDom');
-        if(animalWrapDom != null) { animalWrapDom.parentNode.removeChild(animalWrapDom); }
-        animalWrapDom = document.createElement('div');
-        animalWrapDom.id = 'animalWrapDom';
-        animalWrapDom.style.position = 'absolute';
-        animalWrapDom.style.left = '0px';
-        animalWrapDom.style.top = '0px';
-
-        const mapWrap = Variables.Doms.get('mapWrap');
-        mapWrap.appendChild(animalWrapDom);
+        const animalWrapDomId = 'animalWrapDom';
+        let animalWrapDom = Variables.Doms.get(animalWrapDomId);
+        if(animalWrapDom) {
+            animalWrapDom.style.left = '0px';
+            animalWrapDom.style.top = '0px';
+        }
+        else {
+            animalWrapDom = document.createElement('div');
+            animalWrapDom.id = animalWrapDomId;
+            animalWrapDom.style.position = 'absolute';
+            animalWrapDom.style.left = '0px';
+            animalWrapDom.style.top = '0px';
+            const mapWrap = Variables.Doms.get('mapWrap');
+            mapWrap.appendChild(animalWrapDom);
+            Variables.Doms.set(animalWrapDomId, animalWrapDom);
+        }
     },
     CleanPrepareTreeWrapDom: () => {
         return;
@@ -254,9 +259,11 @@ const Methods = {
     },
     RemoveAnimalWrapDom: () => {
         return;
-        const animalWrapDom = document.getElementById('animalWrapDom');
+        const animalWrapDomId = 'animalWrapDom';
+        const animalWrapDom = document.getElementById(animalWrapDomId);
         if(animalWrapDom != null) {
             animalWrapDom.parentNode.removeChild(animalWrapDom);
+            Variables.Doms.delete(animalWrapDomId);
         }
     },
     GetLeftTopMapWrap: () => {
