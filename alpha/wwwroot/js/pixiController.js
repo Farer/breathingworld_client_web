@@ -3,6 +3,14 @@ import { PixiManager } from './pixiManager.js';
 
 export class PixiController {
     constructor(container, TWEEN, worker) {
+        PIXI.compressedTextures?.setBasisTranscoderPath?.({
+            jsUrl: "https://cdn.jsdelivr.net/npm/pixi-basis-ktx2@0.0.20/assets/basis_transcoder.js",
+            wasmUrl: "https://cdn.jsdelivr.net/npm/pixi-basis-ktx2@0.0.20/assets/basis_transcoder.wasm"
+        });
+        if (PIXI.loadKTX2) {
+            PIXI.Assets.loader.parsers.push(PIXI.loadKTX2);
+        }
+
         this._debug = false;
         this._statUpdateCounter = 0;
         this._cachedVisibleCount = 0;

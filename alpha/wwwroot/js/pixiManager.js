@@ -119,48 +119,38 @@ export class PixiManager {
         const dirs = Array.from({ length: 16 }, (_, i) => `direction_${i.toString().padStart(2, '0')}`);
         this.textures[species] = {};
 
-        // 🧩 Safari-safe patch: Safari에서는 frame 수 줄임
         const MAX_FRAMES = this._isSafari ? 30 : 100;
-        
-        // 🚀 병렬 처리를 위한 배치 크기 (동시 다운로드 수 제한)
-        const BATCH_SIZE = this._isSafari ? 5 : 10;
 
         for (const anim of animations) {
             this.textures[species][anim] = {};
 
-            // ✅ 애니메이션마다 카운터 초기화
-            this._consecutiveDecodes = 0;
+            // ✅ 첫 번째 방향에서 실제 프레임 수 탐지
+            const samplePath = `${basePath}/${anim}/${dirs[0]}`;
+            const actualFrameCount = await this._detectFrameCount(samplePath, MAX_FRAMES);
             
-            // 🚀 모든 방향을 병렬로 로드
+            console.log(`📦 ${species}.${anim}: ${actualFrameCount} frames`);
+
+            // 🚀 탐지한 프레임 수만큼만 로드 (404 완전 방지)
             const dirPromises = dirs.map(async dir => {
                 const path = `${basePath}/${anim}/${dir}`;
-                const urls = Array.from({ length: MAX_FRAMES }, (_, i) => {
-                    const num = i.toString().padStart(4, '0');
-                    return `${path}/frame_${num}.webp`;
-                });
-                
                 const frames = [];
-                for (let batchStart = 0; batchStart < urls.length; batchStart += BATCH_SIZE) {
-                    const batchUrls = urls.slice(batchStart, batchStart + BATCH_SIZE);
-                    const batchPromises = batchUrls.map(url => 
-                        this._decodeImage(url)
-                            .then(tex => tex)
-                            .catch(() => null)
-                    );
-                    const batchResults = await Promise.all(batchPromises);
-                    const validFrames = batchResults.filter(frame => frame !== null);
-                    frames.push(...validFrames);
-                    if (validFrames.length < batchResults.length) break;
 
-                    // ✅ 배치마다 카운터 초기화 (Safari)
-                    if (this._isSafari) {
-                        this._consecutiveDecodes = 0;
+                for (let i = 0; i < actualFrameCount; i++) {
+                    const num = i.toString().padStart(4, '0');
+                    const url = `${path}/frame_${num}.ktx2`;
+
+                    const tex = await this._decodeImage(url);
+                    if (!tex) {
+                        console.warn(`⚠️ Missing frame ${i} at ${path}`);
+                        break;
                     }
+
+                    frames.push(tex);
                 }
-                
+
                 return { dir, frames };
             });
-            
+
             const results = await Promise.all(dirPromises);
             results.forEach(({ dir, frames }) => {
                 if (frames.length > 0) {
@@ -168,46 +158,90 @@ export class PixiManager {
                 }
             });
 
-            // ✅ 간단한 캐시 정리 (선택)
             this._purgeTexCache(4000);
+        }
+    }
+
+    // ✅ 실제 프레임 수 탐지 (순차 확인)
+    async _detectFrameCount(basePath, maxFrames) {
+        for (let i = 0; i < maxFrames; i++) {
+            const num = i.toString().padStart(4, '0');
+            const url = `${basePath}/frame_${num}.ktx2`;
+            
+            const exists = await this._silentCheckFile(url);
+            if (!exists) {
+                return i; // 첫 실패 지점 = 프레임 수
+            }
+        }
+        return maxFrames;
+    }
+
+    // ✅ 404 에러를 콘솔에 표시하지 않고 파일 존재 여부만 확인
+    async _silentCheckFile(url) {
+        try {
+            const response = await fetch(url, {
+                method: 'HEAD',
+                cache: 'force-cache'
+            });
+            return response.ok;
+        } catch {
+            return false;
         }
     }
 
     async _decodeImage(url) {
         try {
-            // 🧩 Safari-safe patch: Safari는 Worker 디코딩 제한이 있으므로 main thread 처리
+            if (this._texCache.has(url)) return this._texCache.get(url);
+
+            // ✅ KTX2: v8은 등록만 되어 있으면 Assets.load가 Texture를 돌려줍니다.
+            if (url.endsWith('.ktx2')) {
+                // ⚡ 존재 여부 체크 추가
+                try {
+                    const resHead = await fetch(url, { method: 'HEAD' });
+                    if (!resHead.ok) return null;
+                }
+                catch {
+                    return null;
+                }
+                try {
+                    let res = null;
+                    try {
+                        // 내부 worker가 reject해도 여기서 한번 더 catch
+                        res = await PIXI.Assets.load(url);
+                    } catch (inner) {
+                        console.warn('[inner reject ignored]', url, inner);
+                        return null; // worker 내부 오류도 무시
+                    }
+
+                    if (!res) {
+                        console.warn('KTX2 load returned null:', url);
+                        return null;
+                    }
+
+                    const base = res.baseTexture || res;
+                    const tex = new PIXI.Texture(base);
+                    this._texCache.set(url, tex);
+                    return tex;
+
+                } catch (err) {
+                    console.warn(`KTX2 outer load failed: ${url}`, err);
+                    return null;
+                }
+            }
+
+
+            // ⬇️ 이하 기존 PNG/WebP 경로는 그대로 유지 (워커/이미지비트맵 로직 등)
             if (!this.worker || this._isSafari) {
-                if (this._texCache.has(url)) {
-                    // ✅ 동일 URL은 같은 Texture 재사용 (BaseTexture 공유)
-                    return this._texCache.get(url);
-                }
-
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`Failed to fetch: ${url}`);
-                
-                const blob = await response.blob();
-                
-                // Safari: 배치 크기를 더 줄이고 프레임 간 딜레이 추가
-                if (this._isSafari && this._consecutiveDecodes > 5) {
-                    await new Promise(resolve => setTimeout(resolve, 16)); // 1프레임 대기
-                    this._consecutiveDecodes = 0;
-                }
-                this._consecutiveDecodes = (this._consecutiveDecodes || 0) + 1;
-                
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Failed to fetch: ' + url);
+                const blob = await res.blob();
                 const bitmap = await createImageBitmap(blob);
-
-                // ✅ Texture 생성 및 캐시 (내부적으로 BaseTexture 생성/공유)
                 const tex = PIXI.Texture.from(bitmap);
                 this._texCache.set(url, tex);
                 return tex;
             }
 
             return new Promise((resolve, reject) => {
-                if (this._texCache.has(url)) {
-                    resolve(this._texCache.get(url));
-                    return;
-                }
-
                 const id = Math.random().toString(36).slice(2);
                 const onMsg = (e) => {
                     if (e.data && e.data.id === id) {
@@ -224,11 +258,13 @@ export class PixiManager {
                 this.worker.addEventListener('message', onMsg);
                 this.worker.postMessage({ type: 'decode', url, id });
             });
-        } catch (error) {
-            console.warn(`Image decode failed for ${url}:`, error);
-            return null; // null 반환으로 처리 계속 진행
+        } catch (err) {
+            console.warn('Image decode failed for', url, err);
+            return null;
         }
     }
+
+
 
     // ✅ 간단한 캐시 정리 (오래된 항목부터 제거)
     _purgeTexCache(maxEntries = 4000) {
