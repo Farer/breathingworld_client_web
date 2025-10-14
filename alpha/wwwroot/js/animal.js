@@ -35,16 +35,16 @@ const Animal = {
         return false;
     },
     DrawDom: (speciesName, data) => {
+        const animalWrapDomId = 'animalWrapDom';
+        const animalWrapDom = Variables.Doms.get(animalWrapDomId);
+        if(!animalWrapDom) { return; }
+
         if(Animal.IfTrashAnimalData(speciesName, data)) {
             if(speciesName == 'rabbit') { Socket.FoundTrashDataOfRabbit(data.id); return; }
         }
         if(data.actionId == undefined) { data.actionId = 0; }
         const keyId = speciesName + '-' + data.id;
         let animalDom = document.getElementById(keyId);
-
-        const animalWrapDomId = 'animalWrapDom';
-        const animalWrapDom = Variables.Doms.get(animalWrapDomId);
-        if(!animalWrapDom) { return; }
         if(animalDom == null) {
             animalDom = document.createElement('div');
             animalDom.id = keyId;

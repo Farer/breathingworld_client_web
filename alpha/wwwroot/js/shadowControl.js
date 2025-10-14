@@ -1,6 +1,8 @@
 const ShadowControll = {
     ShadowElements: {},
     CreateShadow: (domId) => {
+        const container = Variables.Doms.get('shadowWrapDom');
+        if(!container) { return; }
         if (!document.getElementById(domId)) {
             console.log('not exist domId: ' + domId)
             return;
@@ -27,7 +29,6 @@ const ShadowControll = {
                 shadowElement.style.backgroundColor = 'rgba(0, 0, 0, '+opacity+')';
                 shadowElement.style.boxShadow = '0 0 10px 7px rgba(0, 0, 0, '+opacity+')';
             }
-            const container = document.getElementById('shadowWrapDom');
             container.appendChild(shadowElement);
         }
         ShadowControll.ShadowElements[shadowDomId] = shadowElement;

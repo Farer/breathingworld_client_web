@@ -107,10 +107,8 @@ const Tree = {
         return plusCountY;
     },
     HandleTreeDomByStat: (treeData) => {
-        const treeWrapDom = document.getElementById('treeWrapDom');
-        if (treeWrapDom == null) {
-            return;
-        }
+        const treeWrapDom = Variables.Doms.get('treeWrapDom');
+        if (!treeWrapDom) { return; }
         const imageSource = Tree.GetTreeImageSource(treeData.id);
         if (imageSource == null) {
             return;

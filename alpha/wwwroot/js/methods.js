@@ -187,18 +187,21 @@ const Methods = {
     },
     CleanPrepareShadowWrapDom: () => {
         return;
-        let shadowWrapDom = document.getElementById('shadowWrapDom');
-        if(shadowWrapDom != null) { shadowWrapDom.parentNode.removeChild(shadowWrapDom); }
-        shadowWrapDom = document.createElement('div');
-        shadowWrapDom.id = 'shadowWrapDom';
-        shadowWrapDom.style.position = 'absolute';
+        const domId = 'shadowWrapDom';
+        let shadowWrapDom = Variables.Doms.get(domId);
+        if(!shadowWrapDom) {
+            shadowWrapDom = document.createElement('div');
+            shadowWrapDom.id = 'shadowWrapDom';
+            shadowWrapDom.style.position = 'absolute';
+            const mapWrap = Variables.Doms.get('mapWrap');
+            mapWrap.appendChild(shadowWrapDom);
+            Variables.Doms.set(domId, shadowWrapDom);
+        }
         shadowWrapDom.style.left = '0px';
         shadowWrapDom.style.top = '0px';
-
-        const mapWrap = Variables.Doms.get('mapWrap');
-        mapWrap.appendChild(shadowWrapDom);
     },
     CleanPrepareAnimalWrapDom: () => {
+        return;
         const animalWrapDomId = 'animalWrapDom';
         let animalWrapDom = Variables.Doms.get(animalWrapDomId);
         if(animalWrapDom) {
@@ -218,16 +221,18 @@ const Methods = {
     },
     CleanPrepareTreeWrapDom: () => {
         return;
-        let treeWrapDom = document.getElementById('treeWrapDom');
-        if(treeWrapDom != null) { treeWrapDom.parentNode.removeChild(treeWrapDom); }
-        treeWrapDom = document.createElement('div');
-        treeWrapDom.id = 'treeWrapDom';
-        treeWrapDom.style.position = 'absolute';
+        const domId = 'treeWrapDom';
+        let treeWrapDom = Variables.Doms.get(domId);
+        if(!treeWrapDom) {
+            treeWrapDom = document.createElement('div');
+            treeWrapDom.id = 'treeWrapDom';
+            treeWrapDom.style.position = 'absolute';
+            const mapWrap = Variables.Doms.get('mapWrap');
+            mapWrap.appendChild(treeWrapDom);
+        }
         treeWrapDom.style.left = '0px';
         treeWrapDom.style.top = '0px';
-
-        const mapWrap = Variables.Doms.get('mapWrap');
-        mapWrap.appendChild(treeWrapDom);
+        Variables.Doms.set(domId, treeWrapDom);
     },
     DeactivateEarthWormWrapDom: () => {
         const wrapId = 'earthWormWrapDom';
@@ -238,10 +243,8 @@ const Methods = {
     },
     RemoveShadowWrapDom: () => {
         return;
-        const shadowWrapDom = document.getElementById('shadowWrapDom');
-        if(shadowWrapDom != null) {
-            shadowWrapDom.parentNode.removeChild(shadowWrapDom);
-        }
+        const targetDom = Variables.Doms.get('shadowWrapDom');
+        if(targetDom) { targetDom.innerHTML = ''; }
     },
     RemoveWeedWrapDom: () => {
         return;
@@ -252,19 +255,13 @@ const Methods = {
     },
     RemoveTreeWrapDom: () => {
         return;
-        const treeWrapDom = document.getElementById('treeWrapDom');
-        if(treeWrapDom != null) {
-            treeWrapDom.parentNode.removeChild(treeWrapDom);
-        }
+        const targetDom = Variables.Doms.get('treeWrapDom');
+        if(targetDom) { targetDom.innerHTML = ''; }
     },
     RemoveAnimalWrapDom: () => {
         return;
-        const animalWrapDomId = 'animalWrapDom';
-        const animalWrapDom = document.getElementById(animalWrapDomId);
-        if(animalWrapDom != null) {
-            animalWrapDom.parentNode.removeChild(animalWrapDom);
-            Variables.Doms.delete(animalWrapDomId);
-        }
+        const targetDom = Variables.Doms.get('animalWrapDom');
+        if(targetDom) { targetDom.innerHTML = ''; }
     },
     GetLeftTopMapWrap: () => {
         return [Variables.MapViewPort.x, Variables.MapViewPort.y];

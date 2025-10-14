@@ -632,10 +632,10 @@ const Core = {
         weedWrapDom.style.top = newTop + 'px';
     },
     RelocateTreeWrapWhenDrag: (movedX, movedY) => {
-        const treeWrapDom = document.getElementById('treeWrapDom');
+        const treeWrapDom = Variables.Doms.get('treeWrapDom');
+        if (!treeWrapDom) { return; }
         const newLeft = -movedX;
         const newTop = -movedY;
-        if (treeWrapDom == null) { return; }
         treeWrapDom.style.left = newLeft + 'px';
         treeWrapDom.style.top = newTop + 'px';
     },
@@ -651,7 +651,8 @@ const Core = {
         MovementProcess.TargetDomIds.clear();
     },
     RelocateShadowWrapWhenDrag: (movedX, movedY) => {
-        const shadowWrapDom = document.getElementById('shadowWrapDom');
+        const shadowWrapDom = Variables.Doms.get('shadowWrapDom');
+        if (!shadowWrapDom) { return; }
         const newLeft = -movedX;
         const newTop = -movedY;
         if (shadowWrapDom == null) { return; }
