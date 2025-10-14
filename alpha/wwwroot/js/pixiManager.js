@@ -25,6 +25,9 @@ export class PixiManager {
 
         this.sharedInterpFilters = {}; // species별 공유 필터
 
+        // ✅ 추가: URL → Texture 공유 캐시 (BaseTexture 포함 공유)
+        this._texCache = new Map();
+
         this._init(targetElement);
     }
 
@@ -141,7 +144,7 @@ export class PixiManager {
                     const batchUrls = urls.slice(batchStart, batchStart + BATCH_SIZE);
                     const batchPromises = batchUrls.map(url => 
                         this._decodeImage(url)
-                            .then(img => PIXI.Texture.from(img))
+                            .then(tex => tex)
                             .catch(() => null)
                     );
                     const batchResults = await Promise.all(batchPromises);
@@ -164,6 +167,9 @@ export class PixiManager {
                     this.textures[species][anim][dir] = frames;
                 }
             });
+
+            // ✅ 간단한 캐시 정리 (선택)
+            this._purgeTexCache(4000);
         }
     }
 
@@ -171,6 +177,11 @@ export class PixiManager {
         try {
             // 🧩 Safari-safe patch: Safari는 Worker 디코딩 제한이 있으므로 main thread 처리
             if (!this.worker || this._isSafari) {
+                if (this._texCache.has(url)) {
+                    // ✅ 동일 URL은 같은 Texture 재사용 (BaseTexture 공유)
+                    return this._texCache.get(url);
+                }
+
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`Failed to fetch: ${url}`);
                 
@@ -183,16 +194,31 @@ export class PixiManager {
                 }
                 this._consecutiveDecodes = (this._consecutiveDecodes || 0) + 1;
                 
-                return await createImageBitmap(blob);
+                const bitmap = await createImageBitmap(blob);
+
+                // ✅ Texture 생성 및 캐시 (내부적으로 BaseTexture 생성/공유)
+                const tex = PIXI.Texture.from(bitmap);
+                this._texCache.set(url, tex);
+                return tex;
             }
 
             return new Promise((resolve, reject) => {
+                if (this._texCache.has(url)) {
+                    resolve(this._texCache.get(url));
+                    return;
+                }
+
                 const id = Math.random().toString(36).slice(2);
                 const onMsg = (e) => {
                     if (e.data && e.data.id === id) {
                         this.worker.removeEventListener('message', onMsg);
                         if (e.data.error) reject(e.data.error);
-                        else resolve(e.data.bitmap);
+                        else {
+                            const bitmap = e.data.bitmap;
+                            const tex = PIXI.Texture.from(bitmap);
+                            this._texCache.set(url, tex);
+                            resolve(tex);
+                        }
                     }
                 };
                 this.worker.addEventListener('message', onMsg);
@@ -201,6 +227,19 @@ export class PixiManager {
         } catch (error) {
             console.warn(`Image decode failed for ${url}:`, error);
             return null; // null 반환으로 처리 계속 진행
+        }
+    }
+
+    // ✅ 간단한 캐시 정리 (오래된 항목부터 제거)
+    _purgeTexCache(maxEntries = 4000) {
+        if (this._texCache.size <= maxEntries) return;
+        const overflow = this._texCache.size - maxEntries;
+        const keys = this._texCache.keys();
+        for (let i = 0; i < overflow; i++) {
+            const k = keys.next().value;
+            const tex = this._texCache.get(k);
+            try { tex.destroy(true); } catch(e) {}
+            this._texCache.delete(k);
         }
     }
 
@@ -222,6 +261,9 @@ export class PixiManager {
                 });
             }
         }
+
+        // 선택: 스케일 전환 시에도 캐시 정리 한번 수행
+        this._purgeTexCache(4000);
     }
 
     _parseAnimalSheet(sheetTexture, frameSize, animationConfig) {
