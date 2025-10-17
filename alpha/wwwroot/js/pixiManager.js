@@ -37,6 +37,9 @@ export class PixiManager {
         }, 60000);
 
         this._init(targetElement);
+
+        // ✅ 프레임 카운트 캐시 (localStorage 대신 메모리)
+        this._frameCountCache = new Map();
     }
 
     // pixiManager.js - cleanup() 강화 버전
@@ -181,25 +184,28 @@ export class PixiManager {
     async _loadDirectionalFrames(species, animations) {
         const scaleDir = `${this.currentScale}`;
         const basePath = `/img/sprites/${species}/${scaleDir}`;
-        const dirs = Array.from({ length: 16 }, (_, i) => `direction_${i.toString().padStart(2, '0')}`);
+        const dirs = Array.from({ length: 16 }, (_, i) => 
+            `direction_${i.toString().padStart(2, '0')}`
+        );
+        
         this.textures[species] = {};
-
         const MAX_FRAMES = this._isSafari ? 30 : 100;
 
         for (const anim of animations) {
             this.textures[species][anim] = {};
 
-            // ✅ 첫 번째 방향에서 실제 프레임 수 탐지
+            // ✅ 첫 번째 방향에서만 프레임 수 감지
             const samplePath = `${basePath}/${anim}/${dirs[0]}`;
             const actualFrameCount = await this._detectFrameCount(samplePath, MAX_FRAMES);
             
-            console.log(`📦 ${species}.${anim}: ${actualFrameCount} frames`);
+            console.log(`📦 ${species}.${anim}: ${actualFrameCount} frames (all directions)`);
 
-            // 🚀 탐지한 프레임 수만큼만 로드 (404 완전 방지)
+            // ✅ 모든 방향에 동일한 프레임 수 적용
             const dirPromises = dirs.map(async dir => {
                 const path = `${basePath}/${anim}/${dir}`;
                 const frames = [];
 
+                // actualFrameCount만큼만 로드 (404 없음)
                 for (let i = 0; i < actualFrameCount; i++) {
                     const num = i.toString().padStart(4, '0');
                     const url = `${path}/frame_${num}.ktx2`;
@@ -253,7 +259,13 @@ export class PixiManager {
 
     // ✅ 실제 프레임 수 탐지 (순차 확인)
     async _detectFrameCount(basePath, maxFrames) {
-        // ✅ Binary Search로 프레임 수 탐지 (빠름)
+        // ✅ 1. 캐시 확인 (같은 경로는 두 번 체크 안 함)
+        const cacheKey = `${basePath}_${maxFrames}`;
+        if (this._frameCountCache.has(cacheKey)) {
+            return this._frameCountCache.get(cacheKey);
+        }
+        
+        // ✅ 2. Binary Search (기존 로직)
         let left = 0;
         let right = maxFrames;
         let result = 0;
@@ -266,12 +278,16 @@ export class PixiManager {
             const exists = await this._silentCheckFile(url);
             
             if (exists) {
-                result = mid + 1; // mid번째가 존재하므로 최소 mid+1개
+                result = mid + 1;
                 left = mid + 1;
             } else {
                 right = mid - 1;
             }
         }
+        
+        // ✅ 3. 결과 캐싱
+        this._frameCountCache.set(cacheKey, result);
+        console.log(`📊 Detected ${result} frames for ${basePath} (cached)`);
         
         return result;
     }
