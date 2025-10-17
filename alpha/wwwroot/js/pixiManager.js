@@ -243,11 +243,22 @@ export class PixiManager {
 
             return new Promise((resolve, reject) => {
                 const id = Math.random().toString(36).slice(2);
+                let timeoutId;
+                let cleaned = false; // 🔒 중복 정리 방지
+                
+                const cleanup = () => {
+                    if (cleaned) return;
+                    cleaned = true;
+                    clearTimeout(timeoutId);
+                    this.worker.removeEventListener('message', onMsg);
+                };
+                
                 const onMsg = (e) => {
                     if (e.data && e.data.id === id) {
-                        this.worker.removeEventListener('message', onMsg);
-                        if (e.data.error) reject(e.data.error);
-                        else {
+                        cleanup();
+                        if (e.data.error) {
+                            reject(e.data.error);
+                        } else {
                             const bitmap = e.data.bitmap;
                             const tex = PIXI.Texture.from(bitmap);
                             this._texCache.set(url, tex);
@@ -255,8 +266,14 @@ export class PixiManager {
                         }
                     }
                 };
+                
                 this.worker.addEventListener('message', onMsg);
                 this.worker.postMessage({ type: 'decode', url, id });
+                
+                timeoutId = setTimeout(() => {
+                    cleanup();
+                    reject(new Error(`Worker timeout: ${url}`));
+                }, 30000);
             });
         } catch (err) {
             console.warn('Image decode failed for', url, err);
