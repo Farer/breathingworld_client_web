@@ -500,7 +500,6 @@ export class PixiManager {
                 this.app.ticker.remove(sprite._tick);
             }
         };
-        sprite.on('destroyed', cleanup);
         // ✅ 풀 반환 시에도 정리할 수 있도록 참조 저장
         sprite._cleanup = cleanup;
 
