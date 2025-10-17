@@ -185,8 +185,10 @@ export class PixiController {
                     return null;
             }
         }
-        
-        if (entity && entity.animations) entity.animationSpeed = 0.1;
+        // ✅ 개선: 새로 생성된 경우만 초기화
+        if (entity && entity.animations && !pool?.length) {
+            entity.animationSpeed = 0.1;
+        }
         if (entity) entity.zIndex = 0;
         return entity;
     }
@@ -373,6 +375,11 @@ export class PixiController {
             this._cachedPoolStats = Object.entries(this.pools)
                 .map(([type, pool]) => `${type[0].toUpperCase()}:${pool.length}`)
                 .join(' ');
+
+            // ✅ 캐시 통계도 가져오기
+            if (this.pixiManager.getCacheStats) {
+                this._cachedCacheStats = this.pixiManager.getCacheStats();
+            }
         }
         this._statUpdateCounter++;
 
@@ -385,7 +392,7 @@ export class PixiController {
             dom.style.left = '0px';
             dom.style.top = '0px';
             dom.style.width = '220px';
-            dom.style.height = '100px';
+            dom.style.height = '120px';
             dom.style.fontSize = '11px';
             dom.style.background = 'rgba(0,0,0,0.7)';
             dom.style.color = '#0f0';
@@ -402,6 +409,11 @@ export class PixiController {
         html += `<br>Pool Efficiency: ${this.stats.poolEfficiency}`;
         html += `<br>Textures: ${PIXI.Assets.cache.size}`;
         html += `<br>Device: ${this._deviceTier.toUpperCase()}`;
+        // ✅ 캐시 통계 추가
+        if (this._cachedCacheStats) {
+            html += `<br>TexCache: ${this._cachedCacheStats.size}/${this._cachedCacheStats.maxSize} (${this._cachedCacheStats.usage})`;
+            html += `<br>Cache Hit: ${this._cachedCacheStats.hitRate} (${this._cachedCacheStats.hits}/${this._cachedCacheStats.hits + this._cachedCacheStats.misses})`;
+        }
         dom.innerHTML = html;
     }
 

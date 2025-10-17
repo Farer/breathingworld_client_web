@@ -32,11 +32,68 @@ export class PixiManager {
         this._cacheHits = 0;
         this._cacheMisses = 0;
         // ✅ 주기적으로 가중치 감소 (선택사항)
-        setInterval(() => {
+        this._decayInterval = setInterval(() => {
             this._texCache.decayWeights(0.95);
-        }, 60000); // 1분마다
+        }, 60000);
 
         this._init(targetElement);
+    }
+
+    // pixiManager.js - cleanup() 강화 버전
+    cleanup() {
+        console.log('🧹 Cleaning up PixiManager...');
+        
+        // Interval 정리
+        if (this._decayInterval) {
+            clearInterval(this._decayInterval);
+            this._decayInterval = null;
+        }
+        
+        // 텍스처 캐시 정리
+        if (this._texCache) {
+            this._texCache.clear();
+            this._texCache = null;
+        }
+        
+        // 동물 캐시 정리
+        this._animalCache = {};
+        
+        // ✅ Shared filters 정리
+        if (this.sharedInterpFilters) {
+            for (const filter of Object.values(this.sharedInterpFilters)) {
+                if (filter && filter.destroy) {
+                    filter.destroy();
+                }
+            }
+            this.sharedInterpFilters = {};
+        }
+        
+        // ✅ Layers 정리
+        const layers = [this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer];
+        for (const layer of layers) {
+            if (layer) {
+                layer.removeChildren();
+                layer.destroy({ children: true });
+            }
+        }
+        
+        // PIXI Application 정리
+        if (this.app) {
+            this.app.destroy(true, { 
+                children: true, 
+                texture: true, 
+                baseTexture: true 
+            });
+            this.app = null;
+        }
+        
+        // Worker 참조 제거
+        this.worker = null;
+        
+        // ✅ 상태 플래그
+        this.isReady = false;
+        
+        console.log('✅ PixiManager cleanup complete');
     }
 
     async _init(targetElement) {
@@ -196,16 +253,27 @@ export class PixiManager {
 
     // ✅ 실제 프레임 수 탐지 (순차 확인)
     async _detectFrameCount(basePath, maxFrames) {
-        for (let i = 0; i < maxFrames; i++) {
-            const num = i.toString().padStart(4, '0');
+        // ✅ Binary Search로 프레임 수 탐지 (빠름)
+        let left = 0;
+        let right = maxFrames;
+        let result = 0;
+        
+        while (left <= right) {
+            const mid = Math.floor((left + right) / 2);
+            const num = mid.toString().padStart(4, '0');
             const url = `${basePath}/frame_${num}.ktx2`;
             
             const exists = await this._silentCheckFile(url);
-            if (!exists) {
-                return i; // 첫 실패 지점 = 프레임 수
+            
+            if (exists) {
+                result = mid + 1; // mid번째가 존재하므로 최소 mid+1개
+                left = mid + 1;
+            } else {
+                right = mid - 1;
             }
         }
-        return maxFrames;
+        
+        return result;
     }
 
     // ✅ 404 에러를 콘솔에 표시하지 않고 파일 존재 여부만 확인
