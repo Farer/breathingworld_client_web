@@ -34,7 +34,7 @@ export class PixiManager {
         // ✅ 주기적으로 가중치 감소 (선택사항)
         this._decayInterval = setInterval(() => {
             this._texCache.decayWeights(0.95);
-        }, 60000);
+        }, 180000);
 
         this._init(targetElement);
 
