@@ -291,33 +291,24 @@ export class PixiManager {
 
     async _decodeImage(url) {
         try {
-            // ✅ get()으로 접근 (자동으로 최신 항목으로 이동)
+            // 캐시 체크
             if (this._texCache.has(url)) {
                 this._cacheHits++;
                 return this._texCache.get(url);
             }
             this._cacheMisses++;
 
-            // ✅ KTX2: v8은 등록만 되어 있으면 Assets.load가 Texture를 돌려줍니다.
+            // KTX2 처리
             if (url.endsWith('.ktx2')) {
-                // ⚡ 존재 여부 체크 추가
                 try {
                     const resHead = await fetch(url, { method: 'HEAD' });
                     if (!resHead.ok) return null;
-                }
-                catch {
+                } catch {
                     return null;
                 }
+                
                 try {
-                    let res = null;
-                    try {
-                        // 내부 worker가 reject해도 여기서 한번 더 catch
-                        res = await PIXI.Assets.load(url);
-                    } catch (inner) {
-                        console.warn('[inner reject ignored]', url, inner);
-                        return null; // worker 내부 오류도 무시
-                    }
-
+                    const res = await PIXI.Assets.load(url);
                     if (!res) {
                         console.warn('KTX2 load returned null:', url);
                         return null;
@@ -327,15 +318,13 @@ export class PixiManager {
                     const tex = new PIXI.Texture(base);
                     this._texCache.set(url, tex);
                     return tex;
-
                 } catch (err) {
                     console.warn(`KTX2 outer load failed: ${url}`, err);
                     return null;
                 }
             }
 
-
-            // ⬇️ 이하 기존 PNG/WebP 경로는 그대로 유지 (워커/이미지비트맵 로직 등)
+            // Worker 없는 경우
             if (!this.worker || this._isSafari) {
                 const res = await fetch(url);
                 if (!res.ok) throw new Error('Failed to fetch: ' + url);
@@ -346,14 +335,13 @@ export class PixiManager {
                 return tex;
             }
 
+            // ✅ Worker 처리 (수정됨)
             return new Promise((resolve, reject) => {
                 const id = Math.random().toString(36).slice(2);
                 let timeoutId;
-                let cleaned = false; // 🔒 중복 정리 방지
+                let settled = false; // ✅ Promise settled 여부 추적
                 
                 const cleanup = () => {
-                    if (cleaned) return;
-                    cleaned = true;
                     clearTimeout(timeoutId);
                     this.worker.removeEventListener('message', onMsg);
                 };
@@ -361,13 +349,30 @@ export class PixiManager {
                 const onMsg = (e) => {
                     if (e.data && e.data.id === id) {
                         cleanup();
+                        
+                        // ✅ 이미 settled된 Promise면 아무것도 하지 않음
+                        if (settled) {
+                            console.warn(`⏰ Late response ignored for: ${url}`);
+                            // 늦게 온 bitmap 정리
+                            if (e.data.bitmap) {
+                                e.data.bitmap.close?.(); // ImageBitmap 메모리 해제
+                            }
+                            return;
+                        }
+                        
+                        settled = true;
+                        
                         if (e.data.error) {
                             reject(e.data.error);
                         } else {
-                            const bitmap = e.data.bitmap;
-                            const tex = PIXI.Texture.from(bitmap);
-                            this._texCache.set(url, tex);
-                            resolve(tex);
+                            try {
+                                const bitmap = e.data.bitmap;
+                                const tex = PIXI.Texture.from(bitmap);
+                                this._texCache.set(url, tex);
+                                resolve(tex);
+                            } catch (err) {
+                                reject(err);
+                            }
                         }
                     }
                 };
@@ -377,9 +382,15 @@ export class PixiManager {
                 
                 timeoutId = setTimeout(() => {
                     cleanup();
-                    reject(new Error(`Worker timeout: ${url}`));
+                    
+                    // ✅ settled 플래그 설정
+                    if (!settled) {
+                        settled = true;
+                        reject(new Error(`Worker timeout: ${url}`));
+                    }
                 }, 30000);
             });
+            
         } catch (err) {
             console.warn('Image decode failed for', url, err);
             return null;
