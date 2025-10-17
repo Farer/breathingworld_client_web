@@ -1,4 +1,5 @@
 'use strict';
+import { WeightedLRUCache } from './weightedLRUCache.js'; // ✅ 추가
 export class PixiManager {
     constructor(targetElement, worker) {
         if (!targetElement) throw new Error("invalid targetElement");
@@ -25,8 +26,15 @@ export class PixiManager {
 
         this.sharedInterpFilters = {}; // species별 공유 필터
 
-        // ✅ 추가: URL → Texture 공유 캐시 (BaseTexture 포함 공유)
-        this._texCache = new Map();
+        // ✅ Map 대신 LRUCache 사용
+        this._texCache = new WeightedLRUCache(4000);
+        // 📊 캐시 히트율 추적 (선택사항)
+        this._cacheHits = 0;
+        this._cacheMisses = 0;
+        // ✅ 주기적으로 가중치 감소 (선택사항)
+        setInterval(() => {
+            this._texCache.decayWeights(0.95);
+        }, 60000); // 1분마다
 
         this._init(targetElement);
     }
@@ -157,9 +165,33 @@ export class PixiManager {
                     this.textures[species][anim][dir] = frames;
                 }
             });
-
-            this._purgeTexCache(4000);
         }
+    }
+
+    // 📊 캐시 성능 모니터링
+    getCacheStats() {
+        // 캐시된 결과 반환 (너무 자주 계산하지 않기)
+        const now = performance.now();
+        if (this._lastStatsTime && now - this._lastStatsTime < 1000) {
+            return this._cachedStats;
+        }
+        
+        const total = this._cacheHits + this._cacheMisses;
+        const hitRate = total > 0 
+            ? (this._cacheHits / total * 100).toFixed(1) 
+            : 0;
+        
+        this._cachedStats = {
+            size: this._texCache.cache.size,
+            maxSize: this._texCache.maxSize,
+            usage: (this._texCache.cache.size / this._texCache.maxSize * 100).toFixed(1) + '%',
+            hits: this._cacheHits,
+            misses: this._cacheMisses,
+            hitRate: hitRate + '%'
+        };
+        
+        this._lastStatsTime = now;
+        return this._cachedStats;
     }
 
     // ✅ 실제 프레임 수 탐지 (순차 확인)
@@ -191,7 +223,12 @@ export class PixiManager {
 
     async _decodeImage(url) {
         try {
-            if (this._texCache.has(url)) return this._texCache.get(url);
+            // ✅ get()으로 접근 (자동으로 최신 항목으로 이동)
+            if (this._texCache.has(url)) {
+                this._cacheHits++;
+                return this._texCache.get(url);
+            }
+            this._cacheMisses++;
 
             // ✅ KTX2: v8은 등록만 되어 있으면 Assets.load가 Texture를 돌려줍니다.
             if (url.endsWith('.ktx2')) {
@@ -281,21 +318,6 @@ export class PixiManager {
         }
     }
 
-
-
-    // ✅ 간단한 캐시 정리 (오래된 항목부터 제거)
-    _purgeTexCache(maxEntries = 4000) {
-        if (this._texCache.size <= maxEntries) return;
-        const overflow = this._texCache.size - maxEntries;
-        const keys = this._texCache.keys();
-        for (let i = 0; i < overflow; i++) {
-            const k = keys.next().value;
-            const tex = this._texCache.get(k);
-            try { tex.destroy(true); } catch(e) {}
-            this._texCache.delete(k);
-        }
-    }
-
     async setScale(newScale) {
         if (this.currentScale === newScale) return;
         
@@ -314,9 +336,6 @@ export class PixiManager {
                 });
             }
         }
-
-        // 선택: 스케일 전환 시에도 캐시 정리 한번 수행
-        this._purgeTexCache(4000);
     }
 
     _parseAnimalSheet(sheetTexture, frameSize, animationConfig) {
