@@ -180,7 +180,7 @@ export class PixiManager {
     // ✅ 방향별 WebP 프레임 로더 (병렬 디코딩)
     async _loadDirectionalFrames(species, animations) {
         const scaleDir = `${this.currentScale}`;
-        const basePath = `/img/sprites/${species}/${scaleDir}`;
+        const basePath = `/img/ktx2/${species}/${scaleDir}`;
         const dirs = Array.from({ length: 16 }, (_, i) => 
             `direction_${i.toString().padStart(2, '0')}`
         );
