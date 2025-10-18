@@ -364,7 +364,15 @@ export class PixiController {
     }
 
     showStat() {
-        if(!this._debug) return;
+        const statDomId = 'webGlStatDom';
+        let statDom = Variables.Doms.get(statDomId);
+        if(!this._debug) {
+            if(statDom) {
+                statDom.parentNode.removeChild(statDom);
+                Variables.Doms.delete(statDomId);
+            }
+            return;
+        }
         // 10프레임마다 한 번만 계산
         if (this._statUpdateCounter % 10 === 0) {
             let count = 0;
@@ -385,22 +393,22 @@ export class PixiController {
         }
         this._statUpdateCounter++;
 
-        const domId = 'webGlStatDom';
-        let dom = document.getElementById(domId);
-        if(dom == null) {
-            dom = document.createElement('div');
-            dom.id = domId;
-            dom.style.position = 'absolute';
-            dom.style.left = '0px';
-            dom.style.top = '0px';
-            dom.style.width = '220px';
-            dom.style.height = '120px';
-            dom.style.fontSize = '11px';
-            dom.style.background = 'rgba(0,0,0,0.7)';
-            dom.style.color = '#0f0';
-            dom.style.padding = '5px';
-            dom.style.fontFamily = 'monospace';
-            document.body.appendChild(dom);
+        
+        if(!statDom) {
+            statDom = document.createElement('div');
+            statDom.id = statDomId;
+            statDom.style.position = 'absolute';
+            statDom.style.left = '0px';
+            statDom.style.top = '0px';
+            statDom.style.width = '220px';
+            statDom.style.height = '120px';
+            statDom.style.fontSize = '11px';
+            statDom.style.background = 'rgba(0,0,0,0.7)';
+            statDom.style.color = '#0f0';
+            statDom.style.padding = '5px';
+            statDom.style.fontFamily = 'monospace';
+            document.body.appendChild(statDom);
+            Variables.Doms.set(statDomId, statDom);
         }
         
         let html = '';
@@ -416,7 +424,7 @@ export class PixiController {
             html += `<br>TexCache: ${this._cachedCacheStats.size}/${this._cachedCacheStats.maxSize} (${this._cachedCacheStats.usage})`;
             html += `<br>Cache Hit: ${this._cachedCacheStats.hitRate} (${this._cachedCacheStats.hits}/${this._cachedCacheStats.hits + this._cachedCacheStats.misses})`;
         }
-        dom.innerHTML = html;
+        statDom.innerHTML = html;
     }
 
     async update(ticker) {
