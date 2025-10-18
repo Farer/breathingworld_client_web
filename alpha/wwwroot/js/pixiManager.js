@@ -165,9 +165,9 @@ export class PixiManager {
         }
 
         if (species === 'rabbit') {
-            await this._loadDirectionalFrames(species, ['idle_1', 'run_1']);
+            await this._loadDirectionalFrames(species, 'adult', ['idle_1', 'run_1']);
         } else if (species === 'eagle') {
-            await this._loadDirectionalFrames(species, ['idle', 'fly', 'attack']);
+            await this._loadDirectionalFrames(species, 'adult', ['idle', 'fly', 'attack']);
         } else if (species === 'wolf') {
             // wolf는 sprite sheet 기반이므로 이미 loadAssets에서 처리됨
             return;
@@ -178,9 +178,9 @@ export class PixiManager {
     }
 
     // ✅ 방향별 WebP 프레임 로더 (병렬 디코딩)
-    async _loadDirectionalFrames(species, animations) {
+    async _loadDirectionalFrames(species, lifeStage, animations) {
         const scaleDir = `${this.currentScale}`;
-        const basePath = `/img/ktx2/${species}/${scaleDir}`;
+        const basePath = `/img/ktx2/${species}/${lifeStage}/${scaleDir}`;
         const dirs = Array.from({ length: 16 }, (_, i) => 
             `direction_${i.toString().padStart(2, '0')}`
         );
