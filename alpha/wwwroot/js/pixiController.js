@@ -668,6 +668,9 @@ export class PixiController {
             .easing(this.TWEEN.Easing.Cubic.Out)
             .onComplete(() => {
                 console.log("Map move complete. Populating new scene.");
+                // ✅ 1️⃣ 카메라(스테이지) 위치 초기화
+                camera.position.set(0, 0);
+                
                 this._isMovingMap = false;
                 const newSceneData = [];
 
