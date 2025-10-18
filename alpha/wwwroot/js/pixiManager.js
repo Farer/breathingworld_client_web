@@ -389,6 +389,7 @@ export class PixiManager {
                 const cached = this._animalCache[species][lifeStage]?.[`${newScale}`];
                 if (cached) {
                     this.textures[species][lifeStage] = cached;
+                    this._cacheHits++;
                 } else {
                     // 비동기로 로드하되, 기존 텍스처는 유지
                     this.loadAnimalFrames(species).catch(err => {
