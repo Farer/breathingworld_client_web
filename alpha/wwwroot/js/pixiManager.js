@@ -37,10 +37,6 @@ export class PixiManager {
         }, 180000);
 
         this._init(targetElement);
-
-        // ✅ 프레임 카운트 캐시 (localStorage 대신 메모리)
-        this._frameCountCache = new Map();
-        this._frameCountLocks = new Map(); // ✅ 추가
     }
 
     // pixiManager.js - cleanup() 강화 버전
@@ -195,11 +191,16 @@ export class PixiManager {
         for (const anim of animations) {
             this.textures[species][anim] = {};
 
-            // ✅ 첫 번째 방향에서만 프레임 수 감지
-            const samplePath = `${basePath}/${anim}/${dirs[0]}`;
-            const actualFrameCount = await this._detectFrameCount(samplePath, MAX_FRAMES);
-            
-            console.log(`📦 ${species}.${anim}: ${actualFrameCount} frames (all directions)`);
+            // ✅ 명시적으로 프레임 수 지정
+            let actualFrameCount;
+            if (species === 'rabbit') {
+                if (anim === 'idle_1') actualFrameCount = 35;
+                else if (anim === 'run_1') actualFrameCount = 14;
+                else actualFrameCount = 1;
+            } else {
+                // eagle 등 다른 종은 기존처럼 최대치 사용
+                actualFrameCount = MAX_FRAMES;
+            }
 
             // ✅ 모든 방향에 동일한 프레임 수 적용
             const dirPromises = dirs.map(async dir => {
@@ -256,84 +257,6 @@ export class PixiManager {
         
         this._lastStatsTime = now;
         return this._cachedStats;
-    }
-
-    // ✅ 실제 프레임 수 탐지 (순차 확인)
-    async _detectFrameCount(basePath, maxFrames) {
-        const cacheKey = `${basePath}_${maxFrames}`;
-        
-        // ✅ 1. 캐시 확인
-        if (this._frameCountCache.has(cacheKey)) {
-            return this._frameCountCache.get(cacheKey);
-        }
-        
-        // ✅ 2. 이미 진행 중인 검색이 있으면 대기
-        if (this._frameCountLocks.has(cacheKey)) {
-            return await this._frameCountLocks.get(cacheKey);
-        }
-        
-        // ✅ 3. 새로운 검색 시작 (Promise를 Lock으로 사용)
-        const searchPromise = this._performBinarySearch(basePath, maxFrames);
-        this._frameCountLocks.set(cacheKey, searchPromise);
-        
-        try {
-            const result = await searchPromise;
-            this._frameCountCache.set(cacheKey, result);
-            return result;
-        } finally {
-            this._frameCountLocks.delete(cacheKey);
-        }
-    }
-
-    // ✅ 방법 1: 순차 탐색 (느리지만 404 없음)
-    async _performBinarySearch(basePath, maxFrames) {
-        for (let i = 0; i <= maxFrames; i++) {
-            const num = i.toString().padStart(4, '0');
-            const url = `${basePath}/frame_${num}.ktx2`;
-            const exists = await this._silentCheckFile(url);
-            if (!exists) {
-                console.log(`📊 Detected ${i} frames for ${basePath}`);
-                return i;
-            }
-        }
-        return maxFrames;
-    }
-    // ✅ 방법 2: 병렬 탐색 (빠르지만? 404 좀 발생)
-    // async _performBinarySearch(basePath, maxFrames) {
-    //     let left = 0;
-    //     let right = maxFrames;
-    //     let result = 0;
-        
-    //     while (left <= right) {
-    //         const mid = Math.floor((left + right) / 2);
-    //         const num = mid.toString().padStart(4, '0');
-    //         const url = `${basePath}/frame_${num}.ktx2`;
-            
-    //         const exists = await this._silentCheckFile(url);
-            
-    //         if (exists) {
-    //             result = mid + 1;
-    //             left = mid + 1;
-    //         } else {
-    //             right = mid - 1;
-    //         }
-    //     }
-        
-    //     console.log(`📊 Detected ${result} frames for ${basePath}`);
-    //     return result;
-    // }
-
-    // ✅ 404 에러를 콘솔에 표시하지 않고 파일 존재 여부만 확인
-    async _silentCheckFile(url) {
-        try {
-            const response = await fetch(url, {
-                method: 'HEAD',
-                cache: 'force-cache'
-            });
-            return response.ok;
-        } catch {
-            return false;
-        }
     }
 
     async _decodeImage(url) {
