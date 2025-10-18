@@ -571,9 +571,10 @@ export class PixiController {
                 .easing(this.TWEEN.Easing.Quadratic.InOut)
                 .onComplete(() => {
                     character.activeTween = null;
+                    const delay = 5000 + Math.random() * 3000;
                     character.thinkTimer = setTimeout(() => {
                         if (character.visible) this.thinkAndAct(character);
-                    }, 1000 + Math.random() * 3000);
+                    }, delay);
                 })
                 .start();
             
@@ -629,9 +630,10 @@ export class PixiController {
                 }
 
                 character.activeTween = null;
+                const delay = 5000 + Math.random() * 3000;
                 character.thinkTimer = setTimeout(() => {
                     if (character.visible) this.thinkAndAct(character);
-                }, 1000 + Math.random() * 3000);
+                }, delay);
             })
             .start();
 
