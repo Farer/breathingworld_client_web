@@ -74,4 +74,7 @@ const Variables = {
         widthOfCanvas: 0,
         heightOfCanvas: 0,
     },
+    lifeStages: {
+        rabbit: ['adult']
+    }
 };

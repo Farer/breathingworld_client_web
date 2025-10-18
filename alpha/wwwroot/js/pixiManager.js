@@ -156,25 +156,33 @@ export class PixiManager {
     }
 
     // ✅ 종(species)별 로드
-    async loadAnimalFrames(species) {
+    async loadAnimalFrames(species, lifeStage) {
         const scaleDir = `${this.currentScale}`;
         this._animalCache[species] = this._animalCache[species] || {};
-        if (this._animalCache[species][scaleDir]) {
-            this.textures[species] = this._animalCache[species][scaleDir];
+        if(!this._animalCache[species][lifeStage]) {
+            this._animalCache[species][lifeStage] = {};
+        }
+        if (this._animalCache[species][lifeStage][scaleDir]) {
+            this.textures[species][lifeStage] = this._animalCache[species][lifeStage][scaleDir];
             return;
         }
 
+        const AllLifeStages = Variables.lifeStages.rabbit;
         if (species === 'rabbit') {
-            await this._loadDirectionalFrames(species, 'adult', ['idle_1', 'run_1']);
+            for(const lifeStage of AllLifeStages) {
+                await this._loadDirectionalFrames(species, lifeStage, ['idle_1', 'run_1']);
+            }
         } else if (species === 'eagle') {
-            await this._loadDirectionalFrames(species, 'adult', ['idle', 'fly', 'attack']);
+            for(const lifeStage of AllLifeStages) {
+                await this._loadDirectionalFrames(species, lifeStage, ['idle', 'fly', 'attack']);
+            }
         } else if (species === 'wolf') {
             // wolf는 sprite sheet 기반이므로 이미 loadAssets에서 처리됨
             return;
         }
 
-        this._animalCache[species][scaleDir] = this.textures[species];
-        console.log(`✅ ${species} frames cached for scale ${scaleDir}`);
+        this._animalCache[species][lifeStage][scaleDir] = this.textures[species][lifeStage];
+        console.log(`✅ ${species} - ${lifeStage} frames cached for scale ${scaleDir}`);
     }
 
     // ✅ 방향별 WebP 프레임 로더 (병렬 디코딩)
@@ -186,16 +194,17 @@ export class PixiManager {
         );
         
         this.textures[species] = {};
+        this.textures[species][lifeStage] = {};
         const MAX_FRAMES = this._isSafari ? 30 : 100;
 
-        for (const anim of animations) {
-            this.textures[species][anim] = {};
+        for (const animationKind of animations) {
+            this.textures[species][lifeStage][animationKind] = {};
 
             // ✅ 명시적으로 프레임 수 지정
             let actualFrameCount;
             if (species === 'rabbit') {
-                if (anim === 'idle_1') actualFrameCount = 35;
-                else if (anim === 'run_1') actualFrameCount = 14;
+                if (animationKind === 'idle_1') actualFrameCount = 35;
+                else if (animationKind === 'run_1') actualFrameCount = 14;
                 else actualFrameCount = 1;
             } else {
                 // eagle 등 다른 종은 기존처럼 최대치 사용
@@ -204,7 +213,7 @@ export class PixiManager {
 
             // ✅ 모든 방향에 동일한 프레임 수 적용
             const dirPromises = dirs.map(async dir => {
-                const path = `${basePath}/${anim}/${dir}`;
+                const path = `${basePath}/${animationKind}/${dir}`;
                 const frames = [];
 
                 // actualFrameCount만큼만 로드 (404 없음)
@@ -227,7 +236,7 @@ export class PixiManager {
             const results = await Promise.all(dirPromises);
             results.forEach(({ dir, frames }) => {
                 if (frames.length > 0) {
-                    this.textures[species][anim][dir] = frames;
+                    this.textures[species][lifeStage][animationKind][dir] = frames;
                 }
             });
         }
@@ -373,16 +382,19 @@ export class PixiManager {
         const oldScale = this.currentScale;
         this.currentScale = newScale;
         
+        const AllLifeStages = Variables.lifeStages.rabbit;
         // 캐시에 있으면 즉시 전환, 없으면 백그라운드 로드
         for (const species of ['rabbit', 'wolf', 'eagle']) {
-            const cached = this._animalCache[species]?.[`${newScale}`];
-            if (cached) {
-                this.textures[species] = cached;
-            } else {
-                // 비동기로 로드하되, 기존 텍스처는 유지
-                this.loadAnimalFrames(species).catch(err => {
-                    console.warn(`Failed to load ${species} at scale ${newScale}:`, err);
-                });
+            for(const lifeStage of AllLifeStages) {
+                const cached = this._animalCache[species][lifeStage]?.[`${newScale}`];
+                if (cached) {
+                    this.textures[species][lifeStage] = cached;
+                } else {
+                    // 비동기로 로드하되, 기존 텍스처는 유지
+                    this.loadAnimalFrames(species).catch(err => {
+                        console.warn(`Failed to load ${species} - ${lifeStage} at scale ${newScale}:`, err);
+                    });
+                }
             }
         }
     }
@@ -443,27 +455,27 @@ export class PixiManager {
     }
 
     // ✅ 통합 동물 생성기
-    createAnimal(name, anim) {
-        const t = this.textures[name];
+    createAnimal(species, lifeStage, animationKind) {
+        const t = this.textures[species][lifeStage];
         if (!t) return null;
-        if (name === 'rabbit') return this._createRabbit(anim);
-        if (name === 'wolf') return this._createWolf(anim);
-        return this._createGeneric(name, anim);
+        if (species === 'rabbit') return this._createRabbit(lifeStage, animationKind);
+        if (species === 'wolf') return this._createWolf(lifeStage, animationKind);
+        return this._createGeneric(species, lifeStage, animationKind);
     }
 
-    _createRabbit(animKey) {
-        const anim = animKey.endsWith('_1') ? animKey : `${animKey}_1`;
-        const dirs = this.textures.rabbit[anim];
+    _createRabbit(lifeStage, animationKey) {
+        const animationKind = animationKey.endsWith('_1') ? animationKey : `${animationKey}_1`;
+        const dirs = this.textures.rabbit[lifeStage][animationKind];
         const validDirs = Object.keys(dirs).filter(k => dirs[k]?.length);
         const dir = validDirs[Math.floor(Math.random() * validDirs.length)];
         const sprite = new PIXI.AnimatedSprite(dirs[dir]);
         sprite.entityType = 'rabbit';
         sprite.currentDir = dir;
         sprite.anchor.set(0.5, 1);
-        sprite.animationSpeed = anim === 'idle_1' ? 0.37 : 0.55;
+        sprite.animationSpeed = animationKind === 'idle_1' ? 0.37 : 0.55;
         sprite.play();
 
-        if (window.FrameInterpFilter && anim === 'idle_1') {
+        if (window.FrameInterpFilter && animationKind === 'idle_1') {
             if (!this.sharedInterpFilters.rabbit)
                 this.sharedInterpFilters.rabbit = new FrameInterpFilter();
             const f = this.sharedInterpFilters.rabbit;
@@ -486,12 +498,12 @@ export class PixiManager {
 
         this._addShadow(sprite, -130, 0.4);
         this.entityLayer.addChild(sprite);
-        sprite.animations = this.textures.rabbit;
+        sprite.animations = this.textures.rabbit[lifeStage];
         return sprite;
     }
 
-    _createWolf(anim) {
-        const frames = this.textures.wolf[anim];
+    _createWolf(lifeStage, anim) {
+        const frames = this.textures.wolf[anim][lifeStage];
         const s = new PIXI.AnimatedSprite(frames);
         s.entityType = 'wolf';
         s.anchor.set(0.5, 1);
@@ -499,22 +511,22 @@ export class PixiManager {
         s.play();
         this._addShadow(s, -20, 0.3);
         this.entityLayer.addChild(s);
-        s.animations = this.textures.wolf;
+        s.animations = this.textures.wolf[lifeStage];
         return s;
     }
 
-    _createGeneric(name, anim) {
-        const dirs = this.textures[name][anim];
+    _createGeneric(species, lifeStage, animationKind) {
+        const dirs = this.textures[species][lifeStage][animationKind];
         const valid = Object.keys(dirs).filter(k => dirs[k]?.length);
         const dir = valid[Math.floor(Math.random() * valid.length)];
         const s = new PIXI.AnimatedSprite(dirs[dir]);
-        s.entityType = name;
+        s.entityType = species;
         s.anchor.set(0.5, 1);
         s.animationSpeed = 0.4;
         s.play();
         this._addShadow(s, -100, 0.25);
         this.entityLayer.addChild(s);
-        s.animations = this.textures[name];
+        s.animations = this.textures[species][lifeStage];
         return s;
     }
 
