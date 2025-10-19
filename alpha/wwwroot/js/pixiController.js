@@ -11,7 +11,7 @@ export class PixiController {
             PIXI.Assets.loader.parsers.push(PIXI.loadKTX2);
         }
 
-        this._debug = false;
+        this._debug = true;
         this._statUpdateCounter = 0;
         this._cachedVisibleCount = 0;
         this._cachedPoolStats = '';
@@ -71,7 +71,7 @@ export class PixiController {
             checkReady();
         });
 
-        const initialSceneData = [];
+        // const initialSceneData = [];
         
         // for (let i = 0; i < 50; i++) {
         //     initialSceneData.push({
@@ -101,16 +101,16 @@ export class PixiController {
         //     y: this.pixiManager.app.screen.height * 0.5,
         //     baseScale: 0.1 + Math.random() * 0.4 
         // });
-        for (let i = 0; i < 10; i++) {
-            initialSceneData.push({
-                category: 'animal',
-                species: 'rabbit',
-                lifeStage: Variables.lifeStages.rabbit[0],
-                x: Math.random() * this.pixiManager.app.screen.width,
-                y: Math.random() * this.pixiManager.app.screen.height,
-                baseScale: 0.4 + Math.random() * 0.4 
-            });
-        }
+        // for (let i = 0; i < 10; i++) {
+        //     initialSceneData.push({
+        //         category: 'animal',
+        //         species: 'rabbit',
+        //         lifeStage: Variables.lifeStages.rabbit[0],
+        //         x: Math.random() * this.pixiManager.app.screen.width,
+        //         y: Math.random() * this.pixiManager.app.screen.height,
+        //         baseScale: 0.4 + Math.random() * 0.4 
+        //     });
+        // }
         // initialSceneData.push({
         //     category: 'animal',
         //     species: 'wolf',
@@ -119,7 +119,7 @@ export class PixiController {
         //     baseScale: 1.0
         // });
 
-        this.populateScene(initialSceneData);
+        // this.populateScene(initialSceneData);
 
         if (this.updateHandler) { this.pixiManager.app.ticker.remove(this.updateHandler); }
         this.updateHandler = (ticker) => this.update(ticker);
