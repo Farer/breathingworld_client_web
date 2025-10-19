@@ -56,17 +56,17 @@ export class PixiController {
         this.MAX_VISIBLE_ENTITIES = this._deviceTier === 'low' ? 50 : 100;
     }
 
+    static async create(container, TWEEN, worker) {
+        const controller = new PixiController(container, TWEEN, worker);
+        await controller._init();
+        return controller;
+    }
+
     _calculatePoolEfficiency() {
         const total = Object.values(this.pools)
             .reduce((sum, pool) => sum + pool.length, 0);
         const active = this.allEntities.size + this.activeWeed.size + this.activeGround.size;
         return total > 0 ? (active / (active + total) * 100).toFixed(1) + '%' : 'N/A';
-    }
-
-    static async create(container, TWEEN, worker) {
-        const controller = new PixiController(container, TWEEN, worker);
-        await controller._init();
-        return controller;
     }
 
     _detectDeviceTier() {
