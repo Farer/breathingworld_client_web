@@ -61,23 +61,6 @@ export class PixiController {
         await controller._init();
         return controller;
     }
-
-    _calculatePoolEfficiency() {
-        const total = Object.values(this.pools)
-            .reduce((sum, pool) => sum + pool.length, 0);
-        const active = this.allEntities.size + this.activeWeed.size + this.activeGround.size;
-        return total > 0 ? (active / (active + total) * 100).toFixed(1) + '%' : 'N/A';
-    }
-
-    _detectDeviceTier() {
-        const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
-        const cores = navigator.hardwareConcurrency || 2;
-        const memory = navigator.deviceMemory || 2;
-        
-        if (!isMobile && cores >= 8 && memory >= 8) return 'high';
-        if (cores >= 4 && memory >= 4) return 'medium';
-        return 'low';
-    }
     
     async _init() {
         await new Promise(resolve => {
@@ -141,6 +124,23 @@ export class PixiController {
         if (this.updateHandler) { this.pixiManager.app.ticker.remove(this.updateHandler); }
         this.updateHandler = (ticker) => this.update(ticker);
         this.pixiManager.app.ticker.add(this.updateHandler);
+    }
+
+    _calculatePoolEfficiency() {
+        const total = Object.values(this.pools)
+            .reduce((sum, pool) => sum + pool.length, 0);
+        const active = this.allEntities.size + this.activeWeed.size + this.activeGround.size;
+        return total > 0 ? (active / (active + total) * 100).toFixed(1) + '%' : 'N/A';
+    }
+
+    _detectDeviceTier() {
+        const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+        const cores = navigator.hardwareConcurrency || 2;
+        const memory = navigator.deviceMemory || 2;
+        
+        if (!isMobile && cores >= 8 && memory >= 8) return 'high';
+        if (cores >= 4 && memory >= 4) return 'medium';
+        return 'low';
     }
 
     borrowObject(species, lifeStage, stage) {
