@@ -475,13 +475,35 @@ export class PixiController {
                     entity.lastX = entity.x; 
                     entity.lastY = entity.y; 
                 }
-                const distanceMoved = Math.sqrt(
-                    Math.pow(entity.x - entity.lastX, 2) + 
-                    Math.pow(entity.y - entity.lastY, 2)
-                );
-                if (distanceMoved > 0.1) {
-                    const currentSpeed = distanceMoved / ticker.deltaTime;
-                    entity.animationSpeed = Math.min(0.45, 0.12 + currentSpeed * 0.1);
+                const distanceMoved = Math.hypot(entity.x - entity.lastX, entity.y - entity.lastY);
+                const isRunning = entity.textures && entity.animations['run_1'] && 
+                                Object.values(entity.animations['run_1']).some(
+                                    frames => frames === entity.textures
+                                );
+
+                if (isRunning && distanceMoved > 0.1) {
+                    // ✅ 크기 보정: 작은 토끼일수록 같은 거리라도 더 멀리 달린 것으로 인식
+                    const globalScale = Variables.MapScaleInfo.current / 128;
+                    const visualSize = (entity.baseScale || 1.0) * globalScale;
+                    const sizeAdjustedDistance = distanceMoved / visualSize;
+
+                    const currentSpeed = sizeAdjustedDistance / ticker.deltaTime;
+                    const scaleFactor = Variables.MapScaleInfo.current / 128;
+                    const normalizedSpeed = currentSpeed / scaleFactor;
+
+                    // ✨ 작은 스케일일수록, 먼 거리일수록 run 애니메이션이 더 빠르게 보정됨
+                    const scaleBoost = Math.pow(128 / Variables.MapScaleInfo.current, 0.5);  // 0.45~0.55 사이 튜닝
+                    const distanceBoost = Math.min(1.6, 1.0 + sizeAdjustedDistance * 0.002); // 긴 이동일수록 약간 가속
+                    const visualCompensation = scaleBoost * distanceBoost;
+
+                    entity.animationSpeed = Math.min(
+                        0.7,
+                        (0.12 + normalizedSpeed * 0.1) * visualCompensation
+                    );
+                }
+                else if (!isRunning) {
+                    // idle 상태일 때는 일정한 속도로 유지
+                    entity.animationSpeed = 0.12;
                 }
                 entity.lastX = entity.x;
                 entity.lastY = entity.y;
@@ -654,11 +676,42 @@ export class PixiController {
     
     thinkAndAct(character) {
         const screen = this.pixiManager.app.screen;
-        const target = { x: Math.random() * screen.width, y: Math.random() * screen.height };
-        const distance = Math.sqrt(Math.pow(target.x - character.x, 2) + Math.pow(target.y - character.y, 2));
-        const duration = distance / 150;
+        const scaleFactor = Variables.MapScaleInfo.current / 128; // 128 기준으로 현재 화면 스케일
+
+        // 1) 화면 좌표에서 무작위 타깃 선택
+        let newXtarget = Math.random() * screen.width;
+        let newYtarget = Math.random() * screen.height;
+
+        // 2) 현재 위치와의 '화면 픽셀' 거리
+        const dx = newXtarget - character.x;
+        const dy = newYtarget - character.y;
+        const distance = Math.hypot(dx, dy);
+
+        // 3) 화면 픽셀 거리를 '세계 거리(128 기준 픽셀)'로 환산
+        const worldDistance = distance / scaleFactor;
+
+        // 4) 세계 기준 속도 설정 (기존 128 기준에서 distance/150 사용 → 속도 150 px/s로 본다)
+        const BASE_WORLD_SPEED = 150; // [세계 px/s] @ scale 128
+
+        // 5) duration 계산 (초 단위). 최소/최대 클램프로 비정상값 방지
+        const MIN_DURATION = 0.25;
+        const MAX_DURATION = 10.0;
+        let duration = worldDistance / BASE_WORLD_SPEED;
+        duration = Math.min(MAX_DURATION, Math.max(MIN_DURATION, duration));
+
+        // 6) (선택) 한 번에 너무 멀리 가는 걸 제한하고 싶다면 '세계 최대 이동거리'로 클램프
+        // const MAX_WORLD_STEP = 600; // 128 기준 최대 600px 이동
+        // if (worldDistance > MAX_WORLD_STEP) {
+        //     const ratio = (MAX_WORLD_STEP * scaleFactor) / distance; // 화면 좌표로 되돌리기
+        //     newXtarget = character.x + dx * ratio;
+        //     newYtarget = character.y + dy * ratio;
+        //     duration = (MAX_WORLD_STEP / BASE_WORLD_SPEED);
+        // }
+
+        const target = { x: newXtarget, y: newYtarget };
         this.moveTo(character, target, duration);
     }
+
 
     moveMap() {
         console.log("Simulating map drag...");
