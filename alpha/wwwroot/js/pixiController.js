@@ -427,6 +427,13 @@ export class PixiController {
         statDom.innerHTML = html;
     }
 
+    async applyScale() {
+        const globalScale = Variables.MapScaleInfo.current || this.pixiManager.currentScale;
+        if (this.pixiManager.currentScale !== globalScale) {
+            await this.pixiManager.setScale(globalScale);
+        }
+    }
+
     async update(ticker) {
         // 프로파일링은 디버그 모드에서만
         const profile = this._debug ? this._profileFrame() : null;
@@ -457,11 +464,6 @@ export class PixiController {
 
         this.stats.entityCount = this.allEntities.size + this.activeWeed.size + this.activeGround.size;
         this.showStat();
-
-        const globalScale = Variables.MapScaleInfo.current || this.pixiManager.currentScale;
-        if (this.pixiManager.currentScale !== globalScale) {
-            await this.pixiManager.setScale(globalScale);
-        }
 
         // ✅ 플래그 초기화
         let needsSort = false;
