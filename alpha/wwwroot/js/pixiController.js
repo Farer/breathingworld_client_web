@@ -419,13 +419,6 @@ export class PixiController {
         statDom.innerHTML = html;
     }
 
-    async applyScale() {
-        const globalScale = Variables.MapScaleInfo.current || this.pixiManager.currentScale;
-        if (this.pixiManager.currentScale !== globalScale) {
-            await this.pixiManager.setScale(globalScale);
-        }
-    }
-
     async update(ticker) {
         // 프로파일링은 디버그 모드에서만
         const profile = this._debug ? this._profileFrame() : null;
@@ -488,13 +481,13 @@ export class PixiController {
             }
 
             if (entity.shadow) {
-                if (entity._lastGlobalScale !== this.pixiManager.currentScale || entity._cachedShadowOffsetY === undefined) {
+                if (entity._lastGlobalScale !== Variables.MapScaleInfo.current || entity._cachedShadowOffsetY === undefined) {
                     const baseScale = entity.baseScale || 1.0;
-                    const globalScale = this.pixiManager.currentScale / 128;
+                    const globalScale = Variables.MapScaleInfo.current / 128;
                     entity._cachedShadowOffsetY = (entity.shadowOffsetY || 0) * baseScale * globalScale;
                     const shadowScale = baseScale * globalScale * (entity.shadowWidthRatio || 1.0);
                     entity.shadow.scale.set(shadowScale);
-                    entity._lastGlobalScale = this.pixiManager.currentScale;
+                    entity._lastGlobalScale = Variables.MapScaleInfo.current;
                 }
                 
                 entity.shadow.x = entity.x;
@@ -673,67 +666,69 @@ export class PixiController {
                 console.log("Map move complete. Populating new scene.");
                 // ✅ 1️⃣ 카메라(스테이지) 위치 초기화
                 camera.position.set(0, 0);
-
                 this._isMovingMap = false;
-                const newSceneData = [];
-
-                for (let i = 0; i < 20; i++) {
-                    const x = (Math.random() * screen.width) - target.x;
-                    const y = (Math.random() * screen.height) - target.y;
-                    // const rand = Math.random();
-                    // if (rand < 0.1) newSceneData.push({
-                    //     category: 'plant',
-                    //     species: 'tree',
-                    //     stage: Math.floor(Math.random() * 12),
-                    //     x: x,
-                    //     y: y,
-                    //     baseScale: 0.1 + Math.random() * 0.4
-                    // });
-                    newSceneData.push({
-                        category: 'animal',
-                        species: 'rabbit',
-                        lifeStage: 'adult',
-                        x: x,
-                        y: y,
-                        baseScale: 0.4 + Math.random() * 0.4
-                    });
-                    // else newSceneData.push({
-                    //     category: 'animal',
-                    //     species: 'wolf',
-                    //     x: x,
-                    //     y: y,
-                    //     baseScale: 1.0
-                    // });
-                }
-
-                // for (let i = 0; i < 50; i++) {
-                //     const x = (Math.random() * screen.width) - target.x;
-                //     const y = (Math.random() * screen.height) - target.y;
-                //     newSceneData.push({
-                //         category: 'plant',
-                //         species: 'weed',
-                //         stage: Math.floor(Math.random() * 17),
-                //         x: x,
-                //         y: y,
-                //         baseScale: 0.1
-                //     });
-                // }
-
-                // for (let i = 0; i < 50; i++) {
-                //     const x = (Math.random() * screen.width) - target.x;
-                //     const y = (Math.random() * screen.height) - target.y;
-                //     newSceneData.push({
-                //         category: 'environment',
-                //         species: 'ground',
-                //         stage: Math.floor(Math.random() * 4),
-                //         x: x,
-                //         y: y,
-                //         baseScale: 1.0
-                //     });
-                // }
-
-                this.populateScene(newSceneData);
+                this.populateNewEntities();
             })
             .start();
+    }
+
+    populateNewEntities() {
+        const newSceneData = [];
+        for (let i = 0; i < 20; i++) {
+            const x = (Math.random() * screen.width);
+            const y = (Math.random() * screen.height);
+            // const rand = Math.random();
+            // if (rand < 0.1) newSceneData.push({
+            //     category: 'plant',
+            //     species: 'tree',
+            //     stage: Math.floor(Math.random() * 12),
+            //     x: x,
+            //     y: y,
+            //     baseScale: 0.1 + Math.random() * 0.4
+            // });
+            newSceneData.push({
+                category: 'animal',
+                species: 'rabbit',
+                lifeStage: 'adult',
+                x: x,
+                y: y,
+                baseScale: 0.4 + Math.random() * 0.4
+            });
+            // else newSceneData.push({
+            //     category: 'animal',
+            //     species: 'wolf',
+            //     x: x,
+            //     y: y,
+            //     baseScale: 1.0
+            // });
+        }
+
+        // for (let i = 0; i < 50; i++) {
+        //     const x = (Math.random() * screen.width) - target.x;
+        //     const y = (Math.random() * screen.height) - target.y;
+        //     newSceneData.push({
+        //         category: 'plant',
+        //         species: 'weed',
+        //         stage: Math.floor(Math.random() * 17),
+        //         x: x,
+        //         y: y,
+        //         baseScale: 0.1
+        //     });
+        // }
+
+        // for (let i = 0; i < 50; i++) {
+        //     const x = (Math.random() * screen.width) - target.x;
+        //     const y = (Math.random() * screen.height) - target.y;
+        //     newSceneData.push({
+        //         category: 'environment',
+        //         species: 'ground',
+        //         stage: Math.floor(Math.random() * 4),
+        //         x: x,
+        //         y: y,
+        //         baseScale: 1.0
+        //     });
+        // }
+
+        this.populateScene(newSceneData);
     }
 }

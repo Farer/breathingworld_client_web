@@ -683,9 +683,11 @@ const Core = {
         }
         Variables.ScrollInfo.isScrolling = true;
         clearTimeout(Variables.TimeoutInfo.zoomMap);
-        Variables.TimeoutInfo.zoomMap = setTimeout(Core.ZoomMap(event), 100);
+        Variables.TimeoutInfo.zoomMap = setTimeout(async() => {
+            await Core.ZoomMap(event);
+        }, 100);
     },
-    ZoomMap: (event) => {
+    ZoomMap: async (event) => {
         if (!Variables.Doms.has('mapWrap')) { return; }
 
         let scrollDirection = '';
@@ -743,8 +745,6 @@ const Core = {
 
         let newScale = newScaleList[newIndex];
 
-        
-
         const newScaleRatio = newScale / Variables.MapScaleInfo.current;
         Variables.MapScaleInfo.zoomPosX = Variables.MapScaleInfo.zoomPosX * newScaleRatio;
         Variables.MapScaleInfo.zoomPosY = Variables.MapScaleInfo.zoomPosY * newScaleRatio;
@@ -759,6 +759,11 @@ const Core = {
         Variables.ScrollInfo.upAmount = 0;
         Variables.ScrollInfo.downAmount = 0;
 
+        window.pixiController.clearScene();
+        if(newScale >= 8) {
+            await window.pixiController.pixiManager.applyTextureImmediately(newScale);
+            window.pixiController.pixiManager.reserveLoadAnimalFrames('rabbit', 'adult', newScale);
+        }
     },
     ChangeMapScale: async (newScale) => {
         Variables.MapScaleInfo.previous = Variables.MapScaleInfo.current;

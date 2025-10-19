@@ -14,7 +14,9 @@ export class PixiManager {
         this.worker = worker;
         this.isReady = false;
         this.app = null;
-        this.currentScale = 128;
+
+        this._reservedToLoadAnimalFrames = [];
+        this._onLoadingAnimalFrames = false;
 
         // ✅ species별 캐시
         this._animalCache = {};
@@ -58,8 +60,6 @@ export class PixiManager {
         this.app.stage.addChild(this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer);
 
         await this.loadAssets();
-        await this.loadAnimalFrames('rabbit', 'adult');
-        await this.loadAnimalFrames('wolf', 'adult');
         this.isReady = true;
     }
 
@@ -99,14 +99,13 @@ export class PixiManager {
     }
 
     // ✅ 종(species)별 로드
-    async loadAnimalFrames(species, lifeStage) {
-        const scaleDir = `${this.currentScale}`;
+    async loadAnimalFrames(species, lifeStage, scale) {
         this._animalCache[species] = this._animalCache[species] || {};
         if(!this._animalCache[species][lifeStage]) {
             this._animalCache[species][lifeStage] = {};
         }
-        if (this._animalCache[species][lifeStage][scaleDir]) {
-            this.textures[species][lifeStage] = this._animalCache[species][lifeStage][scaleDir];
+        if (this._animalCache[species][lifeStage][scale]) {
+            this.textures[species][lifeStage] = this._animalCache[species][lifeStage][scale];
             return;
         }
 
@@ -124,13 +123,13 @@ export class PixiManager {
             return;
         }
 
-        this._animalCache[species][lifeStage][scaleDir] = this.textures[species][lifeStage];
-        console.log(`✅ ${species} - ${lifeStage} frames cached for scale ${scaleDir}`);
+        this._animalCache[species][lifeStage][scale] = this.textures[species][lifeStage];
+        console.log(`✅ ${species} - ${lifeStage} frames cached for scale ${scale}`);
     }
 
     // ✅ 방향별 WebP 프레임 로더 (병렬 디코딩)
     async _loadDirectionalFrames(species, lifeStage, animations) {
-        const scaleDir = `${this.currentScale}`;
+        const scaleDir = `${Variables.MapScaleInfo.current}`;
         const basePath = `/img/ktx2/${species}/${lifeStage}/${scaleDir}`;
         const dirs = Array.from({ length: 16 }, (_, i) => 
             `direction_${i.toString().padStart(2, '0')}`
@@ -319,12 +318,7 @@ export class PixiManager {
         }
     }
 
-    async setScale(newScale) {
-        if (this.currentScale === newScale) return;
-        
-        const oldScale = this.currentScale;
-        this.currentScale = newScale;
-        
+    async applyTextureImmediately(newScale) {
         const AllLifeStages = Variables.lifeStages.rabbit;
         const AllAnimals = ['rabbit'];
         // 캐시에 있으면 즉시 전환, 없으면 백그라운드 로드
@@ -336,14 +330,70 @@ export class PixiManager {
                         this.textures[species][lifeStage] = cached;
                     } else {
                         // 비동기로 로드하되, 기존 텍스처는 유지
-                        this.loadAnimalFrames(species, 'adult').catch(err => {
-                            console.warn(`Failed to load ${species} - ${lifeStage} at scale ${newScale}:`, err);
-                        });
+                        await this.reserveLoadAnimalFrames(species, 'adult', newScale);
                     }
                 }
                 catch(error) {
                     continue;
                 }
+            }
+        }
+    }
+
+    // 🐾 로딩 예약 (큐에 추가)
+    async reserveLoadAnimalFrames(species, lifeStage, scale) {
+        const key = `${species}-${lifeStage}-${scale}`;
+
+        // 중복 예약 방지
+        if (this._reservedToLoadAnimalFrames.includes(key)) {
+            console.log(`⚠️ 이미 예약된 항목: ${key}`);
+            return;
+        }
+
+        this._reservedToLoadAnimalFrames.push(key);
+        console.log(`📝 예약됨: ${key}`);
+
+        // 로딩 프로세스 시작 트리거
+        await this._triggerToLoadAnimalFrames();
+    }
+
+    //🌀 예약된 항목들을 순차적으로 처리
+    async _triggerToLoadAnimalFrames() {
+        // 이미 로딩 중이면 새로 시작하지 않음
+        if (this._onLoadingAnimalFrames) {
+            // console.log('⏳ 현재 로딩 중...');
+            return;
+        }
+
+        // 큐가 비어있으면 종료
+        if (this._reservedToLoadAnimalFrames.length === 0) {
+            console.log('✅ 로드 대기열이 비어 있음.');
+            this._onLoadingAnimalFrames = false;
+            return;
+        }
+
+        // 로딩 시작
+        this._onLoadingAnimalFrames = true;
+
+        // 큐에서 다음 타겟 꺼내기
+        const target = this._reservedToLoadAnimalFrames.shift();
+        const [species, lifeStage, scale] = target.split("-");
+
+        console.log(`🚀 시작: ${species} - ${lifeStage} (${scale})`);
+
+        try {
+            await this.loadAnimalFrames(species, lifeStage, scale);
+            console.log(`✅ 완료: ${species} - ${lifeStage} (${scale})`);
+        } catch (err) {
+            console.warn(`❌ 실패: ${species} - ${lifeStage} (${scale})`, err);
+        } finally {
+            // 다음 항목이 있으면 재귀 호출
+            if (this._reservedToLoadAnimalFrames.length > 0) {
+                this._onLoadingAnimalFrames = false; // 다음 작업을 시작할 수 있게 플래그 해제
+                await this._triggerToLoadAnimalFrames();
+            } else {
+                console.log('🏁 모든 예약된 로드 완료');
+                this._onLoadingAnimalFrames = false;
             }
         }
     }
