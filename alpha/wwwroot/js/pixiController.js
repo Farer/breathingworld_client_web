@@ -646,7 +646,9 @@ export class PixiController {
             .onComplete(() => {
                 // ✅ 이동 완료 후 idle_1로 전환
                 if (character.entityType === 'rabbit') {
-                    const idleSet = character.animations['idle_1'];
+                    const randomIndex = Math.floor(Math.random() * 2) + 1;
+                    const randomKey = `idle_${randomIndex}`;
+                    const idleSet = character.animations[randomKey];
                     if (idleSet) {
                         const pickedDir = this._pickDir(idleSet, character.currentDir);
                         if (pickedDir) {

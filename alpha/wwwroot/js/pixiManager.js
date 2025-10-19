@@ -112,7 +112,7 @@ export class PixiManager {
         const AllLifeStages = Variables.lifeStages.rabbit;
         if (species === 'rabbit') {
             for(const lifeStage of AllLifeStages) {
-                await this._loadDirectionalFrames(species, lifeStage, ['idle_1', 'run_1']);
+                await this._loadDirectionalFrames(species, lifeStage, ['idle_1', 'idle_2', 'walk_1', 'run_1', 'sleep_3']);
             }
         } else if (species === 'eagle') {
             for(const lifeStage of AllLifeStages) {
@@ -148,7 +148,10 @@ export class PixiManager {
             let actualFrameCount;
             if (species === 'rabbit') {
                 if (animationKind === 'idle_1') actualFrameCount = 35;
+                else if (animationKind === 'idle_2') actualFrameCount = 22;
+                else if (animationKind === 'walk_1') actualFrameCount = 21;
                 else if (animationKind === 'run_1') actualFrameCount = 14;
+                else if (animationKind === 'sleep_3') actualFrameCount = 12;
                 else actualFrameCount = 1;
             } else {
                 // eagle 등 다른 종은 기존처럼 최대치 사용
@@ -474,10 +477,10 @@ export class PixiManager {
         sprite.entityType = 'rabbit';
         sprite.currentDir = dir;
         sprite.anchor.set(0.5, 1);
-        sprite.animationSpeed = animationKind === 'idle_1' ? 0.12 : 0.55;
+        sprite.animationSpeed = animationKind.startsWith("idle_") ? 0.12 : 0.55;
         sprite.play();
 
-        if (window.FrameInterpFilter && animationKind === 'idle_1') {
+        if (window.FrameInterpFilter && animationKind.startsWith("idle_")) {
             if (!this.sharedInterpFilters.rabbit)
                 this.sharedInterpFilters.rabbit = new FrameInterpFilter();
             const f = this.sharedInterpFilters.rabbit;
