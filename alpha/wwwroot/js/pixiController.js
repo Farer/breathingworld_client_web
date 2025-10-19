@@ -676,39 +676,36 @@ export class PixiController {
     
     thinkAndAct(character) {
         const screen = this.pixiManager.app.screen;
-        const scaleFactor = Variables.MapScaleInfo.current / 128; // 128 기준으로 현재 화면 스케일
+        const scaleFactor = Variables.MapScaleInfo.current / 128;
 
-        // 1) 화면 좌표에서 무작위 타깃 선택
-        let newXtarget = Math.random() * screen.width;
-        let newYtarget = Math.random() * screen.height;
+        // 1️⃣ 스케일에 따라 이동 거리 제한
+        const BASE_MAX_DISTANCE = 800; // scale 128 기준
+        const maxMoveDistance = BASE_MAX_DISTANCE * scaleFactor;
 
-        // 2) 현재 위치와의 '화면 픽셀' 거리
-        const dx = newXtarget - character.x;
-        const dy = newYtarget - character.y;
-        const distance = Math.hypot(dx, dy);
+        // 2️⃣ 랜덤 방향 및 거리
+        const angle = Math.random() * Math.PI * 2;
+        const moveDistance = Math.random() * maxMoveDistance * 0.7 + maxMoveDistance * 0.3;
 
-        // 3) 화면 픽셀 거리를 '세계 거리(128 기준 픽셀)'로 환산
-        const worldDistance = distance / scaleFactor;
+        // 3️⃣ 이동 목표 좌표 계산
+        let newXtarget = character.x + Math.cos(angle) * moveDistance;
+        let newYtarget = character.y + Math.sin(angle) * moveDistance;
 
-        // 4) 세계 기준 속도 설정 (기존 128 기준에서 distance/150 사용 → 속도 150 px/s로 본다)
-        const BASE_WORLD_SPEED = 150; // [세계 px/s] @ scale 128
-
-        // 5) duration 계산 (초 단위). 최소/최대 클램프로 비정상값 방지
-        const MIN_DURATION = 0.25;
-        const MAX_DURATION = 10.0;
-        let duration = worldDistance / BASE_WORLD_SPEED;
-        duration = Math.min(MAX_DURATION, Math.max(MIN_DURATION, duration));
-
-        // 6) (선택) 한 번에 너무 멀리 가는 걸 제한하고 싶다면 '세계 최대 이동거리'로 클램프
-        // const MAX_WORLD_STEP = 600; // 128 기준 최대 600px 이동
-        // if (worldDistance > MAX_WORLD_STEP) {
-        //     const ratio = (MAX_WORLD_STEP * scaleFactor) / distance; // 화면 좌표로 되돌리기
-        //     newXtarget = character.x + dx * ratio;
-        //     newYtarget = character.y + dy * ratio;
-        //     duration = (MAX_WORLD_STEP / BASE_WORLD_SPEED);
-        // }
+        // 4️⃣ 화면 밖으로 벗어나지 않게 보정
+        const margin = 20;
+        newXtarget = Math.min(Math.max(newXtarget, margin), screen.width - margin);
+        newYtarget = Math.min(Math.max(newYtarget, margin), screen.height - margin);
 
         const target = { x: newXtarget, y: newYtarget };
+        const distance = Math.hypot(target.x - character.x, target.y - character.y);
+
+        // 5️⃣ 이동 시간 계산 (스케일 축소 시 느려지도록 보정)
+        const BASE_WORLD_SPEED = 150;
+        const scaleCompensation = 128 / Variables.MapScaleInfo.current;
+        const MIN_DURATION = 0.25;
+        const MAX_DURATION = 10.0;
+        let duration = (distance / BASE_WORLD_SPEED) * scaleCompensation;
+        duration = Math.min(MAX_DURATION, Math.max(MIN_DURATION, duration));
+
         this.moveTo(character, target, duration);
     }
 
