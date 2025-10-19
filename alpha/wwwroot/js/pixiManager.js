@@ -125,6 +125,8 @@ export class PixiManager {
 
         this._animalCache[species][lifeStage][scale] = this.textures[species][lifeStage];
         console.log(`✅ ${species} - ${lifeStage} frames cached for scale ${scale}`);
+
+        
     }
 
     // ✅ 방향별 WebP 프레임 로더 (병렬 디코딩)
@@ -394,6 +396,7 @@ export class PixiManager {
             } else {
                 console.log('🏁 모든 예약된 로드 완료');
                 this._onLoadingAnimalFrames = false;
+                window.pixiController.populateScene();
             }
         }
     }

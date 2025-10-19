@@ -54,6 +54,8 @@ export class PixiController {
         this._deviceTier = this._detectDeviceTier();
         this._targetFPS = this._deviceTier === 'low' ? 30 : 45;
         this.MAX_VISIBLE_ENTITIES = this._deviceTier === 'low' ? 50 : 100;
+
+        this.newSceneData = [];
     }
 
     static async create(container, TWEEN, worker) {
@@ -315,9 +317,21 @@ export class PixiController {
         }
     }
 
-    populateScene(sceneData) {
+    clearScenaData() {
+        this.newSceneData = [];
+    }
+
+    populateScene() {
+        if(Variables.MapScaleInfo.current < 8) {
+            console.log(`populateScene : scale is low. ${Variables.MapScaleInfo.current}`);
+            return;
+        }
+        if(this.newSceneData.length == 0) {
+            console.log('populateScene : no data in newSceneData');
+            return;
+        }
         this.clearScene();
-        sceneData.forEach(data => {
+        this.newSceneData.forEach(data => {
             this.addEntity(data);
         });
         for (const entity of this.allEntities.values()) {
@@ -673,7 +687,7 @@ export class PixiController {
     }
 
     populateNewEntities() {
-        const newSceneData = [];
+        this.newSceneData = [];
         for (let i = 0; i < 20; i++) {
             const x = (Math.random() * screen.width);
             const y = (Math.random() * screen.height);
@@ -686,7 +700,7 @@ export class PixiController {
             //     y: y,
             //     baseScale: 0.1 + Math.random() * 0.4
             // });
-            newSceneData.push({
+            this.newSceneData.push({
                 category: 'animal',
                 species: 'rabbit',
                 lifeStage: 'adult',
@@ -729,6 +743,9 @@ export class PixiController {
         //     });
         // }
 
-        this.populateScene(newSceneData);
+        // this.populateScene(newSceneData);
+        if(!this.pixiManager._onLoadingAnimalFrames) {
+            this.populateScene();
+        }
     }
 }
