@@ -115,8 +115,8 @@ export class PixiManager {
         this.app.stage.addChild(this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer);
 
         await this.loadAssets();
-        await this.loadAnimalFrames('rabbit');
-        await this.loadAnimalFrames('wolf');
+        await this.loadAnimalFrames('rabbit', 'adult');
+        await this.loadAnimalFrames('wolf', 'adult');
         this.isReady = true;
     }
 
@@ -393,7 +393,7 @@ export class PixiManager {
                         this._cacheHits++;
                     } else {
                         // 비동기로 로드하되, 기존 텍스처는 유지
-                        this.loadAnimalFrames(species).catch(err => {
+                        this.loadAnimalFrames(species, 'adult').catch(err => {
                             console.warn(`Failed to load ${species} - ${lifeStage} at scale ${newScale}:`, err);
                         });
                     }
