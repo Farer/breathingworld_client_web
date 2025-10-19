@@ -386,15 +386,20 @@ export class PixiManager {
         // 캐시에 있으면 즉시 전환, 없으면 백그라운드 로드
         for (const species of ['rabbit', 'wolf', 'eagle']) {
             for(const lifeStage of AllLifeStages) {
-                const cached = this._animalCache[species][lifeStage]?.[`${newScale}`];
-                if (cached) {
-                    this.textures[species][lifeStage] = cached;
-                    this._cacheHits++;
-                } else {
-                    // 비동기로 로드하되, 기존 텍스처는 유지
-                    this.loadAnimalFrames(species).catch(err => {
-                        console.warn(`Failed to load ${species} - ${lifeStage} at scale ${newScale}:`, err);
-                    });
+                try {
+                    const cached = this._animalCache[species][lifeStage]?.[`${newScale}`];
+                    if (cached) {
+                        this.textures[species][lifeStage] = cached;
+                        this._cacheHits++;
+                    } else {
+                        // 비동기로 로드하되, 기존 텍스처는 유지
+                        this.loadAnimalFrames(species).catch(err => {
+                            console.warn(`Failed to load ${species} - ${lifeStage} at scale ${newScale}:`, err);
+                        });
+                    }
+                }
+                catch(error) {
+                    continue;
                 }
             }
         }

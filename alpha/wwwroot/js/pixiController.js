@@ -458,7 +458,7 @@ export class PixiController {
         this.stats.entityCount = this.allEntities.size + this.activeWeed.size + this.activeGround.size;
         this.showStat();
 
-        const globalScale = window.currentMapScale || 128;
+        const globalScale = Variables.MapScaleInfo.current || this.pixiManager.currentScale;
         if (this.pixiManager.currentScale !== globalScale) {
             await this.pixiManager.setScale(globalScale);
         }
