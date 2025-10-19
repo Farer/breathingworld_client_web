@@ -39,63 +39,6 @@ export class PixiManager {
         this._init(targetElement);
     }
 
-    // pixiManager.js - cleanup() 강화 버전
-    cleanup() {
-        console.log('🧹 Cleaning up PixiManager...');
-        
-        // Interval 정리
-        if (this._decayInterval) {
-            clearInterval(this._decayInterval);
-            this._decayInterval = null;
-        }
-        
-        // 텍스처 캐시 정리
-        if (this._texCache) {
-            this._texCache.clear();
-            this._texCache = null;
-        }
-        
-        // 동물 캐시 정리
-        this._animalCache = {};
-        
-        // ✅ Shared filters 정리
-        if (this.sharedInterpFilters) {
-            for (const filter of Object.values(this.sharedInterpFilters)) {
-                if (filter && filter.destroy) {
-                    filter.destroy();
-                }
-            }
-            this.sharedInterpFilters = {};
-        }
-        
-        // ✅ Layers 정리
-        const layers = [this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer];
-        for (const layer of layers) {
-            if (layer) {
-                layer.removeChildren();
-                layer.destroy({ children: true });
-            }
-        }
-        
-        // PIXI Application 정리
-        if (this.app) {
-            this.app.destroy(true, { 
-                children: true, 
-                texture: true, 
-                baseTexture: true 
-            });
-            this.app = null;
-        }
-        
-        // Worker 참조 제거
-        this.worker = null;
-        
-        // ✅ 상태 플래그
-        this.isReady = false;
-        
-        console.log('✅ PixiManager cleanup complete');
-    }
-
     async _init(targetElement) {
         this.app = new PIXI.Application();
 
@@ -567,5 +510,62 @@ export class PixiManager {
                 sprite.update(d);
             };
         }, 0);
+    }
+
+    // pixiManager.js - cleanup() 강화 버전
+    cleanup() {
+        console.log('🧹 Cleaning up PixiManager...');
+        
+        // Interval 정리
+        if (this._decayInterval) {
+            clearInterval(this._decayInterval);
+            this._decayInterval = null;
+        }
+        
+        // 텍스처 캐시 정리
+        if (this._texCache) {
+            this._texCache.clear();
+            this._texCache = null;
+        }
+        
+        // 동물 캐시 정리
+        this._animalCache = {};
+        
+        // ✅ Shared filters 정리
+        if (this.sharedInterpFilters) {
+            for (const filter of Object.values(this.sharedInterpFilters)) {
+                if (filter && filter.destroy) {
+                    filter.destroy();
+                }
+            }
+            this.sharedInterpFilters = {};
+        }
+        
+        // ✅ Layers 정리
+        const layers = [this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer];
+        for (const layer of layers) {
+            if (layer) {
+                layer.removeChildren();
+                layer.destroy({ children: true });
+            }
+        }
+        
+        // PIXI Application 정리
+        if (this.app) {
+            this.app.destroy(true, { 
+                children: true, 
+                texture: true, 
+                baseTexture: true 
+            });
+            this.app = null;
+        }
+        
+        // Worker 참조 제거
+        this.worker = null;
+        
+        // ✅ 상태 플래그
+        this.isReady = false;
+        
+        console.log('✅ PixiManager cleanup complete');
     }
 }
