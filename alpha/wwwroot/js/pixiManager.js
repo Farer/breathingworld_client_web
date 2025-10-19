@@ -474,7 +474,7 @@ export class PixiManager {
         sprite.entityType = 'rabbit';
         sprite.currentDir = dir;
         sprite.anchor.set(0.5, 1);
-        sprite.animationSpeed = animationKind === 'idle_1' ? 0.37 : 0.55;
+        sprite.animationSpeed = animationKind === 'idle_1' ? 0.12 : 0.55;
         sprite.play();
 
         if (window.FrameInterpFilter && animationKind === 'idle_1') {
