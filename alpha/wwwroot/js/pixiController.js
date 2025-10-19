@@ -157,14 +157,6 @@ export class PixiController {
                 entity.animations = this.pixiManager.textures[species][lifeStage];
             }
             
-            // ✅ ticker 재등록 (rabbit만)
-            // if (entity.entityType === 'rabbit') {
-            //     if (!entity._tick) {
-            //         entity._tick = delta => entity.update(delta);
-            //     }
-            //     this.pixiManager.app.ticker.add(entity._tick);
-            // }
-            
             // ✅ 텍스처 업데이트 (tree/weed)
             if (species === 'tree' || species === 'weed') {
                 const textureKey = (species === 'tree') ? 'trees' : 'weed';
