@@ -326,8 +326,9 @@ export class PixiManager {
         this.currentScale = newScale;
         
         const AllLifeStages = Variables.lifeStages.rabbit;
+        const AllAnimals = ['rabbit'];
         // 캐시에 있으면 즉시 전환, 없으면 백그라운드 로드
-        for (const species of ['rabbit', 'wolf', 'eagle']) {
+        for (const species of AllAnimals) {
             for(const lifeStage of AllLifeStages) {
                 try {
                     const cached = this._animalCache[species][lifeStage]?.[`${newScale}`];
