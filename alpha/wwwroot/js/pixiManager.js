@@ -26,6 +26,9 @@ export class PixiManager {
             rabbit: {}, wolf: {}, eagle: {}
         };
 
+        // ✅ 추가: validDirs 캐시
+        this._validDirections = new Map();
+
         this.sharedInterpFilters = {}; // species별 공유 필터
 
         // ✅ Map 대신 LRUCache 사용
@@ -187,6 +190,12 @@ export class PixiManager {
                     this.textures[species][lifeStage][animationKind][dir] = frames;
                 }
             });
+
+            // ✅ 로드 완료 후 유효한 방향 캐싱
+            const cacheKey = `${species}-${lifeStage}-${animationKind}`;
+            const validDirs = Object.keys(this.textures[species][lifeStage][animationKind])
+                .filter(k => this.textures[species][lifeStage][animationKind][k]?.length);
+            this._validDirections.set(cacheKey, validDirs);
         }
     }
 
@@ -465,7 +474,15 @@ export class PixiManager {
     _createRabbit(lifeStage, animationKey) {
         const animationKind = animationKey.endsWith('_1') ? animationKey : `${animationKey}_1`;
         const dirs = this.textures.rabbit[lifeStage][animationKind];
-        const validDirs = Object.keys(dirs).filter(k => dirs[k]?.length);
+
+        // ✅ 캐시에서 가져오기 (계산 없음)
+        const cacheKey = `rabbit-${lifeStage}-${animationKind}`;
+        let validDirs = this._validDirections.get(cacheKey);
+        // ✅ 캐시 미스 시에만 계산 (fallback)
+        if (!validDirs) {
+            validDirs = Object.keys(dirs).filter(k => dirs[k]?.length);
+            this._validDirections.set(cacheKey, validDirs);
+        }
         const dir = validDirs[Math.floor(Math.random() * validDirs.length)];
         const sprite = new PIXI.AnimatedSprite(dirs[dir]);
         sprite.entityType = 'rabbit';
@@ -516,7 +533,13 @@ export class PixiManager {
 
     _createGeneric(species, lifeStage, animationKind) {
         const dirs = this.textures[species][lifeStage][animationKind];
-        const valid = Object.keys(dirs).filter(k => dirs[k]?.length);
+        // ✅ 동일한 패턴 적용
+        const cacheKey = `${species}-${lifeStage}-${animationKind}`;
+        let valid = this._validDirections.get(cacheKey);
+        if (!valid) {
+            valid = Object.keys(dirs).filter(k => dirs[k]?.length);
+            this._validDirections.set(cacheKey, valid);
+        }
         const dir = valid[Math.floor(Math.random() * valid.length)];
         const s = new PIXI.AnimatedSprite(dirs[dir]);
         s.entityType = species;
@@ -615,6 +638,12 @@ export class PixiManager {
         
         // ✅ 상태 플래그
         this.isReady = false;
+
+        // ✅ validDirections 캐시 정리
+        if (this._validDirections) {
+            this._validDirections.clear();
+            this._validDirections = null;
+        }
         
         console.log('✅ PixiManager cleanup complete');
     }
