@@ -56,6 +56,7 @@ export class PixiController {
         this.MAX_VISIBLE_ENTITIES = this._deviceTier === 'low' ? 50 : 100;
 
         this.newSceneData = [];
+        this._populatingScene = false;
     }
 
     static async create(container, TWEEN, worker) {
@@ -317,7 +318,7 @@ export class PixiController {
         }
     }
 
-    clearScenaData() {
+    clearSceneData() {
         this.newSceneData = [];
     }
 
@@ -330,6 +331,11 @@ export class PixiController {
             console.log('populateScene : no data in newSceneData');
             return;
         }
+        if(this._populatingScene) {
+            console.log('populateScene : already populating');
+            return;
+        }
+        this._populatingScene = true;
         this.clearScene();
         this.newSceneData.forEach(data => {
             this.addEntity(data);
@@ -339,6 +345,8 @@ export class PixiController {
                 this.thinkAndAct(entity);
             }
         }
+        this.clearSceneData();
+        this._populatingScene = false;
     }
 
     // pixiController.js에 추가

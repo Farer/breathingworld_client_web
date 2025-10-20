@@ -759,7 +759,7 @@ const Core = {
         Variables.ScrollInfo.upAmount = 0;
         Variables.ScrollInfo.downAmount = 0;
 
-        window.pixiController.clearScenaData();
+        window.pixiController.clearSceneData();
         window.pixiController.clearScene();
         if(newScale >= 8) {
             await window.pixiController.pixiManager.applyTextureImmediately(newScale);
