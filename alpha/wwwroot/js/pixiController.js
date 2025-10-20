@@ -480,18 +480,31 @@ export class PixiController {
         profile?.mark('entityLoop');
 
         for (const entity of this.allEntities.values()) {
+            if (!entity.animations) continue;  // ✅ early continue
             if (entity.animations) {
                 if (entity.lastX === undefined) { 
                     entity.lastX = entity.x; 
-                    entity.lastY = entity.y; 
+                    entity.lastY = entity.y;
+                    continue;  // ✅ 첫 프레임은 스킵
                 }
-                const distanceMoved = Math.hypot(entity.x - entity.lastX, entity.y - entity.lastY);
-                const isRunning = entity.textures && entity.animations['run_1'] && 
-                                Object.values(entity.animations['run_1']).some(
-                                    frames => frames === entity.textures
-                                );
+                // ✅ dx, dy 계산
+                const dx = entity.x - entity.lastX;
+                const dy = entity.y - entity.lastY;
+                // ✅ 전혀 움직이지 않은 경우 빠른 리턴
+                if (dx === 0 && dy === 0) {
+                    continue;
+                }
+                
+                // ✅ 제곱 거리로 비교 (sqrt 생략)
+                const distanceMovedSq = dx * dx + dy * dy;
 
-                if (isRunning && distanceMoved > 0.1) {
+                // const isRunning = entity.textures && entity.animations['run_1'] && 
+                //                 Object.values(entity.animations['run_1']).some(
+                //                     frames => frames === entity.textures
+                //                 );
+                if (entity._isRunning && distanceMovedSq > 0.01) {
+                    // ✅ 여기서만 실제 거리 계산
+                    const distanceMoved = Math.sqrt(distanceMovedSq);
                     // ✅ 크기 보정: 작은 토끼일수록 같은 거리라도 더 멀리 달린 것으로 인식
                     const globalScale = Variables.MapScaleInfo.current / 128;
                     const visualSize = (entity.baseScale || 1.0) * globalScale;
@@ -508,7 +521,7 @@ export class PixiController {
 
                     entity.animationSpeed = Math.min(0.7, (0.12 + normalizedSpeed * 0.1) * visualCompensation);
                 }
-                else if (!isRunning) {
+                else if (!entity._isRunning) {
                     // idle 상태일 때는 일정한 속도로 유지
                     entity.animationSpeed = 0.12;
                 }
@@ -618,6 +631,7 @@ export class PixiController {
                 .start();
             
             character.activeTween = tween;
+            
             return;
         }
 
@@ -652,6 +666,7 @@ export class PixiController {
             .onComplete(() => {
                 // ✅ 이동 완료 후 idle_1로 전환
                 if (character.entityType === 'rabbit') {
+                    character._isRunning = false;
                     const randomIndex = Math.floor(Math.random() * 2) + 1;
                     const randomKey = `idle_${randomIndex}`;
                     const idleSet = character.animations[randomKey];
@@ -678,6 +693,7 @@ export class PixiController {
             })
             .start();
 
+        character._isRunning = true;
         character.activeTween = tween;
     }
 
