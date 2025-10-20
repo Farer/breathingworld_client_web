@@ -404,6 +404,7 @@ export class PixiController {
             if (this.pixiManager.getCacheStats) {
                 this._cachedCacheStats = this.pixiManager.getCacheStats();
             }
+            this.stats.poolEfficiency = this._calculatePoolEfficiency();
         }
         this._statUpdateCounter++;
 
@@ -545,7 +546,6 @@ export class PixiController {
         }
 
         profile?.mark('statsCalc');
-        this.stats.poolEfficiency = this._calculatePoolEfficiency();
         this.stats.textureMemory = PIXI.Assets.cache.size;
 
         profile?.mark('updateEnd');
