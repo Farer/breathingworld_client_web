@@ -496,10 +496,7 @@ export class PixiController {
                     const distanceBoost = Math.min(1.6, 1.0 + sizeAdjustedDistance * 0.002); // 긴 이동일수록 약간 가속
                     const visualCompensation = scaleBoost * distanceBoost;
 
-                    entity.animationSpeed = Math.min(
-                        0.7,
-                        (0.12 + normalizedSpeed * 0.1) * visualCompensation
-                    );
+                    entity.animationSpeed = Math.min(0.7, (0.12 + normalizedSpeed * 0.1) * visualCompensation);
                 }
                 else if (!isRunning) {
                     // idle 상태일 때는 일정한 속도로 유지
