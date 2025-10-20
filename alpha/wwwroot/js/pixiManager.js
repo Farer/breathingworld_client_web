@@ -228,13 +228,6 @@ export class PixiManager {
             // KTX2 처리
             if (url.endsWith('.ktx2')) {
                 try {
-                    const resHead = await fetch(url, { method: 'HEAD' });
-                    if (!resHead.ok) return null;
-                } catch {
-                    return null;
-                }
-                
-                try {
                     const res = await PIXI.Assets.load(url);
                     if (!res) {
                         console.warn('KTX2 load returned null:', url);
@@ -315,7 +308,7 @@ export class PixiManager {
                         settled = true;
                         reject(new Error(`Worker timeout: ${url}`));
                     }
-                }, 30000);
+                }, 7500);
             });
             
         } catch (err) {
