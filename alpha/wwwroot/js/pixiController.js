@@ -287,6 +287,7 @@ export class PixiController {
         for (const entity of this.allEntities.values()) {
             this.returnObject(entity);
         }
+        this.pixiManager.sharedInterpFilters = {};
         this.allEntities.clear();
         this.activeWeed.clear();
         this.activeGround.clear();
