@@ -647,6 +647,7 @@ export class PixiController {
                     character.textures = animSet[pickedDir];
                     character.gotoAndPlay(0);
                     character.currentDir = pickedDir;
+                    character._isRunning = true;
                 } else {
                     console.warn(`🐇 No valid run_1 direction found for ${dirKey}`);
                 }
@@ -693,7 +694,6 @@ export class PixiController {
             })
             .start();
 
-        character._isRunning = true;
         character.activeTween = tween;
     }
 
