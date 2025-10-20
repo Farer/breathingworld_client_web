@@ -137,8 +137,9 @@ export class PixiManager {
             `direction_${i.toString().padStart(2, '0')}`
         );
         
-        this.textures[species] = {};
-        this.textures[species][lifeStage] = {};
+        // 기존 species 데이터 보존
+        this.textures[species] = this.textures[species] || {};
+        this.textures[species][lifeStage] = this.textures[species][lifeStage] || {};
         const MAX_FRAMES = this._isSafari ? 30 : 100;
 
         for (const animationKind of animations) {
