@@ -22,7 +22,7 @@
             script.onerror = () => { console.error(`Failed to load script: ${script.src}`); };
             document.body.appendChild(script);
         }
-        loadCSS("/css/common.css?7");
+        loadCSS("/css/common.css?8");
         const scripts = [
             "/js/images.js?13",
             "/js/lib/msgpack.min.js",
@@ -58,11 +58,7 @@
     <script type="module" src="./js/index.js"></script>
 </head>
 <body>
-    <div id="loading-screen">
-        <div id="progress-bar-container">
-            <div id="progress-bar"></div>
-        </div>
-    </div>
+    <div id="loading-screen"><div id="progress-bar-container"><div id="progress-bar"></div></div></div>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-76TZPZS6VM"></script>
     <script>
         window.dataLayer = window.dataLayer || [];

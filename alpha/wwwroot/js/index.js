@@ -14,6 +14,7 @@ window.onload = async function () {
     Socket.PrepareWebsocketCommunication();
     Chat.PrepareWebsocketCommunication();
     Core.PrepareMapContainer();
+    Core.PrepareTextureLoader();
     Core.PrepareMapWrap();
     Core.PrepareWeatherWrap();
     Core.DrawOutterLink();

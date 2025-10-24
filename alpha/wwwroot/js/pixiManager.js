@@ -66,6 +66,14 @@ export class PixiManager {
         this.isReady = true;
     }
 
+    showLoader() {
+        Variables.Doms.get('texture-loader').style.opacity = 1;
+    }
+
+    hideLoader() {
+        Variables.Doms.get('texture-loader').style.opacity = 0;
+    }
+
     async loadAssets() {
         const g = new PIXI.Graphics();
         g.beginFill(0x000000, 0.2);
@@ -128,8 +136,6 @@ export class PixiManager {
 
         this._animalCache[species][lifeStage][scale] = this.textures[species][lifeStage];
         console.log(`✅ ${species} - ${lifeStage} frames cached for scale ${scale}`);
-
-        
     }
 
     // ✅ 방향별 WebP 프레임 로더 (병렬 디코딩)
@@ -360,7 +366,7 @@ export class PixiManager {
 
         this._reservedToLoadAnimalFrames.push(key);
         console.log(`📝 예약됨: ${key}`);
-
+        
         // 로딩 프로세스 시작 트리거
         await this._triggerToLoadAnimalFrames();
     }
@@ -372,6 +378,7 @@ export class PixiManager {
             // console.log('⏳ 현재 로딩 중...');
             return;
         }
+        this.showLoader();
 
         // 큐가 비어있으면 종료
         if (this._reservedToLoadAnimalFrames.length === 0) {
@@ -401,6 +408,7 @@ export class PixiManager {
                 await this._triggerToLoadAnimalFrames();
             } else {
                 console.log('🏁 모든 예약된 로드 완료');
+                this.hideLoader();
                 this._onLoadingAnimalFrames = false;
                 window.pixiController.populateScene();
             }
