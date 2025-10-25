@@ -352,15 +352,6 @@ export class PixiManager {
     }
 
     async applyTextureImmediately(newScale) {
-        // applyTextureImmediately() 함수의 캐시 확인 부분
-        for (const [scale, cached] of Object.entries(this._animalCache.rabbit?.['adult'] || {})) {
-            // 각 scale의 캐시된 텍스처를 직접 확인
-            const cachedTexture = cached['idle_1']?.['direction_00']?.[0];
-            if (cachedTexture && cachedTexture.width) {
-                console.log(`Cached scale ${scale} : width ${cachedTexture.width}`);
-            }
-        }
-
         // 현재 활성 텍스처 확인
         const currentTexture = this.textures.rabbit['adult']?.['idle_1']?.['direction_00']?.[0];
         if (currentTexture && currentTexture.width) {
