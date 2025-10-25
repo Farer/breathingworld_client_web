@@ -762,6 +762,7 @@ export class PixiController {
 
     populateNewEntities() {
         this.newSceneData = [];
+        const screen = this.pixiManager.app.screen;
         for (let i = 0; i < 20; i++) {
             const x = (Math.random() * screen.width);
             const y = (Math.random() * screen.height);
