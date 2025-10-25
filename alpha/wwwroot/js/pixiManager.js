@@ -134,7 +134,15 @@ export class PixiManager {
             return;
         }
 
-        this._animalCache[species][lifeStage][scale] = this.textures[species][lifeStage];
+        const src = this.textures[species][lifeStage];
+        const cloned = {};
+        for (const [anim, dirs] of Object.entries(src)) {
+            cloned[anim] = {};
+            for (const [dir, frames] of Object.entries(dirs)) {
+                cloned[anim][dir] = [...frames];
+            }
+        }
+        this._animalCache[species][lifeStage][scale] = cloned;
         console.log(`✅ ${species} - ${lifeStage} frames cached for scale ${scale}`);
     }
 
