@@ -47,6 +47,13 @@ export class PixiManager {
     async _init(targetElement) {
         this.app = new PIXI.Application();
 
+        if (!window.location.hostname.includes('breathingworld.com')) {
+            window.__PIXI_DEVTOOLS__ = {
+                app: this.app
+                // 또는: stage: app.stage, renderer: app.renderer
+            };
+        }
+
         // 🧩 Safari-safe patch: iOS GPU 발열 완화용 옵션 추가
         await this.app.init({
             backgroundAlpha: 0,
