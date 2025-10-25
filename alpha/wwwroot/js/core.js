@@ -771,7 +771,7 @@ const Core = {
         window.pixiController.clearScene();
         if(newScale >= 8) {
             await window.pixiController.pixiManager.applyTextureImmediately(newScale);
-            window.pixiController.pixiManager.reserveLoadAnimalFrames('rabbit', 'adult', newScale);
+            await window.pixiController.pixiManager.reserveLoadAnimalFrames('rabbit', 'adult', newScale);
         }
     },
     ChangeMapScale: async (newScale) => {

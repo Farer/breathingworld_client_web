@@ -111,58 +111,66 @@ export class PixiManager {
 
     // ✅ 종(species)별 로드
     async loadAnimalFrames(species, lifeStage, scale) {
+        // 캐시 구조 초기화
         this._animalCache[species] = this._animalCache[species] || {};
         if(!this._animalCache[species][lifeStage]) {
             this._animalCache[species][lifeStage] = {};
         }
+        
+        // 이미 캐시된 경우
         if (this._animalCache[species][lifeStage][scale]) {
             this.textures[species][lifeStage] = this._animalCache[species][lifeStage][scale];
+            this._currentTextureScale = scale;
             return;
         }
 
-        const AllLifeStages = Variables.lifeStages.rabbit;
+        // 새로운 텍스처 로드
+        let loadedTextures = {};
+        
         if (species === 'rabbit') {
-            for(const lifeStage of AllLifeStages) {
-                await this._loadDirectionalFrames(species, lifeStage, ['idle_1', 'idle_2', 'walk_1', 'run_1', 'sleep_3']);
-            }
+            loadedTextures = await this._loadDirectionalFrames(
+                species, 
+                lifeStage, 
+                ['idle_1', 'idle_2', 'walk_1', 'run_1', 'sleep_3'], 
+                scale
+            );
         } else if (species === 'eagle') {
-            for(const lifeStage of AllLifeStages) {
-                await this._loadDirectionalFrames(species, lifeStage, ['idle', 'fly', 'attack']);
-            }
+            loadedTextures = await this._loadDirectionalFrames(
+                species, 
+                lifeStage, 
+                ['idle', 'fly', 'attack'], 
+                scale
+            );
         } else if (species === 'wolf') {
-            // wolf는 sprite sheet 기반이므로 이미 loadAssets에서 처리됨
+            // wolf는 sprite sheet 기반이므로 별도 처리
             return;
         }
 
-        const src = this.textures[species][lifeStage];
-        const cloned = {};
-        for (const [anim, dirs] of Object.entries(src)) {
-            cloned[anim] = {};
-            for (const [dir, frames] of Object.entries(dirs)) {
-                cloned[anim][dir] = [...frames];
-            }
-        }
-        this._animalCache[species][lifeStage][scale] = cloned;
+        // 캐시에 저장 (독립적인 객체)
+        this._animalCache[species][lifeStage][scale] = loadedTextures;
+        
+        // 현재 활성 텍스처로 설정
+        this.textures[species][lifeStage] = loadedTextures;
+        this._currentTextureScale = scale;
+        
         console.log(`✅ ${species} - ${lifeStage} frames cached for scale ${scale}`);
     }
 
-    // ✅ 방향별 WebP 프레임 로더 (병렬 디코딩)
-    async _loadDirectionalFrames(species, lifeStage, animations) {
-        const scaleDir = `${Variables.MapScaleInfo.current}`;
+    // 기존 _loadDirectionalFrames를 수정하지 않고 새 함수 생성
+    async _loadDirectionalFrames(species, lifeStage, animations, scale) {
+        const scaleDir = `${scale}`;
         const basePath = `/img/ktx2/${species}/${lifeStage}/${scaleDir}`;
         const dirs = Array.from({ length: 16 }, (_, i) => 
             `direction_${i.toString().padStart(2, '0')}`
         );
         
-        // 기존 species 데이터 보존
-        this.textures[species] = this.textures[species] || {};
-        this.textures[species][lifeStage] = this.textures[species][lifeStage] || {};
+        // 새로운 독립적인 객체 생성
+        const result = {};
         const MAX_FRAMES = this._isSafari ? 30 : 100;
 
         for (const animationKind of animations) {
-            this.textures[species][lifeStage][animationKind] = {};
+            result[animationKind] = {};
 
-            // ✅ 명시적으로 프레임 수 지정
             let actualFrameCount;
             if (species === 'rabbit') {
                 if (animationKind === 'idle_1') actualFrameCount = 35;
@@ -172,16 +180,13 @@ export class PixiManager {
                 else if (animationKind === 'sleep_3') actualFrameCount = 12;
                 else actualFrameCount = 1;
             } else {
-                // eagle 등 다른 종은 기존처럼 최대치 사용
                 actualFrameCount = MAX_FRAMES;
             }
 
-            // ✅ 모든 방향에 동일한 프레임 수 적용
             const dirPromises = dirs.map(async dir => {
                 const path = `${basePath}/${animationKind}/${dir}`;
                 const frames = [];
 
-                // actualFrameCount만큼만 로드 (404 없음)
                 for (let i = 0; i < actualFrameCount; i++) {
                     const num = i.toString().padStart(4, '0');
                     const url = `${path}/frame_${num}.ktx2`;
@@ -195,22 +200,28 @@ export class PixiManager {
                     frames.push(tex);
                 }
 
+                if (animationKind === 'idle_1' && dir === 'direction_00') {
+                    console.log(`${scale} : ${frames.length} frames loaded (expected size: ${frames.length * 16})`);
+                }
+
                 return { dir, frames };
             });
 
             const results = await Promise.all(dirPromises);
             results.forEach(({ dir, frames }) => {
                 if (frames.length > 0) {
-                    this.textures[species][lifeStage][animationKind][dir] = frames;
+                    result[animationKind][dir] = frames;
                 }
             });
 
-            // ✅ 로드 완료 후 유효한 방향 캐싱
+            // validDirections 캐싱 (scale 포함)
             const cacheKey = `${species}-${lifeStage}-${animationKind}`;
-            const validDirs = Object.keys(this.textures[species][lifeStage][animationKind])
-                .filter(k => this.textures[species][lifeStage][animationKind][k]?.length);
+            const validDirs = Object.keys(result[animationKind])
+                .filter(k => result[animationKind][k]?.length);
             this._validDirections.set(cacheKey, validDirs);
         }
+
+        return result;
     }
 
     // 📊 캐시 성능 모니터링
@@ -341,6 +352,21 @@ export class PixiManager {
     }
 
     async applyTextureImmediately(newScale) {
+        // applyTextureImmediately() 함수의 캐시 확인 부분
+        for (const [scale, cached] of Object.entries(this._animalCache.rabbit?.['adult'] || {})) {
+            // 각 scale의 캐시된 텍스처를 직접 확인
+            const cachedTexture = cached['idle_1']?.['direction_00']?.[0];
+            if (cachedTexture && cachedTexture.width) {
+                console.log(`Cached scale ${scale} : width ${cachedTexture.width}`);
+            }
+        }
+
+        // 현재 활성 텍스처 확인
+        const currentTexture = this.textures.rabbit['adult']?.['idle_1']?.['direction_00']?.[0];
+        if (currentTexture && currentTexture.width) {
+            console.log(`Current active texture: width ${currentTexture.width}`);
+        }
+
         const AllLifeStages = Variables.lifeStages.rabbit;
         const AllAnimals = ['rabbit'];
         // 캐시에 있으면 즉시 전환, 없으면 백그라운드 로드
@@ -381,46 +407,54 @@ export class PixiManager {
 
     //🌀 예약된 항목들을 순차적으로 처리
     async _triggerToLoadAnimalFrames() {
-        // 이미 로딩 중이면 새로 시작하지 않음
+        // 이미 로딩 중이면 리턴
         if (this._onLoadingAnimalFrames) {
-            // console.log('⏳ 현재 로딩 중...');
             return;
         }
-        this.showLoader();
-
+        
         // 큐가 비어있으면 종료
         if (this._reservedToLoadAnimalFrames.length === 0) {
             console.log('✅ 로드 대기열이 비어 있음.');
-            this._onLoadingAnimalFrames = false;
             return;
         }
 
         // 로딩 시작
         this._onLoadingAnimalFrames = true;
+        this.showLoader();
 
-        // 큐에서 다음 타겟 꺼내기
-        const target = this._reservedToLoadAnimalFrames.shift();
-        const [species, lifeStage, scale] = target.split("-");
+        // 큐가 빌 때까지 계속 처리
+        while (this._reservedToLoadAnimalFrames.length > 0) {
+            const target = this._reservedToLoadAnimalFrames.shift();
+            const [species, lifeStage, scale] = target.split("-");
 
-        console.log(`🚀 시작: ${species} - ${lifeStage} (${scale})`);
+            console.log(`🚀 시작: ${species} - ${lifeStage} (${scale})`);
 
-        try {
-            await this.loadAnimalFrames(species, lifeStage, scale);
-            console.log(`✅ 완료: ${species} - ${lifeStage} (${scale})`);
-        } catch (err) {
-            console.warn(`❌ 실패: ${species} - ${lifeStage} (${scale})`, err);
-        } finally {
-            // 다음 항목이 있으면 재귀 호출
-            if (this._reservedToLoadAnimalFrames.length > 0) {
-                this._onLoadingAnimalFrames = false; // 다음 작업을 시작할 수 있게 플래그 해제
-                await this._triggerToLoadAnimalFrames();
-            } else {
-                console.log('🏁 모든 예약된 로드 완료');
-                this.hideLoader();
-                this._onLoadingAnimalFrames = false;
-                window.pixiController.populateScene();
+            try {
+                await this.loadAnimalFrames(species, lifeStage, scale);
+                console.log(`✅ 완료: ${species} - ${lifeStage} (${scale})`);
+            } catch (err) {
+                console.warn(`❌ 실패: ${species} - ${lifeStage} (${scale})`, err);
             }
         }
+
+        // 모든 처리 완료
+        console.log('🏁 모든 예약된 로드 완료');
+        this.checkTexture();
+
+        this.hideLoader();
+        this._onLoadingAnimalFrames = false;
+        
+        if (window.pixiController) {
+            window.pixiController.populateScene();
+        }
+    }
+
+    checkTexture() {
+        try { console.log('8 : '+pixiController.pixiManager._animalCache.rabbit.adult['8'].idle_1.direction_00[0].width); } catch(e) { }
+        try { console.log('16 : '+pixiController.pixiManager._animalCache.rabbit.adult['16'].idle_1.direction_00[0].width); } catch(e) { }
+        try { console.log('32 : '+pixiController.pixiManager._animalCache.rabbit.adult['32'].idle_1.direction_00[0].width); } catch(e) { }
+        try { console.log('64 : '+pixiController.pixiManager._animalCache.rabbit.adult['64'].idle_1.direction_00[0].width); } catch(e) { }
+        try { console.log('128 : '+pixiController.pixiManager._animalCache.rabbit.adult['128'].idle_1.direction_00[0].width); } catch(e) { }
     }
 
     _parseAnimalSheet(sheetTexture, frameSize, animationConfig) {
