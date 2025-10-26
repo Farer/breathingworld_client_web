@@ -351,35 +351,254 @@ export class WebGPUController {
     
     /**
      * 엔티티 텍스처 로드
+    /**
+     * 엔티티 텍스처 로드 - 애니메이션 시스템 통합
      */
     async loadEntityTexture(entity, species, lifeStage, stage) {
-        let textureUrl;
-        
         switch (species) {
             case 'ground':
-                textureUrl = '/img/sprites/sprite_ground_with_droppings_rgba_opti.png';
+                const groundUrl = '/img/sprites/sprite_ground_with_droppings_rgba_opti.png';
+                const groundTexture = await this.webGPUManager.loadTexture(groundUrl);
+                entity.textureBindGroup = groundTexture.bindGroup;
+                entity.width = groundTexture.width;
+                entity.height = groundTexture.height;
                 break;
+                
             case 'weed':
-                textureUrl = '/img/sprites/sprite_weed_512_opti.png';
+                const weedUrl = '/img/sprites/sprite_weed_512_opti.png';
+                const weedTexture = await this.webGPUManager.loadTexture(weedUrl);
+                entity.textureBindGroup = weedTexture.bindGroup;
+                entity.width = weedTexture.width;
+                entity.height = weedTexture.height;
                 break;
+                
             case 'tree':
-                textureUrl = `/img/tree_${stage}_tiny.png`;
+                const treeUrl = `/img/tree_${stage}_tiny.png`;
+                const treeTexture = await this.webGPUManager.loadTexture(treeUrl);
+                entity.textureBindGroup = treeTexture.bindGroup;
+                entity.width = treeTexture.width;
+                entity.height = treeTexture.height;
                 break;
+                
             case 'rabbit':
             case 'wolf':
             case 'eagle':
+                // 동물은 애니메이션 시스템 사용
                 const scale = Variables.MapScaleInfo.current;
                 
-                textureUrl = this.webGPUManager.getAnimalTextureURL(species, lifeStage, scale);
+                // 애니메이션 데이터 설정
+                entity.animationData = {
+                    species: species,
+                    lifeStage: lifeStage,
+                    scale: scale,
+                    currentAnimation: 'idle_1',
+                    currentDirection: 0,
+                    currentFrame: 0,
+                    frameTime: 0,
+                    frameDuration: 100, // ms per frame
+                    animations: {}
+                };
+                
+                // 애니메이션 텍스처 로드
+                await this.loadAnimalAnimations(entity, species, lifeStage, scale);
+                
+                // 초기 텍스처 설정
+                this.updateEntityAnimation(entity);
                 break;
         }
+    }
+    
+    /**
+     * 동물 애니메이션 텍스처 로드
+     */
+    async loadAnimalAnimations(entity, species, lifeStage, scale) {
+        const baseUrl = this.webGPUManager.getAnimalTextureURL(species, lifeStage, scale);
+        const animations = this.getAnimationTypes(species);
         
-        if (textureUrl) {
-            const textureData = await this.webGPUManager.loadTexture(textureUrl);
-            entity.textureBindGroup = textureData.bindGroup;
-            entity.width = textureData.width;
-            entity.height = textureData.height;
+        // console.log(`[loadAnimalAnimations] Loading for ${species}/${lifeStage} at scale ${scale}`);
+        // console.log(`[loadAnimalAnimations] Base URL: ${baseUrl}`);
+        // console.log(`[loadAnimalAnimations] Animations to load: ${animations.join(', ')}`);
+        
+        entity.animationData.animations = {};
+        
+        for (const animationType of animations) {
+            const frameCount = this.getFrameCount(species, animationType);
+            // console.log(`[loadAnimalAnimations] ${animationType}: ${frameCount} frames`);
+            
+            entity.animationData.animations[animationType] = {
+                directions: [],
+                frameCount: frameCount
+            };
+            
+            // 16방향 (00-15) - 테스트를 위해 처음 2개 방향만
+            for (let dir = 0; dir < 2; dir++) {
+                const direction = `direction_${dir.toString().padStart(2, '0')}`;
+                const frames = [];
+                
+                // 테스트용으로 프레임 수 제한
+                const actualFrameCount = Math.min(3, frameCount);
+                // console.log(`[loadAnimalAnimations] Loading ${actualFrameCount} frames for ${animationType}/${direction}`);
+                
+                for (let frame = 0; frame < actualFrameCount; frame++) {
+                    const frameNum = frame.toString().padStart(4, '0');
+                    const url = `${baseUrl}/${animationType}/${direction}/frame_${frameNum}.ktx2`;
+                    
+                    // console.log(`[loadAnimalAnimations] Loading texture: ${url}`);
+                    
+                    // 텍스처 캐시에서 가져오거나 로드
+                    try {
+                        const textureData = await this.webGPUManager.loadTexture(url);
+                        if (textureData) {
+                            frames.push(textureData);
+                        }
+                    } catch (error) {
+                        console.error(`[loadAnimalAnimations] Failed to load ${url}:`, error);
+                    }
+                }
+                
+                entity.animationData.animations[animationType].directions.push(frames);
+            }
         }
+        
+        // console.log(`[loadAnimalAnimations] Completed loading animations for entity`);
+    }
+    
+    /**
+     * 동물별 애니메이션 타입 반환
+     */
+    getAnimationTypes(species) {
+        if (species === 'rabbit') {
+            return ['idle_1']; // 테스트용으로 일단 idle_1만
+        }
+        return ['idle_1'];
+    }
+    
+    /**
+     * 각도를 16방향 인덱스로 변환
+     * @param {number} angle - 라디안 각도
+     * @returns {number} 0-15 사이의 방향 인덱스
+     */
+    angleToDirection(angle) {
+        // 각도를 0-2π 범위로 정규화
+        while (angle < 0) angle += Math.PI * 2;
+        while (angle > Math.PI * 2) angle -= Math.PI * 2;
+        
+        // 16방향으로 변환 (22.5도씩)
+        // direction_00은 아래쪽, 시계방향으로 증가
+        const segment = Math.PI * 2 / 16;
+        let direction = Math.round(angle / segment);
+        
+        // 0-15 범위로 조정
+        return direction % 16;
+    }
+    
+    /**
+     * 두 점 사이의 방향 계산
+     * @param {number} fromX - 시작 X 좌표
+     * @param {number} fromY - 시작 Y 좌표
+     * @param {number} toX - 목표 X 좌표
+     * @param {number} toY - 목표 Y 좌표
+     * @returns {number} 0-15 사이의 방향 인덱스
+     */
+    getDirectionBetweenPoints(fromX, fromY, toX, toY) {
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const angle = Math.atan2(dy, dx);
+        
+        // 각도를 16방향 시스템에 맞게 조정 (시계방향)
+        // direction_00 = 남쪽 (아래, 6시 방향)
+        // direction_04 = 동쪽 (오른쪽, 3시 방향)
+        // direction_08 = 북쪽 (위, 12시 방향)
+        // direction_12 = 서쪽 (왼쪽, 9시 방향)
+        
+        // atan2는 오른쪽(3시)을 0도로 반시계방향으로 증가
+        // 우리는 아래쪽(6시)을 0으로 시계방향으로 증가하길 원함
+        // 따라서: 90도 회전 + 방향 반전
+        let adjustedAngle = -angle + Math.PI/2;
+        
+        // 0-2π 범위로 정규화
+        if (adjustedAngle < 0) adjustedAngle += Math.PI * 2;
+        
+        // 16방향으로 변환
+        const segment = Math.PI * 2 / 16;
+        let direction = Math.round(adjustedAngle / segment);
+        
+        return direction % 16;
+    }
+    
+    /**
+     * 종별 애니메이션 프레임 수 반환
+     */
+    getFrameCount(species, animationType) {
+        if (species === 'rabbit') {
+            switch (animationType) {
+                case 'idle_1': return 35;
+                case 'idle_2': return 22;
+                case 'walk_1': return 21;
+                case 'run_1': return 14;
+                case 'sleep_3': return 12;
+                case 'eat_1': return 1;
+                default: return 1;
+            }
+        }
+        return 10;
+    }
+    
+    /**
+     * 엔티티 애니메이션 업데이트
+     */
+    updateEntityAnimation(entity, deltaTime = 0) {
+        if (!entity.animationData) return;
+        
+        const animData = entity.animationData;
+        
+        // 프레임 시간 업데이트
+        animData.frameTime += deltaTime;
+        
+        // 프레임 전환
+        if (animData.frameTime >= animData.frameDuration) {
+            animData.frameTime = 0;
+            animData.currentFrame++;
+            
+            const anim = animData.animations[animData.currentAnimation];
+            if (anim && animData.currentFrame >= Math.min(5, anim.frameCount)) {
+                animData.currentFrame = 0;
+            }
+        }
+        
+        // 현재 텍스처 가져오기
+        const anim = animData.animations[animData.currentAnimation];
+        if (anim && anim.directions[animData.currentDirection]) {
+            const frame = anim.directions[animData.currentDirection][animData.currentFrame];
+            if (frame) {
+                entity.textureBindGroup = frame.bindGroup;
+                entity.width = frame.width;
+                entity.height = frame.height;
+            }
+        }
+    }
+    
+    /**
+     * 엔티티 애니메이션 설정
+     */
+    setEntityAnimation(entity, animationType, direction = null) {
+        if (!entity.animationData) return;
+        
+        // 애니메이션 타입 변경
+        if (entity.animationData.animations[animationType] && 
+            animationType !== entity.animationData.currentAnimation) {
+            entity.animationData.currentAnimation = animationType;
+            entity.animationData.currentFrame = 0;
+            entity.animationData.frameTime = 0;
+        }
+        
+        // 방향 설정 (0-15)
+        if (direction !== null) {
+            entity.animationData.currentDirection = Math.floor(direction) % 16;
+        }
+        
+        // 텍스처 즉시 업데이트
+        this.updateEntityAnimation(entity);
     }
     
     /**
@@ -601,13 +820,21 @@ export class WebGPUController {
     getDirectionIndex(x1, y1, x2, y2) {
         const dx = x2 - x1;
         const dy = y2 - y1;
-        let angle = Math.atan2(dy, dx) * (180 / Math.PI);
         
-        // 각도를 0-360 범위로 변환
-        if (angle < 0) angle += 360;
+        // Math.atan2는 오른쪽(3시)이 0, 반시계방향으로 증가
+        // 우리는 아래쪽(6시)이 0, 시계방향으로 증가 필요
+        let angle = Math.atan2(dy, dx);
         
-        // 8방향 인덱스로 변환 (45도씩)
-        const dirIndex = Math.round(angle / 45) % 8;
+        // 90도 회전 + 방향 반전하여 변환
+        let adjustedAngle = -angle + Math.PI/2;
+        
+        // 0-2π 범위로 정규화
+        if (adjustedAngle < 0) adjustedAngle += Math.PI * 2;
+        
+        // 16방향 인덱스로 변환 (22.5도씩)
+        const segment = Math.PI * 2 / 16;
+        const dirIndex = Math.round(adjustedAngle / segment) % 16;
+        
         return dirIndex;
     }
     
@@ -630,14 +857,11 @@ export class WebGPUController {
      */
     setRunAnimation(character, directionIndex) {
         if (!character.animationData) return;
-        
-        const randomRun = Math.random() > 0.5 ? 'run_1' : 'run_2';
-        character.animationData.currentAnimation = randomRun;
-        character.animationData.currentDirection = `direction_${directionIndex}`;
+        const runName = 'run_1';
+        character.animationData.currentAnimation = runName;
+        character.animationData.currentDirection = directionIndex;
         character.animationData.speed = 1.0;
-        
-        // 텍스처 로드
-        this.loadAnimationTextures(character, randomRun, directionIndex);
+        this.loadAnimationTextures(character, runName, directionIndex);
     }
     
     /**
@@ -652,45 +876,40 @@ export class WebGPUController {
             scale
         );
         
-        // 방향 결정
-        const direction = directionIndex !== null 
-            ? `direction_${directionIndex}`
-            : character.animationData.currentDirection;
+        // 방향 결정 (0-15 인덱스를 direction_00 형식으로)
+        let direction;
+        if (directionIndex !== null) {
+            // 인덱스를 2자리 패딩된 문자열로 변환
+            direction = `direction_${directionIndex.toString().padStart(2, '0')}`;
+        } else if (character.animationData && character.animationData.currentDirection !== undefined) {
+            // 이미 인덱스로 저장되어 있으면 변환
+            const dirIdx = character.animationData.currentDirection;
+            direction = `direction_${dirIdx.toString().padStart(2, '0')}`;
+        } else {
+            // 기본값
+            direction = 'direction_00';
+        }
         
         // 프레임별 텍스처 로드
         const frameCount = this.getFrameCount(character.entityType, animation);
         const loadPromises = [];
         
         for (let i = 0; i < frameCount; i++) {
-            const url = `${baseUrl}/${animation}/${direction}/frame_${i}.ktx2`;
+            // 프레임 번호를 4자리 패딩
+            const frameNum = i.toString().padStart(4, '0');
+            const url = `${baseUrl}/${animation}/${direction}/frame_${frameNum}.ktx2`;
             loadPromises.push(this.webGPUManager.loadTexture(url, 1));
         }
         
         await Promise.all(loadPromises);
         
         // 프레임 수 업데이트
-        character.animationData.totalFrames = frameCount;
+        if (character.animationData) {
+            character.animationData.frameCount = frameCount;
+            character.animationData.totalFrames = frameCount;
+        }
     }
     
-    /**
-     * 애니메이션별 프레임 수
-     */
-    getFrameCount(species, animation) {
-        const frameCounts = {
-            rabbit: {
-                idle_1: 60, idle_2: 60,
-                run_1: 41, run_2: 41
-            },
-            wolf: {
-                idle: 60, run: 41, howl: 60
-            },
-            eagle: {
-                idle: 30, fly: 45
-            }
-        };
-        
-        return frameCounts[species]?.[animation] || 30;
-    }
     
     /**
      * 풀 효율성 계산
@@ -858,5 +1077,48 @@ export class WebGPUController {
         }
         
         console.log('✅ WebGPU Controller cleanup complete');
+    }
+    /**
+     * 메인 업데이트 루프
+     */
+    update(deltaTime) {
+        // 애니메이션이 있는 모든 엔티티 업데이트
+        this.allEntities.forEach(entity => {
+            if (entity.animationData) {
+                this.updateEntityAnimation(entity, deltaTime);
+            }
+        });
+        
+        // TWEEN 애니메이션 업데이트
+        if (this.tween) {
+            this.tween.update();
+        }
+    }
+    
+    /**
+     * 프레임별 렌더링
+     */
+    renderFrame() {
+        const now = performance.now();
+        const deltaTime = now - (this.lastFrameTime || now);
+        this.lastFrameTime = now;
+        
+        // 업데이트
+        this.update(deltaTime);
+        
+        // WebGPU 렌더링
+        if (this.webGPUManager) {
+            this.webGPUManager.render();
+        }
+        
+        requestAnimationFrame(() => this.renderFrame());
+    }
+    
+    /**
+     * 렌더링 루프 시작
+     */
+    startRenderLoop() {
+        this.lastFrameTime = performance.now();
+        this.renderFrame();
     }
 }

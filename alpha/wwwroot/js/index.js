@@ -30,7 +30,7 @@ window.onload = async function () {
     Core.ApplyWeather();
     // 텍스처 워커 생성 (깨끗한 버전)
     console.log('🔧 Creating texture worker...');
-    window.textureWorker = new Worker('/js/ktx2WorkerClean.js');
+    window.textureWorker = new Worker('/js/ktx2WorkerClean.js?1');
     
     // Worker 에러 핸들링
     window.textureWorker.addEventListener('error', (error) => {

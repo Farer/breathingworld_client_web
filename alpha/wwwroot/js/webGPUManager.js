@@ -530,42 +530,43 @@ export class WebGPUManager {
     /**
      * 동물 프레임 예약 로딩
      */
-    async reserveLoadAnimalFrames(species, lifeStage, scale) {
-        const baseUrl = `/img/ktx2/${species}/${lifeStage}/${scale}`;
-        const MAX_FRAMES = this._isSafari ? 30 : 100;
-        // const animations = ['idle_1', 'idle_2', 'walk_1', 'run_1', 'eat_1', 'sleep_3'];
-        const animations = ['idle_1', 'idle_2', 'run_1'];
-        let actualFrameCount;
-        // 애니메이션별로 프레임 로드
-        const loadPromises = [];
-        for (const animationKind of animations) {
-            if (species === 'rabbit') {
-                if (animationKind === 'idle_1') actualFrameCount = 35;
-                else if (animationKind === 'idle_2') actualFrameCount = 22;
-                else if (animationKind === 'walk_1') actualFrameCount = 21;
-                else if (animationKind === 'run_1') actualFrameCount = 14;
-                else if (animationKind === 'sleep_3') actualFrameCount = 12;
-                else actualFrameCount = 1;
-            } else {
-                actualFrameCount = MAX_FRAMES;
-            }
-            const directions = this.getDirectionsForAnimation(species);
-            for (const dir of directions) {
-                const path = `${baseUrl}/${animationKind}/${dir}`;
-                for (let i = 0; i < actualFrameCount; i++) {
-                    const num = i.toString().padStart(4, "0");
-                    const url = `${path}/frame_${num}.ktx2`;
-                    loadPromises.push(this.loadTexture(url, 1));
-                }
-            }
-        }
-        this.showLoader();
-        console.log(`🐾 Reserved loading: ${species}/${lifeStage} at scale ${scale}`);
-        await Promise.all(loadPromises);
-        this.hideLoader();
-        console.log(`✅ Animal frames loaded: ${species}/${lifeStage} at scale ${scale}`);
-    }
-
+    async reserveLoadAnimalFrames(species, lifeStage, scale) { console.log("[WebGPUManager] Skipped - handled by WebGPUController"); return; }
+//     async reserveLoadAnimalFrames(species, lifeStage, scale) {
+//         const baseUrl = `/img/ktx2/${species}/${lifeStage}/${scale}`;
+//         const MAX_FRAMES = this._isSafari ? 30 : 100;
+//         // const animations = ['idle_1', 'idle_2', 'walk_1', 'run_1', 'eat_1', 'sleep_3'];
+//         const animations = ['idle_1', 'idle_2', 'run_1'];
+//         let actualFrameCount;
+//         // 애니메이션별로 프레임 로드
+//         const loadPromises = [];
+//         for (const animationKind of animations) {
+//             if (species === 'rabbit') {
+//                 if (animationKind === 'idle_1') actualFrameCount = 35;
+//                 else if (animationKind === 'idle_2') actualFrameCount = 22;
+//                 else if (animationKind === 'walk_1') actualFrameCount = 21;
+//                 else if (animationKind === 'run_1') actualFrameCount = 14;
+//                 else if (animationKind === 'sleep_3') actualFrameCount = 12;
+//                 else actualFrameCount = 1;
+//             } else {
+//                 actualFrameCount = MAX_FRAMES;
+//             }
+//             const directions = this.getDirectionsForAnimation(species);
+//             for (const dir of directions) {
+//                 const path = `${baseUrl}/${animationKind}/${dir}`;
+//                 for (let i = 0; i < actualFrameCount; i++) {
+//                     const num = i.toString().padStart(4, "0");
+//                     const url = `${path}/frame_${num}.ktx2`;
+//                     loadPromises.push(this.loadTexture(url, 1));
+//                 }
+//             }
+//         }
+//         this.showLoader();
+//         console.log(`🐾 Reserved loading: ${species}/${lifeStage} at scale ${scale}`);
+//         await Promise.all(loadPromises);
+//         this.hideLoader();
+//         console.log(`✅ Animal frames loaded: ${species}/${lifeStage} at scale ${scale}`);
+//     }
+// 
     /**
      * 기본 에셋 로드
      */
