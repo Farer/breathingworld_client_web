@@ -29,7 +29,7 @@ export class PixiController {
         this.pixiManager = new PixiManager(container, worker);
         this.TWEEN = TWEEN;
         this.worker = worker;
-        
+
         this.activeGround = new Map();
         this.activeWeed = new Map();
         this.allEntities = new Map();
@@ -64,7 +64,7 @@ export class PixiController {
         await controller._init();
         return controller;
     }
-    
+
     async _init() {
         await new Promise(resolve => {
             const checkReady = () => {
@@ -75,7 +75,7 @@ export class PixiController {
         });
 
         // const initialSceneData = [];
-        
+
         // for (let i = 0; i < 50; i++) {
         //     initialSceneData.push({
         //         category: 'environment',
@@ -140,40 +140,52 @@ export class PixiController {
         const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
         const cores = navigator.hardwareConcurrency || 2;
         const memory = navigator.deviceMemory || 2;
-        
+
         if (!isMobile && cores >= 8 && memory >= 8) return 'high';
         if (cores >= 4 && memory >= 4) return 'medium';
         return 'low';
     }
 
     borrowObject(species, lifeStage, stage) {
-        const pool = this.pools[species];
+        const currentScale = Variables.MapScaleInfo.current;
+
+        // ⭐⭐ Scale 128에서는 pool 사용 안 함 (안정성)
+        const usePool = currentScale < 128;
+        const pool = usePool ? this.pools[species] : null;
+
         let entity = null;
-        
+
         if (pool && pool.length > 0) {
             entity = pool.pop();
+            // texture 유효성 체크 추가
+            if (entity && !entity.destroyed) {
+                entity.visible = true;
+                if (entity.shadow) entity.shadow.visible = true;
+            } else {
+                entity = null;
+            }
             entity.visible = true;
             if (entity.shadow) entity.shadow.visible = true;
             // ⭐ 중요: rabbit의 경우 filter 재설정
             if (species === 'rabbit') {
                 // sharedInterpFilters가 초기화되었으므로 다시 생성
-                if (window.FrameInterpFilter) {
-                    if (!this.pixiManager.sharedInterpFilters.rabbit) {
-                        this.pixiManager.sharedInterpFilters.rabbit = new FrameInterpFilter();
-                    }
-                    entity.filters = [this.pixiManager.sharedInterpFilters.rabbit];
-                    // _applyInterpTick도 다시 호출해야 할 수 있음
-                    this.pixiManager._applyInterpTick(entity, this.pixiManager.sharedInterpFilters.rabbit);
-                }
+                // if (window.FrameInterpFilter) {
+                //     if (!this.pixiManager.sharedInterpFilters.rabbit) {
+                //         this.pixiManager.sharedInterpFilters.rabbit = new FrameInterpFilter();
+                //     }
+                //     entity.filters = [this.pixiManager.sharedInterpFilters.rabbit];
+                //     // _applyInterpTick도 다시 호출해야 할 수 있음
+                //     this.pixiManager._applyInterpTick(entity, this.pixiManager.sharedInterpFilters.rabbit);
+                // }
             } else {
                 entity.filters = null;
             }
-            
+
             // ✅ animations 참조 복원
             if (species === 'rabbit' || species === 'wolf' || species === 'eagle') {
                 entity.animations = this.pixiManager.textures[species][lifeStage];
             }
-            
+
             // ✅ 텍스처 업데이트 (tree/weed)
             if (species === 'tree' || species === 'weed') {
                 const textureKey = (species === 'tree') ? 'trees' : 'weed';
@@ -187,8 +199,8 @@ export class PixiController {
                 case 'ground': entity = this.pixiManager.createGround(stage); break;
                 case 'weed': entity = this.pixiManager.createWeed(stage); break;
                 case 'tree': entity = this.pixiManager.createTree(stage); break;
-                case 'rabbit': case 'wolf': case 'eagle': 
-                    entity = this.pixiManager.createAnimal(species, lifeStage, 'idle'); 
+                case 'rabbit': case 'wolf': case 'eagle':
+                    entity = this.pixiManager.createAnimal(species, lifeStage, 'idle');
                     break;
                 default:
                     console.warn(`Unknown species: ${species}`);
@@ -204,19 +216,38 @@ export class PixiController {
     }
 
     returnObject(entity) {
+        if (!entity || entity.destroyed) {
+            return;
+        }
+
+        const currentScale = Variables.MapScaleInfo.current;
+        // ⭐ Scale 128에서는 pool에 넣지 않고 바로 파괴
+        if (currentScale >= 128) {
+            // 파괴 전 정리
+            if (entity._cleanup) entity._cleanup();
+            if (entity._tick && this.pixiManager && this.pixiManager.app) {
+                this.pixiManager.app.ticker.remove(entity._tick);
+            }
+            if (entity.shadow) {
+                entity.shadow.destroy({ texture: false });
+            }
+            entity.destroy({ children: true, texture: false, baseTexture: false });
+            return;
+        }
+
         // 1️⃣ 타이머 정리
         if (entity.thinkTimer) {
             clearTimeout(entity.thinkTimer);
             entity.thinkTimer = null;
         }
-        
+
         // 2️⃣ 트윈 정리
         if (entity.activeTween) {
             entity.activeTween.stop();
             this.TWEEN.remove(entity.activeTween);
             entity.activeTween = null;
         }
-        
+
         // 3️⃣ 애니메이션 정리
         if (entity.animations) {
             entity.stop();
@@ -245,26 +276,26 @@ export class PixiController {
         // 6️⃣ 풀에 반환 또는 파괴
         if (entity.entityType && this.pools[entity.entityType]) {
             const pool = this.pools[entity.entityType];
-            const MAX_POOL_SIZE = this._deviceTier === 'low' ? 30 : 
-                                this._deviceTier === 'medium' ? 60 : 100;
-            
+            const MAX_POOL_SIZE = this._deviceTier === 'low' ? 30 :
+                this._deviceTier === 'medium' ? 60 : 100;
+
             if (pool.length < MAX_POOL_SIZE) {
                 // ✅ 풀에 반환 (재사용)
                 entity.visible = false;
                 if (entity.shadow) {
                     entity.shadow.visible = false;
                 }
-                
+
                 // 캐시 초기화
                 entity._cachedShadowOffsetY = undefined;
                 entity._lastGlobalScale = undefined;
                 entity._lastZIndex = undefined;
-                
+
                 // 참조 정리 (하지만 객체는 파괴하지 않음)
                 entity.animations = null;
                 entity.activeTween = null;
                 entity._tick = null;
-                
+
                 pool.push(entity);
             } else {
                 // ✅ 풀이 가득 참 - 완전히 파괴
@@ -272,11 +303,11 @@ export class PixiController {
                     entity.shadow.destroy({ texture: false });
                     entity.shadow = null;
                 }
-                
+
                 entity.animations = null;
                 entity.activeTween = null;
                 entity._tick = null;
-                
+
                 entity.destroy({ children: true, texture: false, baseTexture: false });
             }
         } else {
@@ -285,11 +316,11 @@ export class PixiController {
                 entity.shadow.destroy({ texture: false });
                 entity.shadow = null;
             }
-            
+
             entity.animations = null;
             entity.activeTween = null;
             entity._tick = null;
-            
+
             entity.destroy({ children: true, texture: false, baseTexture: false });
         }
     }
@@ -305,6 +336,9 @@ export class PixiController {
         for (const entity of this.allEntities.values()) {
             this.returnObject(entity);
         }
+        // if (this.pixiManager.sharedInterpFilters.rabbit) {
+        //     this.pixiManager.sharedInterpFilters.rabbit.destroy();
+        // }
         this.pixiManager.sharedInterpFilters = {};
         this.allEntities.clear();
         this.activeWeed.clear();
@@ -332,7 +366,7 @@ export class PixiController {
                 }
             }
         }
-        catch(e) {
+        catch (e) {
             console.log(e)
         }
     }
@@ -342,15 +376,15 @@ export class PixiController {
     }
 
     populateScene() {
-        if(Variables.MapScaleInfo.current < 8) {
+        if (Variables.MapScaleInfo.current < 8) {
             console.log(`populateScene : scale is low. ${Variables.MapScaleInfo.current}`);
             return;
         }
-        if(this.newSceneData.length == 0) {
+        if (this.newSceneData.length == 0) {
             console.log('populateScene : no data in newSceneData');
             return;
         }
-        if(this._populatingScene) {
+        if (this._populatingScene) {
             console.log('populateScene : already populating');
             return;
         }
@@ -378,7 +412,7 @@ export class PixiController {
             statsCalc: 0,
             updateEnd: 0
         };
-        
+
         return {
             mark: (name) => { marks[name] = performance.now(); },
             report: () => {
@@ -399,8 +433,8 @@ export class PixiController {
     showStat() {
         const statDomId = 'webGlStatDom';
         let statDom = Variables.Doms.get(statDomId);
-        if(!this._debug) {
-            if(statDom) {
+        if (!this._debug) {
+            if (statDom) {
                 statDom.parentNode.removeChild(statDom);
                 Variables.Doms.delete(statDomId);
             }
@@ -413,7 +447,7 @@ export class PixiController {
                 if (e.visible) count++;
             }
             this._cachedVisibleCount = count;
-            
+
             // ✅ poolStats도 같은 주기에 업데이트
             this._cachedPoolStats = Object.entries(this.pools)
                 .map(([type, pool]) => `${type[0].toUpperCase()}:${pool.length}`)
@@ -427,8 +461,8 @@ export class PixiController {
         }
         this._statUpdateCounter++;
 
-        
-        if(!statDom) {
+
+        if (!statDom) {
             statDom = document.createElement('div');
             statDom.id = statDomId;
             statDom.style.position = 'absolute';
@@ -444,7 +478,7 @@ export class PixiController {
             document.body.appendChild(statDom);
             Variables.Doms.set(statDomId, statDom);
         }
-        
+
         let html = '';
         html += `FPS: ${this.stats.fps} / ${this._targetFPS}`;
         html += `<br>Entities: ${this.stats.entityCount} (${this._cachedVisibleCount} visible)`; // ✅ 캐시 사용
@@ -477,10 +511,10 @@ export class PixiController {
 
         const currentFps = Math.round(1000 / ticker.deltaMS);
         this.stats.fps = currentFps;
-        
+
         this._fpsHistory.push(currentFps);
         if (this._fpsHistory.length > 60) this._fpsHistory.shift();
-        
+
         if (this._fpsHistory.length === 60 && !this._performanceWarningShown) {
             const avgFps = this._fpsHistory.reduce((a, b) => a + b, 0) / 60;
             if (avgFps < this._targetFPS * 0.8) {
@@ -500,8 +534,8 @@ export class PixiController {
         for (const entity of this.allEntities.values()) {
             if (!entity.animations) continue;  // ✅ early continue
             if (entity.animations) {
-                if (entity.lastX === undefined) { 
-                    entity.lastX = entity.x; 
+                if (entity.lastX === undefined) {
+                    entity.lastX = entity.x;
                     entity.lastY = entity.y;
                     continue;  // ✅ 첫 프레임은 스킵
                 }
@@ -512,7 +546,7 @@ export class PixiController {
                 if (dx === 0 && dy === 0) {
                     continue;
                 }
-                
+
                 // ✅ 제곱 거리로 비교 (sqrt 생략)
                 const distanceMovedSq = dx * dx + dy * dy;
 
@@ -546,7 +580,7 @@ export class PixiController {
                 entity.lastX = entity.x;
                 entity.lastY = entity.y;
             }
-            
+
             // ✅ y 값이 실제로 변경되었을 때만 업데이트
             if (Math.abs(entity.y - (entity._lastZIndex || 0)) > 1) {
                 entity.zIndex = entity.y;
@@ -563,7 +597,7 @@ export class PixiController {
                     entity.shadow.scale.set(shadowScale);
                     entity._lastGlobalScale = Variables.MapScaleInfo.current;
                 }
-                
+
                 entity.shadow.x = entity.x;
                 entity.shadow.y = entity.y + entity._cachedShadowOffsetY;
                 entity.shadow.zIndex = entity.y;
@@ -622,20 +656,20 @@ export class PixiController {
         }
         return dirKey;
     }
-    
+
     moveTo(character, target, duration) {
         // ✅ animations가 없으면 복원 시도
         if (!character.animations && character.entityType) {
             character.animations = this.pixiManager.textures[character.entityType];
         }
-        
+
         // ✅ 여전히 없으면 이동만 수행
         if (!character.animations) {
             console.warn(`⚠️ No animations for ${character.entityType}, performing move only`);
             // 트윈만 실행하고 리턴
             if (character.activeTween) this.TWEEN.remove(character.activeTween);
             if (character.thinkTimer) clearTimeout(character.thinkTimer);
-            
+
             const tween = new this.TWEEN.Tween(character.position)
                 .to(target, duration * 1000)
                 .easing(this.TWEEN.Easing.Quadratic.InOut)
@@ -647,9 +681,9 @@ export class PixiController {
                     }, delay);
                 })
                 .start();
-            
+
             character.activeTween = tween;
-            
+
             return;
         }
 
@@ -715,7 +749,7 @@ export class PixiController {
         character.activeTween = tween;
     }
 
-    
+
     thinkAndAct(character) {
         const screen = this.pixiManager.app.screen;
         const scaleFactor = Variables.MapScaleInfo.current / 128;
@@ -837,7 +871,7 @@ export class PixiController {
         // }
 
         // this.populateScene(newSceneData);
-        if(!this.pixiManager._onLoadingAnimalFrames) {
+        if (!this.pixiManager._onLoadingAnimalFrames) {
             this.populateScene();
         }
     }

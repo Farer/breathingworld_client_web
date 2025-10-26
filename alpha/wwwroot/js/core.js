@@ -767,11 +767,15 @@ const Core = {
         Variables.ScrollInfo.upAmount = 0;
         Variables.ScrollInfo.downAmount = 0;
 
-        window.pixiController.clearSceneData();
-        window.pixiController.clearScene();
-        if(newScale >= 8) {
-            await window.pixiController.pixiManager.applyTextureImmediately(newScale);
-            await window.pixiController.pixiManager.reserveLoadAnimalFrames('rabbit', 'adult', newScale);
+        const controller = window.webGPUController;
+        controller.clearSceneData();
+        controller.clearScene();
+        if (newScale >= 8) {
+            // WebGPU Manager의 메서드 호출
+            if (controller.webGPUManager) {
+                await controller.webGPUManager.applyTextureImmediately(newScale);
+                await controller.webGPUManager.reserveLoadAnimalFrames('rabbit', 'adult', newScale);
+            }
         }
     },
     ChangeMapScale: async (newScale) => {

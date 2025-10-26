@@ -54,12 +54,34 @@ export class PixiManager {
             };
         }
 
+        // ⭐ WebGPU 지원 체크
+        const isWebGPUSupported = await this.checkWebGPUSupport();
+        console.log(`WebGPU supported: ${isWebGPUSupported}`);
+
         // 🧩 Safari-safe patch: iOS GPU 발열 완화용 옵션 추가
         await this.app.init({
+            // ⭐⭐ WebGPU 우선 사용 (실패시 자동으로 WebGL 폴백)
+            preference: isWebGPUSupported ? 'webgpu' : 'webgl',
             backgroundAlpha: 0,
             resizeTo: window,
-            powerPreference: 'low-power'
+            // ⭐ WebGPU 모드에서는 high-performance 사용
+            powerPreference: isWebGPUSupported ? 'high-performance' : 'low-power',
+            // ⭐ 추가 옵션들
+            antialias: true,
+            resolution: window.devicePixelRatio || 1,
+            autoDensity: true
         });
+
+        // ⭐ 렌더러 타입 확인
+        console.log(`✅ Renderer type: ${this.app.renderer.type}`);
+        if (this.app.renderer.type === 2) {
+            console.log('🎉 WebGPU 렌더러 활성화! 대용량 텍스처 지원');
+            this.isWebGPU = true;
+            this.applyWebGPUOptimizations();
+        } else {
+            console.log('⚠️ WebGL 렌더러 사용 중');
+            this.isWebGPU = false;
+        }
 
         targetElement.appendChild(this.app.view);
 
@@ -71,6 +93,87 @@ export class PixiManager {
 
         await this.loadAssets();
         this.isReady = true;
+    }
+
+    // ⭐ WebGPU 지원 체크 함수 추가 (새 메서드)
+    async checkWebGPUSupport() {
+        // navigator.gpu 체크
+        if (!navigator.gpu) {
+            console.log('WebGPU not available in this browser');
+            return false;
+        }
+
+        try {
+            // GPU 어댑터 요청
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                console.log('No GPU adapter found');
+                return false;
+            }
+
+            // 디바이스 요청 및 제한 확인
+            const device = await adapter.requestDevice();
+            const limits = device.limits;
+
+            console.log(`GPU Max texture size: ${limits.maxTextureDimension2D}x${limits.maxTextureDimension2D}`);
+            console.log(`GPU Max buffer size: ${limits.maxBufferSize / (1024 * 1024)}MB`);
+
+            // 최소 4096x4096 텍스처 지원 필요
+            return limits.maxTextureDimension2D >= 4096;
+        } catch (error) {
+            console.error('WebGPU check failed:', error);
+            return false;
+        }
+    }
+
+    // ⭐ WebGPU 최적화 설정 (새 메서드)
+    applyWebGPUOptimizations() {
+        // PixiJS v8.14.0 API에 맞게 수정
+        const renderer = this.app.renderer;
+
+        // WebGPU 렌더러 확인
+        if (renderer.type !== 2) {
+            console.warn('Not a WebGPU renderer, skipping optimizations');
+            return;
+        }
+
+        // 1. 텍스처 가비지 컬렉션 설정
+        // v8에서는 textureGC가 다르게 구현됨
+        if (renderer.textureGC) {
+            renderer.textureGC.maxIdle = 3600 * 1000; // 1시간 (밀리초)
+            renderer.textureGC.checkCountMax = 600;
+            // v8에서 GC_MODES가 없으므로 직접 설정
+            renderer.textureGC.mode = 2; // 2 = MANUAL mode
+            console.log('✅ Texture GC configured for WebGPU');
+        }
+
+        // 2. 배치 사이즈 증가 (WebGPU는 더 많은 텍스처 처리 가능)
+        if (renderer.batcher) {
+            renderer.batcher.maxTextures = 32; // 기본값 16
+            console.log('✅ Batcher max textures: 32');
+        }
+
+        // 3. WebGPU 전용 설정
+        if (renderer.gpu) {
+            // GPU 디바이스 정보
+            const device = renderer.gpu.device;
+            if (device) {
+                console.log('✅ WebGPU Device:', device);
+
+                // 디바이스 한계값 확인
+                const limits = device.limits;
+                console.log(`  - Max texture size: ${limits.maxTextureDimension2D}`);
+                console.log(`  - Max buffer size: ${limits.maxBufferSize / (1024 * 1024)}MB`);
+                console.log(`  - Max bind groups: ${limits.maxBindGroups}`);
+            }
+        }
+
+        // 4. 메모리 풀 크기 조정 (WebGPU는 더 많은 메모리 사용 가능)
+        if (renderer.buffer) {
+            renderer.buffer.poolSize = 100; // 기본값 50
+        }
+
+        console.log('✅ WebGPU optimizations applied successfully!');
     }
 
     showLoader() {
@@ -120,10 +223,10 @@ export class PixiManager {
     async loadAnimalFrames(species, lifeStage, scale) {
         // 캐시 구조 초기화
         this._animalCache[species] = this._animalCache[species] || {};
-        if(!this._animalCache[species][lifeStage]) {
+        if (!this._animalCache[species][lifeStage]) {
             this._animalCache[species][lifeStage] = {};
         }
-        
+
         // 이미 캐시된 경우
         if (this._animalCache[species][lifeStage][scale]) {
             this.textures[species][lifeStage] = this._animalCache[species][lifeStage][scale];
@@ -133,19 +236,19 @@ export class PixiManager {
 
         // 새로운 텍스처 로드
         let loadedTextures = {};
-        
+
         if (species === 'rabbit') {
             loadedTextures = await this._loadDirectionalFrames(
-                species, 
-                lifeStage, 
-                ['idle_1', 'idle_2', 'walk_1', 'run_1', 'sleep_3'], 
+                species,
+                lifeStage,
+                ['idle_1', 'idle_2', 'walk_1', 'run_1', 'sleep_3'],
                 scale
             );
         } else if (species === 'eagle') {
             loadedTextures = await this._loadDirectionalFrames(
-                species, 
-                lifeStage, 
-                ['idle', 'fly', 'attack'], 
+                species,
+                lifeStage,
+                ['idle', 'fly', 'attack'],
                 scale
             );
         } else if (species === 'wolf') {
@@ -155,11 +258,11 @@ export class PixiManager {
 
         // 캐시에 저장 (독립적인 객체)
         this._animalCache[species][lifeStage][scale] = loadedTextures;
-        
+
         // 현재 활성 텍스처로 설정
         this.textures[species][lifeStage] = loadedTextures;
         this._currentTextureScale = scale;
-        
+
         console.log(`✅ ${species} - ${lifeStage} frames cached for scale ${scale}`);
     }
 
@@ -167,10 +270,10 @@ export class PixiManager {
     async _loadDirectionalFrames(species, lifeStage, animations, scale) {
         const scaleDir = `${scale}`;
         const basePath = `/img/ktx2/${species}/${lifeStage}/${scaleDir}`;
-        const dirs = Array.from({ length: 16 }, (_, i) => 
+        const dirs = Array.from({ length: 16 }, (_, i) =>
             `direction_${i.toString().padStart(2, '0')}`
         );
-        
+
         // 새로운 독립적인 객체 생성
         const result = {};
         const MAX_FRAMES = this._isSafari ? 30 : 100;
@@ -238,12 +341,12 @@ export class PixiManager {
         if (this._lastStatsTime && now - this._lastStatsTime < 1000) {
             return this._cachedStats;
         }
-        
+
         const total = this._cacheHits + this._cacheMisses;
-        const hitRate = total > 0 
-            ? (this._cacheHits / total * 100).toFixed(1) 
+        const hitRate = total > 0
+            ? (this._cacheHits / total * 100).toFixed(1)
             : 0;
-        
+
         this._cachedStats = {
             size: this._texCache.cache.size,
             maxSize: this._texCache.maxSize,
@@ -252,7 +355,7 @@ export class PixiManager {
             misses: this._cacheMisses,
             hitRate: hitRate + '%'
         };
-        
+
         this._lastStatsTime = now;
         return this._cachedStats;
     }
@@ -301,16 +404,16 @@ export class PixiManager {
                 const id = Math.random().toString(36).slice(2);
                 let timeoutId;
                 let settled = false; // ✅ Promise settled 여부 추적
-                
+
                 const cleanup = () => {
                     clearTimeout(timeoutId);
                     this.worker.removeEventListener('message', onMsg);
                 };
-                
+
                 const onMsg = (e) => {
                     if (e.data && e.data.id === id) {
                         cleanup();
-                        
+
                         // ✅ 이미 settled된 Promise면 아무것도 하지 않음
                         if (settled) {
                             console.warn(`⏰ Late response ignored for: ${url}`);
@@ -320,9 +423,9 @@ export class PixiManager {
                             }
                             return;
                         }
-                        
+
                         settled = true;
-                        
+
                         if (e.data.error) {
                             reject(e.data.error);
                         } else {
@@ -337,13 +440,13 @@ export class PixiManager {
                         }
                     }
                 };
-                
+
                 this.worker.addEventListener('message', onMsg);
                 this.worker.postMessage({ type: 'decode', url, id });
-                
+
                 timeoutId = setTimeout(() => {
                     cleanup();
-                    
+
                     // ✅ settled 플래그 설정
                     if (!settled) {
                         settled = true;
@@ -351,7 +454,7 @@ export class PixiManager {
                     }
                 }, 7500);
             });
-            
+
         } catch (err) {
             console.warn('Image decode failed for', url, err);
             return null;
@@ -369,7 +472,7 @@ export class PixiManager {
         const AllAnimals = ['rabbit'];
         // 캐시에 있으면 즉시 전환, 없으면 백그라운드 로드
         for (const species of AllAnimals) {
-            for(const lifeStage of AllLifeStages) {
+            for (const lifeStage of AllLifeStages) {
                 try {
                     const cached = this._animalCache[species][lifeStage]?.[`${newScale}`];
                     if (cached) {
@@ -379,7 +482,7 @@ export class PixiManager {
                         await this.reserveLoadAnimalFrames(species, 'adult', newScale);
                     }
                 }
-                catch(error) {
+                catch (error) {
                     continue;
                 }
             }
@@ -398,7 +501,7 @@ export class PixiManager {
 
         this._reservedToLoadAnimalFrames.push(key);
         console.log(`📝 예약됨: ${key}`);
-        
+
         // 로딩 프로세스 시작 트리거
         await this._triggerToLoadAnimalFrames();
     }
@@ -409,7 +512,7 @@ export class PixiManager {
         if (this._onLoadingAnimalFrames) {
             return;
         }
-        
+
         // 큐가 비어있으면 종료
         if (this._reservedToLoadAnimalFrames.length === 0) {
             console.log('✅ 로드 대기열이 비어 있음.');
@@ -441,18 +544,18 @@ export class PixiManager {
 
         this.hideLoader();
         this._onLoadingAnimalFrames = false;
-        
+
         if (window.pixiController) {
             window.pixiController.populateScene();
         }
     }
 
     checkTexture() {
-        try { console.log('8 : '+pixiController.pixiManager._animalCache.rabbit.adult['8'].idle_1.direction_00[0].width); } catch(e) { }
-        try { console.log('16 : '+pixiController.pixiManager._animalCache.rabbit.adult['16'].idle_1.direction_00[0].width); } catch(e) { }
-        try { console.log('32 : '+pixiController.pixiManager._animalCache.rabbit.adult['32'].idle_1.direction_00[0].width); } catch(e) { }
-        try { console.log('64 : '+pixiController.pixiManager._animalCache.rabbit.adult['64'].idle_1.direction_00[0].width); } catch(e) { }
-        try { console.log('128 : '+pixiController.pixiManager._animalCache.rabbit.adult['128'].idle_1.direction_00[0].width); } catch(e) { }
+        try { console.log('8 : ' + pixiController.pixiManager._animalCache.rabbit.adult['8'].idle_1.direction_00[0].width); } catch (e) { }
+        try { console.log('16 : ' + pixiController.pixiManager._animalCache.rabbit.adult['16'].idle_1.direction_00[0].width); } catch (e) { }
+        try { console.log('32 : ' + pixiController.pixiManager._animalCache.rabbit.adult['32'].idle_1.direction_00[0].width); } catch (e) { }
+        try { console.log('64 : ' + pixiController.pixiManager._animalCache.rabbit.adult['64'].idle_1.direction_00[0].width); } catch (e) { }
+        try { console.log('128 : ' + pixiController.pixiManager._animalCache.rabbit.adult['128'].idle_1.direction_00[0].width); } catch (e) { }
     }
 
     _parseAnimalSheet(sheetTexture, frameSize, animationConfig) {
@@ -539,18 +642,19 @@ export class PixiManager {
         sprite.animationSpeed = animationKind.startsWith("idle_") ? 0.12 : 0.55;
         sprite.play();
 
-        if (window.FrameInterpFilter && animationKind.startsWith("idle_")) {
-            if (!this.sharedInterpFilters.rabbit)
-                this.sharedInterpFilters.rabbit = new FrameInterpFilter();
-            const f = this.sharedInterpFilters.rabbit;
-            sprite.filters = [f];
-            this._applyInterpTick(sprite, f);
-        } else {
-            sprite._tick = d => sprite.update(d);
-        }
+        // if (window.FrameInterpFilter && animationKind.startsWith("idle_")) {
+        //     if (!this.sharedInterpFilters.rabbit)
+        //         this.sharedInterpFilters.rabbit = new FrameInterpFilter();
+        //     const f = this.sharedInterpFilters.rabbit;
+        //     sprite.filters = [f];
+        //     this._applyInterpTick(sprite, f);
+        // } else {
+        //     sprite._tick = d => sprite.update(d);
+        // }
+        sprite._tick = d => sprite.update(d);
 
         this.app.ticker.add(sprite._tick);
-        
+
         // ✅ 더 안전한 정리 로직
         const cleanup = () => {
             if (sprite._tick) {
@@ -636,22 +740,22 @@ export class PixiManager {
     // pixiManager.js - cleanup() 강화 버전
     cleanup() {
         console.log('🧹 Cleaning up PixiManager...');
-        
+
         // Interval 정리
         if (this._decayInterval) {
             clearInterval(this._decayInterval);
             this._decayInterval = null;
         }
-        
+
         // 텍스처 캐시 정리
         if (this._texCache) {
             this._texCache.clear();
             this._texCache = null;
         }
-        
+
         // 동물 캐시 정리
         this._animalCache = {};
-        
+
         // ✅ Shared filters 정리
         if (this.sharedInterpFilters) {
             for (const filter of Object.values(this.sharedInterpFilters)) {
@@ -661,7 +765,7 @@ export class PixiManager {
             }
             this.sharedInterpFilters = {};
         }
-        
+
         // ✅ Layers 정리
         const layers = [this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer];
         for (const layer of layers) {
@@ -670,20 +774,20 @@ export class PixiManager {
                 layer.destroy({ children: true });
             }
         }
-        
+
         // PIXI Application 정리
         if (this.app) {
-            this.app.destroy(true, { 
-                children: true, 
-                texture: true, 
-                baseTexture: true 
+            this.app.destroy(true, {
+                children: true,
+                texture: true,
+                baseTexture: true
             });
             this.app = null;
         }
-        
+
         // Worker 참조 제거
         this.worker = null;
-        
+
         // ✅ 상태 플래그
         this.isReady = false;
 
@@ -692,7 +796,7 @@ export class PixiManager {
             this._validDirections.clear();
             this._validDirections = null;
         }
-        
+
         console.log('✅ PixiManager cleanup complete');
     }
 }
