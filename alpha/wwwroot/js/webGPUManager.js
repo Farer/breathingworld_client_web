@@ -375,36 +375,45 @@ export class WebGPUManager {
      */
     async loadTexture(url, priority = 0) {
         const cacheKey = url;
-
-        // 캐시 확인
-        if (this.textureCache.has(cacheKey)) {
-            this.stats.cacheHits++;
-            return this.textureCache.get(cacheKey);
-        }
+        if (this.textureCache.has(cacheKey)) { return this.textureCache.get(cacheKey); }
 
         this.stats.cacheMisses++;
 
-        // 이미 로딩 중인지 확인
-        if (this.loadingQueue.has(cacheKey)) {
-            return this.pendingLoads.get(cacheKey);
-        }
+        // 이제 PixiJS는 .ktx2 파일을 완벽하게 처리할 수 있습니다.
+        const texture = await PIXI.Assets.load(url);
 
-        // 로딩 시작
-        this.loadingQueue.add(cacheKey);
+        const source = texture.source;
+        const resource = source.resource;
 
-        const loadPromise = this.loadTextureInternal(url, priority);
-        this.pendingLoads.set(cacheKey, loadPromise);
+        if (!resource || !resource.data) { throw new Error(`PixiJS failed to load or decode asset: ${url}`); }
 
-        try {
-            const texture = await loadPromise;
-            this.textureCache.set(cacheKey, texture);
-            this.stats.loadedTextures++;
-            this.updateMemoryStats();
-            return texture;
-        } finally {
-            this.loadingQueue.delete(cacheKey);
-            this.pendingLoads.delete(cacheKey);
-        }
+        const decodedData = resource.data;
+        const width = source.width;
+        const height = source.height;
+
+        const gpuTexture = this.device.createTexture({
+            size: [width, height, 1],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        
+        this.device.queue.writeTexture({ texture: gpuTexture }, decodedData, { bytesPerRow: width * 4 }, [width, height]);
+        const sampler = this.device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
+        const bindGroup = this.device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(1),
+            entries: [{ binding: 0, resource: sampler }, { binding: 1, resource: gpuTexture.createView() }]
+        });
+
+        console.log(`✅ Texture loaded via PixiJS: ${url}`);
+
+        texture.destroy(true);
+        PIXI.Assets.unload(url);
+        
+        const textureData = { texture: gpuTexture, bindGroup, width, height };
+        this.textureCache.set(cacheKey, textureData);
+        this.stats.loadedTextures++;
+
+        return textureData;
     }
 
     /**
@@ -454,63 +463,54 @@ export class WebGPUManager {
     }
 
     /**
-     * KTX2 텍스처 로딩 (Worker 사용)
+     * KTX2 텍스처 로딩 (KTX2 확장 모듈이 등록된 PixiJS 로더 사용)
      */
-    async loadKTX2Texture(url, priority) {
-        return new Promise((resolve, reject) => {
-            const id = Math.random().toString(36);
+    // async loadKTX2Texture(url, priority) {
+    //     // 이제 PixiJS는 KTX2 파일을 어떻게 처리해야 하는지 정확히 알고 있습니다.
+    //     const texture = await PIXI.Assets.load(url);
 
-            this.worker.postMessage({
-                type: 'loadKTX2',
-                id,
-                url,
-                priority
-            });
+    //     const source = texture.source;
+    //     const resource = source.resource;
 
-            const handler = (e) => {
-                if (e.data.id === id) {
-                    this.worker.removeEventListener('message', handler);
+    //     if (!resource || !resource.data) {
+    //         throw new Error(`PixiJS failed to decode KTX2 texture: ${url}`);
+    //     }
 
-                    if (e.data.error) {
-                        reject(new Error(e.data.error));
-                        return;
-                    }
+    //     const decodedData = resource.data;
+    //     const width = source.width;
+    //     const height = source.height;
 
-                    const { data, width, height, format } = e.data;
+    //     const gpuTexture = this.device.createTexture({
+    //         size: [width, height, 1],
+    //         format: 'rgba8unorm',
+    //         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+    //     });
+        
+    //     this.device.queue.writeTexture(
+    //         { texture: gpuTexture },
+    //         decodedData,
+    //         { bytesPerRow: width * 4 },
+    //         [width, height]
+    //     );
 
-                    const texture = this.device.createTexture({
-                        size: [width, height, 1],
-                        format: format || 'bc7-rgba-unorm',
-                        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
-                    });
+    //     const sampler = this.device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
 
-                    this.device.queue.writeTexture(
-                        { texture },
-                        data,
-                        { bytesPerRow: Math.ceil(width / 4) * 16 },
-                        [width, height]
-                    );
+    //     const bindGroup = this.device.createBindGroup({
+    //         layout: this.pipeline.getBindGroupLayout(1),
+    //         entries: [
+    //             { binding: 0, resource: sampler },
+    //             { binding: 1, resource: gpuTexture.createView() }
+    //         ]
+    //     });
 
-                    const sampler = this.device.createSampler({
-                        magFilter: 'linear',
-                        minFilter: 'linear'
-                    });
+    //     console.log(`✅ KTX2 texture loaded and decoded via PixiJS KTX Loader: ${url}`);
 
-                    const bindGroup = this.device.createBindGroup({
-                        layout: this.pipeline.getBindGroupLayout(1),
-                        entries: [
-                            { binding: 0, resource: sampler },
-                            { binding: 1, resource: texture.createView() }
-                        ]
-                    });
+    //     // PixiJS가 로드한 텍스처는 메모리에서 제거하여 중복을 방지합니다.
+    //     texture.destroy(true);
+    //     PIXI.Assets.unload(url);
 
-                    resolve({ texture, bindGroup, width, height });
-                }
-            };
-
-            this.worker.addEventListener('message', handler);
-        });
-    }
+    //     return { texture: gpuTexture, bindGroup, width, height };
+    // }
 
     /**
      * 스케일 변경 처리

@@ -29,6 +29,19 @@ export class WebGPUController {
         this.TWEEN = TWEEN;
         this.worker = worker;
         
+        // Variables 초기화 (없으면 생성)
+        if (typeof Variables === 'undefined') {
+            window.Variables = {
+                MapScaleInfo: { current: 128 }  // scale 128로 설정
+            };
+        } else if (!Variables.MapScaleInfo) {
+            Variables.MapScaleInfo = { current: 128 };
+        } else if (!Variables.MapScaleInfo.current || Variables.MapScaleInfo.current < 8) {
+            Variables.MapScaleInfo.current = 128;
+        }
+        
+        console.log('[WebGPUController] Using scale:', Variables.MapScaleInfo.current);
+        
         // 엔티티 관리
         this.activeGround = new Map();
         this.activeWeed = new Map();
@@ -71,6 +84,13 @@ export class WebGPUController {
     static async create(container, TWEEN, worker) {
         const controller = new WebGPUController(container, TWEEN, worker);
         await controller._init();
+        
+        // 테스트용 초기 엔티티 생성
+        setTimeout(() => {
+            console.log('[WebGPUController] Creating initial test entities...');
+            controller.populateNewEntities();
+        }, 1000);
+        
         return controller;
     }
     
@@ -384,7 +404,9 @@ export class WebGPUController {
             case 'wolf':
             case 'eagle':
                 // 동물은 애니메이션 시스템 사용
-                const scale = Variables.MapScaleInfo.current;
+                const scale = Variables.MapScaleInfo?.current || 8;  // 기본값 8
+                
+                console.log('[loadEntityTexture] Using scale:', scale);
                 
                 // 애니메이션 데이터 설정
                 entity.animationData = {
@@ -415,15 +437,15 @@ export class WebGPUController {
         const baseUrl = this.webGPUManager.getAnimalTextureURL(species, lifeStage, scale);
         const animations = this.getAnimationTypes(species);
         
-        // console.log(`[loadAnimalAnimations] Loading for ${species}/${lifeStage} at scale ${scale}`);
-        // console.log(`[loadAnimalAnimations] Base URL: ${baseUrl}`);
-        // console.log(`[loadAnimalAnimations] Animations to load: ${animations.join(', ')}`);
+        console.log(`[loadAnimalAnimations] Loading for ${species}/${lifeStage} at scale ${scale}`);
+        console.log(`[loadAnimalAnimations] Base URL: ${baseUrl}`);
+        console.log(`[loadAnimalAnimations] Animations to load: ${animations.join(', ')}`);
         
         entity.animationData.animations = {};
         
         for (const animationType of animations) {
             const frameCount = this.getFrameCount(species, animationType);
-            // console.log(`[loadAnimalAnimations] ${animationType}: ${frameCount} frames`);
+            console.log(`[loadAnimalAnimations] ${animationType}: ${frameCount} frames`);
             
             entity.animationData.animations[animationType] = {
                 directions: [],
@@ -437,13 +459,13 @@ export class WebGPUController {
                 
                 // 테스트용으로 프레임 수 제한
                 const actualFrameCount = Math.min(3, frameCount);
-                // console.log(`[loadAnimalAnimations] Loading ${actualFrameCount} frames for ${animationType}/${direction}`);
+                console.log(`[loadAnimalAnimations] Loading ${actualFrameCount} frames for ${animationType}/${direction}`);
                 
                 for (let frame = 0; frame < actualFrameCount; frame++) {
                     const frameNum = frame.toString().padStart(4, '0');
                     const url = `${baseUrl}/${animationType}/${direction}/frame_${frameNum}.ktx2`;
                     
-                    // console.log(`[loadAnimalAnimations] Loading texture: ${url}`);
+                    console.log(`[loadAnimalAnimations] Loading texture: ${url}`);
                     
                     // 텍스처 캐시에서 가져오거나 로드
                     try {
@@ -460,7 +482,7 @@ export class WebGPUController {
             }
         }
         
-        // console.log(`[loadAnimalAnimations] Completed loading animations for entity`);
+        console.log(`[loadAnimalAnimations] Completed loading animations for entity`);
     }
     
     /**
@@ -533,7 +555,7 @@ export class WebGPUController {
         if (species === 'rabbit') {
             switch (animationType) {
                 case 'idle_1': return 35;
-                case 'idle_2': return 22;
+                case 'idle_1': return 35;
                 case 'walk_1': return 21;
                 case 'run_1': return 14;
                 case 'sleep_3': return 12;
@@ -844,7 +866,7 @@ export class WebGPUController {
     setIdleAnimation(character) {
         if (!character.animationData) return;
         
-        const randomIdle = Math.random() > 0.5 ? 'idle_1' : 'idle_2';
+        const randomIdle = 'idle_1';  // idle_1만 사용
         character.animationData.currentAnimation = randomIdle;
         character.animationData.speed = 0.5;
         
@@ -857,18 +879,19 @@ export class WebGPUController {
      */
     setRunAnimation(character, directionIndex) {
         if (!character.animationData) return;
-        const runName = 'run_1';
-        character.animationData.currentAnimation = runName;
+        
+        const randomRun = 'run_1';  // run_1만 존재
+        character.animationData.currentAnimation = randomRun;
         character.animationData.currentDirection = directionIndex;
         character.animationData.speed = 1.0;
-        this.loadAnimationTextures(character, runName, directionIndex);
+        this.loadAnimationTextures(character, randomRun, directionIndex);
     }
     
     /**
      * 애니메이션 텍스처 로드
      */
     async loadAnimationTextures(character, animation, directionIndex = null) {
-        const scale = Variables.MapScaleInfo.current;
+        const scale = Variables.MapScaleInfo?.current || 8;  // 기본값 8
         
         const baseUrl = this.webGPUManager.getAnimalTextureURL(
             character.entityType, 
