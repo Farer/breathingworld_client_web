@@ -29,8 +29,6 @@ export class PixiManager {
         // ✅ 추가: validDirs 캐시
         this._validDirections = new Map();
 
-        this.sharedInterpFilters = {}; // species별 공유 필터
-
         // ✅ Map 대신 LRUCache 사용
         this._texCache = new WeightedLRUCache(4000);
         // 📊 캐시 히트율 추적 (선택사항)
@@ -538,16 +536,7 @@ export class PixiManager {
         sprite.anchor.set(0.5, 1);
         sprite.animationSpeed = animationKind.startsWith("idle_") ? 0.12 : 0.55;
         sprite.play();
-
-        if (window.FrameInterpFilter && animationKind.startsWith("idle_")) {
-            if (!this.sharedInterpFilters.rabbit)
-                this.sharedInterpFilters.rabbit = new FrameInterpFilter();
-            const f = this.sharedInterpFilters.rabbit;
-            sprite.filters = [f];
-            this._applyInterpTick(sprite, f);
-        } else {
-            sprite._tick = d => sprite.update(d);
-        }
+        // sprite._tick = d => sprite.update(d);
 
         this.app.ticker.add(sprite._tick);
         
@@ -651,16 +640,6 @@ export class PixiManager {
         
         // 동물 캐시 정리
         this._animalCache = {};
-        
-        // ✅ Shared filters 정리
-        if (this.sharedInterpFilters) {
-            for (const filter of Object.values(this.sharedInterpFilters)) {
-                if (filter && filter.destroy) {
-                    filter.destroy();
-                }
-            }
-            this.sharedInterpFilters = {};
-        }
         
         // ✅ Layers 정리
         const layers = [this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer];

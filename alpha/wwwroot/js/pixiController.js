@@ -153,21 +153,7 @@ export class PixiController {
         if (pool && pool.length > 0) {
             entity = pool.pop();
             entity.visible = true;
-            if (entity.shadow) entity.shadow.visible = true;
-            // ⭐ 중요: rabbit의 경우 filter 재설정
-            if (species === 'rabbit') {
-                // sharedInterpFilters가 초기화되었으므로 다시 생성
-                if (window.FrameInterpFilter) {
-                    if (!this.pixiManager.sharedInterpFilters.rabbit) {
-                        this.pixiManager.sharedInterpFilters.rabbit = new FrameInterpFilter();
-                    }
-                    entity.filters = [this.pixiManager.sharedInterpFilters.rabbit];
-                    // _applyInterpTick도 다시 호출해야 할 수 있음
-                    this.pixiManager._applyInterpTick(entity, this.pixiManager.sharedInterpFilters.rabbit);
-                }
-            } else {
-                entity.filters = null;
-            }
+            if (entity.shadow) entity.shadow.visible = true;            
             
             // ✅ animations 참조 복원
             if (species === 'rabbit' || species === 'wolf' || species === 'eagle') {
@@ -305,7 +291,6 @@ export class PixiController {
         for (const entity of this.allEntities.values()) {
             this.returnObject(entity);
         }
-        this.pixiManager.sharedInterpFilters = {};
         this.allEntities.clear();
         this.activeWeed.clear();
         this.activeGround.clear();
