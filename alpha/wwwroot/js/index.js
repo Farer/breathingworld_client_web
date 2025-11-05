@@ -1,7 +1,7 @@
 // /js/index.js
 'use strict';
 import * as TWEEN from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@20.0.3/dist/tween.esm.js';
-import { WebGLManager } from './webgl/webglManager.js';
+import { WebGLManager } from './webglManager.js';
 
 window.onload = async function () {
     const selectedRegion = localStorage.getItem('selectedRegion');

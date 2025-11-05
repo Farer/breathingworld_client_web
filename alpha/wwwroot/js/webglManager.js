@@ -1,4 +1,4 @@
-// /js/webgl/webglManager.js
+// /js/webglManager.js
 'use strict';
 
 import { TextureLoader } from './textureLoader.js';
