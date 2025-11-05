@@ -1,6 +1,8 @@
+// /js/index.js
 'use strict';
 import * as TWEEN from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@20.0.3/dist/tween.esm.js';
-import { PixiController } from '/js/pixiController.js';
+import { WebGLManager } from './webgl/webglManager.js';
+
 window.onload = async function () {
     const selectedRegion = localStorage.getItem('selectedRegion');
     if (!selectedRegion) {
@@ -8,9 +10,11 @@ window.onload = async function () {
         Core.DrawLocationSelectionMenu();
         return;
     }
+    
     document.getElementById('loading-screen').style.display = '';
     Core.SetUrls(selectedRegion);
     await Core.GetSettings();
+    
     Socket.PrepareWebsocketCommunication();
     Chat.PrepareWebsocketCommunication();
     Core.PrepareMapContainer();
@@ -23,14 +27,66 @@ window.onload = async function () {
     AddDragMapEvent();
     Core.AddEvents();
     Core.PrepareMapCanvas();
+    
+    // WebGL DOM 준비
     Core.PrepareWebGlDom();
+    
+    // ✅ WebGL 초기화 (간단하게)
+    await initWebGL();
+    
     Core.PrepareWeatherCanvas();
     Core.PrepareImageSources();
     Core.UpdatePlantProceedAccelerated();
     Core.ApplyWeather();
-    window.textureWorker = new Worker('/js/textureWorker.js', { type: 'module' });
-    window.pixiController = await PixiController.create(document.getElementById('webGlDom'), TWEEN, window.textureWorker);
+    
+    // ✅ TWEEN 업데이트 루프 (WebGL과 별도)
+    startTweenLoop();
 }
+
+// ✅ WebGL 초기화 (글루 코드만)
+async function initWebGL() {
+    try {
+        console.log('🚀 Starting WebGL initialization...');
+        
+        // Canvas 가져오기
+        const canvas = Variables.Doms.get('webGlCanvas');
+        if (!canvas) {
+            throw new Error('Canvas not found! Make sure Core.PrepareWebGlDom() was called.');
+        }
+        
+        // WebGLManager 생성 및 초기화
+        window.webglManager = new WebGLManager(canvas);
+        await window.webglManager.init();
+        
+        // 테스트: 토끼 프레임 로드
+        await window.webglManager.loadAnimalFrames('rabbit', 'adult', 128);
+        
+        // ✅ 렌더링 루프 시작 (WebGLManager가 알아서 처리)
+        window.webglManager.startRenderLoop();
+        
+        console.log('✅ WebGL initialization complete!');
+        
+    } catch (error) {
+        console.error('❌ WebGL initialization failed:', error);
+        alert('WebGL 초기화 실패: ' + error.message);
+    }
+}
+
+// ✅ TWEEN 업데이트 루프 (기존 로직 유지)
+function startTweenLoop() {
+    function loop(timestamp) {
+        TWEEN.update(timestamp);
+        requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+}
+
 window.onresize = function () {
     Core.DrawMap(true, false, false);
+    
+    // ✅ WebGL 리사이즈 (WebGLManager 메서드 호출)
+    if (window.webglManager) {
+        const container = Variables.Doms.get('webGlDom');
+        window.webglManager.resize(container.clientWidth, container.clientHeight);
+    }
 }

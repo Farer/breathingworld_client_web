@@ -420,19 +420,32 @@ const Core = {
         Variables.Doms.set(domId, canvas);
     },
     PrepareWebGlDom: () => {
-        const dom = document.createElement('div');
+        const container = document.createElement('div');
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
         const domId = 'webGlDom';
-        dom.id = domId;
-        dom.width = windowWidth;
-        dom.height = windowHeight;
-        dom.style.position = "absolute";
-        dom.style.left = "0px";
-        dom.style.top = "0px";
+        container.id = domId;
+        container.width = windowWidth;
+        container.height = windowHeight;
+        container.style.position = "absolute";
+        container.style.left = "0px";
+        container.style.top = "0px";
         const mapWrap = Variables.Doms.get('mapWrap');
-        mapWrap.appendChild(dom);
-        Variables.Doms.set(domId, dom);
+        mapWrap.appendChild(container);
+        Variables.Doms.set(domId, container);
+
+        const canvas = document.createElement('canvas');
+        canvas.id = 'webGlCanvas';
+        canvas.width = windowWidth;
+        canvas.height = windowHeight;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.display = 'block';
+
+        container.appendChild(canvas);
+        Variables.Doms.set('webGlCanvas', canvas);
+    
+        console.log('✅ WebGL DOM prepared');
     },
     PrepareWeatherCanvas: () => {
         const canvas = document.createElement('canvas');
