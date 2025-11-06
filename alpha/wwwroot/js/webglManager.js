@@ -180,6 +180,24 @@ export class WebGLManager {
         
         console.log(`🔄 Applying scale: ${this.currentScale} → ${newScale}`);
         
+        // Scale 4 이하일 때는 즉시 모든 작업 중단 및 메모리 정리
+        if (newScale <= 4) {
+            console.log(`⚠️ Scale ${newScale} <= 4: Stopping all operations and clearing memory`);
+            
+            // 1. 진행 중인 로딩 즉시 중단
+            this.stopAllLoading();
+            
+            // 2. 모든 텍스처 메모리에서 제거
+            this.clearAllTextures();
+            
+            // 3. Scale 업데이트
+            this.currentScale = newScale;
+            
+            console.log(`✅ Scale ${newScale}: All textures cleared, loading stopped`);
+            return;
+        }
+        
+        // Scale 8 이상일 때 처리
         // 1. 진행 중인 로딩 중단
         this.stopAllLoading();
         
@@ -189,24 +207,20 @@ export class WebGLManager {
         // 3. Scale 업데이트
         this.currentScale = newScale;
         
-        // 4. Scale >= 8일 때만 텍스처 로드
-        if (newScale >= 8) {
-            this.loadingController = new AbortController();
-            this.isLoading = true;
-            
-            try {
-                await this.loadAllTexturesForScale(newScale);
-                console.log(`✅ Scale ${newScale} textures loaded`);
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    console.error('Texture loading failed:', error);
-                }
-            } finally {
-                this.isLoading = false;
-                this.loadingController = null;
+        // 4. 새 텍스처 로드
+        this.loadingController = new AbortController();
+        this.isLoading = true;
+        
+        try {
+            await this.loadAllTexturesForScale(newScale);
+            console.log(`✅ Scale ${newScale} textures loaded`);
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('Texture loading failed:', error);
             }
-        } else {
-            console.log(`⚠️ Scale ${newScale}: Textures not loaded (< 8)`);
+        } finally {
+            this.isLoading = false;
+            this.loadingController = null;
         }
     }
     
@@ -224,6 +238,7 @@ export class WebGLManager {
     clearAllTextures() {
         const gl = this.gl;
         let deletedCount = 0;
+        let failedCount = 0;
         
         // 모든 동물 텍스처 삭제
         for (const species in this.textures) {
@@ -240,8 +255,14 @@ export class WebGLManager {
                         if (Array.isArray(frames)) {
                             frames.forEach(texture => {
                                 if (texture) {
-                                    gl.deleteTexture(texture);
-                                    deletedCount++;
+                                    try {
+                                        // WebGL 텍스처 삭제 시도
+                                        gl.deleteTexture(texture);
+                                        deletedCount++;
+                                    } catch (error) {
+                                        // 삭제 실패 (WebGLTexture가 아닌 경우)
+                                        failedCount++;
+                                    }
                                 }
                             });
                         }
@@ -252,7 +273,11 @@ export class WebGLManager {
             this.textures[species] = {};
         }
         
-        console.log(`🗑️ Cleared ${deletedCount} textures from GPU memory`);
+        if (failedCount > 0) {
+            console.log(`🗑️ Cleared ${deletedCount} textures from GPU memory (${failedCount} skipped)`);
+        } else {
+            console.log(`🗑️ Cleared ${deletedCount} textures from GPU memory`);
+        }
     }
     
     // ✅ Scale에 해당하는 모든 텍스처 로드
@@ -309,7 +334,7 @@ export class WebGLManager {
                     
                     try {
                         const textureData = await this.loadTextureWithAbort(url);
-                        frames.push(textureData.texture);
+                        frames.push(textureData);  // 전체 textureData 객체 저장
                         totalLoaded++;
                         
                         // 진행 상황 로그 (100개마다)
@@ -321,7 +346,7 @@ export class WebGLManager {
                             console.log('   Loading aborted by user');
                             return;
                         }
-                        console.warn(`   Failed to load: ${url}`);
+                        console.error(`   Failed to load: ${url}`, error);
                         totalFailed++;
                     }
                 }
@@ -340,26 +365,37 @@ export class WebGLManager {
             throw new Error('No loading controller available');
         }
         
-        // AbortSignal을 fetch에 전달하기 위한 옵션
-        const fetchOptions = {
-            signal: this.loadingController.signal
-        };
-        
         // KTX2 로더는 내부적으로 fetch를 사용하므로
         // AbortSignal 처리를 위해 Promise 래핑
         return new Promise(async (resolve, reject) => {
+            // loadingController가 중간에 null이 될 수 있으므로 참조 저장
+            const controller = this.loadingController;
+            if (!controller) {
+                reject(new DOMException('Aborted', 'AbortError'));
+                return;
+            }
+            
             const abortListener = () => {
                 reject(new DOMException('Aborted', 'AbortError'));
             };
             
-            this.loadingController.signal.addEventListener('abort', abortListener);
+            controller.signal.addEventListener('abort', abortListener);
             
             try {
                 const data = await this.textureLoader.loadKTX2(url);
-                this.loadingController.signal.removeEventListener('abort', abortListener);
+                
+                // 로딩 완료 후 controller 유효성 재확인
+                if (controller.signal.aborted) {
+                    reject(new DOMException('Aborted', 'AbortError'));
+                    return;
+                }
+                
+                controller.signal.removeEventListener('abort', abortListener);
                 resolve(data);
             } catch (error) {
-                this.loadingController.signal.removeEventListener('abort', abortListener);
+                if (controller && controller.signal) {
+                    controller.signal.removeEventListener('abort', abortListener);
+                }
                 reject(error);
             }
         });

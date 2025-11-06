@@ -29,16 +29,19 @@ export class TextureLoader {
             this.ktx2Loader.load(
                 url,
                 (texture) => {
-                    const glTexture = texture.source.data;
+                    // KTX2 텍스처 데이터 직접 반환
+                    // texture.source.data가 WebGLTexture일 수 있음
+                    const textureData = {
+                        texture: texture.source?.data || texture,
+                        width: texture.image?.width || 512,
+                        height: texture.image?.height || 512
+                    };
                     
-                    resolve({
-                        texture: glTexture,
-                        width: texture.image.width,
-                        height: texture.image.height
-                    });
+                    resolve(textureData);
                 },
                 undefined,
                 (error) => {
+                    console.error(`Failed to load KTX2: ${url}`, error);
                     reject(error);
                 }
             );
