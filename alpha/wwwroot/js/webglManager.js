@@ -71,10 +71,11 @@ export class WebGLManager {
     // ✅ WebGL 컨텍스트 초기화 (내부 메서드)
     initWebGL(canvas) {
         const gl = canvas.getContext('webgl2', {
-            alpha: false,
+            alpha: true,  // 알파 채널 활성화 (투명도 지원)
             antialias: false,
             powerPreference: 'high-performance',
-            preserveDrawingBuffer: false
+            preserveDrawingBuffer: false,
+            premultipliedAlpha: true  // 알파 블렌딩 개선
         });
         
         if (!gl) {
@@ -82,15 +83,15 @@ export class WebGLManager {
             return null;
         }
         
-        // 기본 설정
-        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        // 기본 설정 - 투명한 배경
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);  // RGBA (0,0,0,0) = 완전 투명
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         
         // 뷰포트 설정
         gl.viewport(0, 0, canvas.width, canvas.height);
         
-        console.log('✅ WebGL 2.0 context initialized');
+        console.log('✅ WebGL 2.0 context initialized (transparent background)');
         console.log('   Max texture size:', gl.getParameter(gl.MAX_TEXTURE_SIZE));
         console.log('   Max texture units:', gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS));
         
@@ -807,8 +808,9 @@ export class WebGLManager {
     render() {
         const gl = this.gl;
         
-        // 화면 클리어
-        gl.clear(gl.COLOR_BUFFER_BIT);
+        // 투명 배경을 위해 clear를 호출하지 않거나, 
+        // 필요한 경우에만 깊이 버퍼만 클리어
+        // gl.clear(gl.DEPTH_BUFFER_BIT);
         
         // TODO: 실제 렌더링
     }
