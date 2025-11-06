@@ -1,6 +1,7 @@
 'use strict';
 
 import { TextureLoader } from './textureLoader.js';
+import * as THREE from '/js/lib/three.module.js';
 
 export class WebGLManager {
     constructor(canvas) {
@@ -92,6 +93,17 @@ export class WebGLManager {
         // 애니메이션 타이머
         this.animationTimers = new Map(); // entity id -> timer data
         
+        
+        // Three.js 렌더링 관련 (testRender용)
+        this.threeRenderer = null;
+        this.threeScene = null;
+        this.threeCamera = null;
+        this.testMesh = null;
+        this.testTextures = null;
+        this.testAnimationFrame = 0;
+        this.testAnimationPlaying = false;
+        this.testLastFrameTime = 0;
+        this.testFPS = 30;
         console.log('🎮 WebGLManager created');
     }
     
@@ -1225,11 +1237,250 @@ export class WebGLManager {
         console.log('🧹 All entities cleared');
     }
     
+    // ================== Three.js 테스트 렌더링 ==================
+    
+    // ✅ Three.js 초기화
+    initThreeJS() {
+        // 이미 초기화되었으면 스킵
+        if (this.threeRenderer) return;
+        
+        console.log('🎬 Initializing Three.js renderer...');
+        
+        // Three.js 렌더러 생성 (기존 캔버스 사용)
+        this.threeRenderer = new THREE.WebGLRenderer({ 
+            canvas: this.canvas,
+            alpha: true,
+            antialias: true 
+        });
+        this.threeRenderer.setSize(this.canvas.width, this.canvas.height);
+        this.threeRenderer.setPixelRatio(window.devicePixelRatio);
+        
+        // Scene 생성
+        this.threeScene = new THREE.Scene();
+        
+        // Camera 생성
+        const aspect = this.canvas.width / this.canvas.height;
+        this.threeCamera = new THREE.PerspectiveCamera(45, aspect, 0.1, 100);
+        this.threeCamera.position.z = 2;
+        
+        // 조명 추가
+        this.threeScene.add(new THREE.AmbientLight(0xffffff, 1.2));
+        
+        console.log('✅ Three.js initialized');
+    }
+    
+    // ✅ 테스트 렌더링 메인 함수
+    async testRender(species = 'rabbit', animation = 'idle_1', direction = 'direction_00', fps = 30) {
+        console.log(`🎬 Starting test render for ${species}/${animation}/${direction}`);
+        
+        // Three.js 초기화
+        this.initThreeJS();
+        
+        // FPS 설정
+        this.testFPS = fps;
+        
+        // 텍스처가 로드되어 있는지 확인
+        const textures = this.textures[species]?.adult?.[animation]?.[direction];
+        
+        if (!textures || textures.length === 0) {
+            console.error(`❌ No textures found for ${species}/adult/${animation}/${direction}`);
+            console.log('📌 Please ensure Scale >= 8 and textures are loaded');
+            console.log('   Try: await window.webglManager.applyScale(8)');
+            return false;
+        }
+        
+        console.log(`✅ Found ${textures.length} frames for animation`);
+        
+        // 기존 메시 제거
+        if (this.testMesh) {
+            this.threeScene.remove(this.testMesh);
+            this.testMesh.geometry.dispose();
+            this.testMesh = null;
+        }
+        
+        // 첫 번째 텍스처로 메시 생성
+        const firstTexture = textures[0];
+        
+        if (!firstTexture || !firstTexture.texture) {
+            console.error('❌ Invalid texture format');
+            return false;
+        }
+        
+        // Three.js 텍스처 객체
+        const threeTexture = firstTexture.texture;
+        
+        // 텍스처 비율 계산
+        const width = firstTexture.width || 512;
+        const height = firstTexture.height || 512;
+        const aspect = height / width;
+        
+        // Plane 지오메트리와 머티리얼 생성
+        const geometry = new THREE.PlaneGeometry(1.5, 1.5 * aspect);
+        const material = new THREE.MeshBasicMaterial({ 
+            map: threeTexture,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        
+        // 메시 생성
+        this.testMesh = new THREE.Mesh(geometry, material);
+        this.testMesh.scale.y = -1; // Y축 반전 (이미지 방향 조정)
+        this.threeScene.add(this.testMesh);
+        
+        // 애니메이션 변수 초기화
+        this.testAnimationFrame = 0;
+        this.testAnimationPlaying = true;
+        this.testLastFrameTime = performance.now();
+        this.testTextures = textures; // 텍스처 배열 저장
+        
+        console.log('✅ Mesh created and added to scene');
+        
+        // 애니메이션 루프 시작
+        this.startTestAnimation();
+        
+        // 컨트롤 함수들을 윈도우에 노출
+        window.testRenderControl = {
+            play: () => this.playTestAnimation(),
+            pause: () => this.pauseTestAnimation(),
+            stop: () => this.stopTestAnimation(),
+            setFPS: (newFPS) => this.setTestFPS(newFPS),
+            nextFrame: () => this.nextTestFrame(),
+            prevFrame: () => this.prevTestFrame(),
+            setFrame: (frame) => this.setTestFrame(frame)
+        };
+        
+        console.log('✅ Test render started!');
+        console.log('   Controls available via window.testRenderControl:');
+        console.log('   - play(), pause(), stop()');
+        console.log('   - setFPS(number), nextFrame(), prevFrame()');
+        console.log('   - setFrame(number)');
+        
+        return true;
+    }
+    
+    // ✅ 애니메이션 루프
+    startTestAnimation() {
+        const animate = (timestamp) => {
+            // 애니메이션이 중지되었으면 종료
+            if (!this.testMesh) return;
+            
+            // FPS 기반 프레임 업데이트
+            if (this.testAnimationPlaying) {
+                const frameDuration = 1000 / this.testFPS;
+                
+                if (timestamp - this.testLastFrameTime >= frameDuration) {
+                    this.updateTestFrame();
+                    this.testLastFrameTime = timestamp;
+                }
+            }
+            
+            // Three.js 렌더링
+            this.threeRenderer.render(this.threeScene, this.threeCamera);
+            
+            // 다음 프레임
+            requestAnimationFrame(animate);
+        };
+        
+        requestAnimationFrame(animate);
+    }
+    
+    // ✅ 프레임 업데이트
+    updateTestFrame() {
+        if (!this.testMesh || !this.testTextures) return;
+        
+        // 다음 프레임으로
+        this.testAnimationFrame = (this.testAnimationFrame + 1) % this.testTextures.length;
+        
+        // 텍스처 교체
+        const currentTexture = this.testTextures[this.testAnimationFrame];
+        if (currentTexture && currentTexture.texture) {
+            this.testMesh.material.map = currentTexture.texture;
+            this.testMesh.material.needsUpdate = true;
+            
+            console.log(`Frame: ${this.testAnimationFrame + 1}/${this.testTextures.length}`);
+        }
+    }
+    
+    // ✅ 애니메이션 컨트롤 함수들
+    playTestAnimation() {
+        this.testAnimationPlaying = true;
+        this.testLastFrameTime = performance.now();
+        console.log('▶️ Animation playing');
+    }
+    
+    pauseTestAnimation() {
+        this.testAnimationPlaying = false;
+        console.log('⏸️ Animation paused');
+    }
+    
+    stopTestAnimation() {
+        this.testAnimationPlaying = false;
+        this.testAnimationFrame = 0;
+        
+        if (this.testMesh && this.testTextures && this.testTextures[0]) {
+            this.testMesh.material.map = this.testTextures[0].texture;
+            this.testMesh.material.needsUpdate = true;
+        }
+        
+        console.log('⏹️ Animation stopped');
+    }
+    
+    setTestFPS(fps) {
+        this.testFPS = Math.max(1, Math.min(60, fps));
+        console.log(`FPS set to: ${this.testFPS}`);
+    }
+    
+    nextTestFrame() {
+        if (!this.testTextures) return;
+        
+        this.testAnimationFrame = (this.testAnimationFrame + 1) % this.testTextures.length;
+        this.setTestFrame(this.testAnimationFrame);
+    }
+    
+    prevTestFrame() {
+        if (!this.testTextures) return;
+        
+        this.testAnimationFrame = (this.testAnimationFrame - 1 + this.testTextures.length) % this.testTextures.length;
+        this.setTestFrame(this.testAnimationFrame);
+    }
+    
+    setTestFrame(frame) {
+        if (!this.testMesh || !this.testTextures) return;
+        
+        frame = Math.max(0, Math.min(this.testTextures.length - 1, frame));
+        this.testAnimationFrame = frame;
+        
+        const texture = this.testTextures[frame];
+        if (texture && texture.texture) {
+            this.testMesh.material.map = texture.texture;
+            this.testMesh.material.needsUpdate = true;
+            console.log(`Frame set to: ${frame + 1}/${this.testTextures.length}`);
+        }
+    }
+    
+    // ✅ Three.js 정리
+    cleanupThreeJS() {
+        if (this.testMesh) {
+            this.threeScene.remove(this.testMesh);
+            this.testMesh.geometry.dispose();
+            this.testMesh.material.dispose();
+            this.testMesh = null;
+        }
+        
+        this.testTextures = null;
+        this.testAnimationPlaying = false;
+        
+        console.log('✅ Three.js test render cleaned up');
+    }
+    
     // ✅ 정리
     cleanup() {
         console.log('🧹 Cleaning up WebGLManager...');
         
         // 메모리 모니터 중지
+        // Three.js 테스트 렌더 정리
+        this.cleanupThreeJS();
+
         this.stopMemoryMonitor();
         
         // 렌더링 루프 중지
