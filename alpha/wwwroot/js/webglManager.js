@@ -163,6 +163,14 @@ export class WebGLManager {
         
         return texture;
     }
+
+    showLoader() {
+        Variables.Doms.get('texture-loader').style.opacity = 1;
+    }
+
+    hideLoader() {
+        Variables.Doms.get('texture-loader').style.opacity = 0;
+    }
     
     // ================== Scale 관리 시스템 ==================
     
@@ -226,6 +234,7 @@ export class WebGLManager {
     
     // ✅ 텍스처 로딩 Promise 생성 (별도 메서드로 분리)
     async loadTexturesForScale(scale, previousScale) {
+        this.showLoader();
         try {
             await this.loadAllTexturesForScale(scale);
             // 현재 scale과 일치할 때만 성공 메시지 출력
@@ -244,6 +253,7 @@ export class WebGLManager {
                 this.isLoading = false;
                 this.loadingController = null;
             }
+            this.hideLoader();
         }
     }
     
