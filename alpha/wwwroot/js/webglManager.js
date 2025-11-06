@@ -90,6 +90,12 @@ export class WebGLManager {
         this.entityQueue = [];          // 추가 대기 큐
         this.isUpdatingEntities = false; // 중복 실행 방지
         
+        // Three.js 엔티티 메시 관리
+        this.entityMeshes = new Map();
+        this.entityAnimationData = new Map();
+        this.entitiesGroup = null;
+        this.entitiesAnimationRunning = false;
+        
         // 애니메이션 타이머
         this.animationTimers = new Map(); // entity id -> timer data
         
@@ -232,42 +238,44 @@ export class WebGLManager {
         // 1. 진행 중인 로딩 즉시 중단
         this.stopAllLoading();
         
-        // Three.js 렌더링 정리 (scale이 변경되면 항상 정리)
-        if (this.testMesh) {
-            console.log("🧹 Cleaning up Three.js rendering due to scale change");
-            this.cleanupThreeJS();
+        // 2. 모든 엔티티와 Three.js 정리 (scale이 변경되면 항상)
+        this.clearAllEntities();  // 엔티티 정리
+        
+        // 3. Canvas 완전 정리 (cleanupThreeJS 호출)
+        if (this.threeRenderer || this.testMesh || this.entityMeshes?.size > 0) {
+            console.log("🧹 Cleaning up canvas due to scale change");
+            this.cleanupThreeJS();  // Canvas를 깨끗하게 지움
+        } else if (this.gl) {
+            // Three.js가 없어도 WebGL 컨텍스트로 canvas 지우기
+            this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
+            this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
         }
         
-        // 2. 이전 로딩 Promise가 있다면 완료될 때까지 기다림 (에러 무시)
+        // 4. 이전 로딩 Promise 대기
         if (this.currentLoadingPromise) {
             try {
                 await this.currentLoadingPromise;
             } catch {
-                // 중단된 Promise의 에러는 무시
+                // 에러 무시
             }
             this.currentLoadingPromise = null;
         }
         
-        // 3. 기존 텍스처 정리
+        // 5. 텍스처 정리
         this.clearAllTextures();
         
-        // 4. Scale 업데이트
+        // 6. Scale 업데이트
         const previousScale = this.currentScale;
         this.currentScale = newScale;
         
-        // Scale 4 이하일 때는 모든 엔티티 제거 및 텍스처 정리
+        // 7. Scale 4 이하일 때는 로딩 없이 종료
         if (newScale <= 4) {
-            console.log(`✅ Scale ${newScale}: Clearing all entities and textures (scale <= 4)`);
-            // 모든 엔티티 제거
-            this.clearAllEntities();
-            // Three.js 렌더링도 정리 (Scale 4 이하에서는 렌더링 불가)
-            if (this.testMesh) {
-                console.log(`🧹 Scale ${this.currentScale}: Cleaning up Three.js rendering (scale <= 4)`);
-                this.cleanupThreeJS();
-            }
-            console.log(`✅ Scale ${newScale}: All textures cleared, no loading needed (scale <= 4)`);
+            console.log(`✅ Scale ${newScale}: All cleared, no loading needed (scale <= 4)`);
             return;
         }
+        
+        // 1. 진행 중인 로딩 즉시 중단
+        this.stopAllLoading();
         
         // Scale 8 이상일 때 텍스처 로드
         this.loadingController = new AbortController();
@@ -985,7 +993,7 @@ export class WebGLManager {
             if (!this.isRunning) return;
             
             // Delta time 계산
-            this.deltaTime = (timestamp - this.lastTime) / 1000;
+            this.deltaTime = (timestamp - this.lastTime) / 100;  // 크기 조정
             this.lastTime = timestamp;
             
             // 업데이트 & 렌더링
@@ -1041,25 +1049,21 @@ export class WebGLManager {
     
     // ✅ 엔티티 추가
     addEntity(entityData) {
-        // 기본값 설정
         const entity = {
             ...entityData,
             direction: entityData.direction || this.getRandomDirection(),
             animation: entityData.animation || 'idle_1',
             frameIndex: 0,
-            frameTimer: 0,
             animationSpeed: entityData.animationSpeed || 1,
             scale: entityData.scale || 1,
-            visible: true,
-            zIndex: entityData.zIndex || 0
+            visible: entityData.visible !== undefined ? entityData.visible : true,
+            zIndex: entityData.y || 0  // y값을 zIndex로 사용
         };
         
-        console.log(`🐰 Adding entity: ${entity.id} at (${entity.x}, ${entity.y}) facing ${entity.direction}`);
+        console.log(`🐰 Adding entity: ${entity.id} at (${entity.x}, ${entity.y})`);
         
-        // 큐에 추가
         this.entityQueue.push(entity);
         
-        // 업데이트 프로세스 시작 (중복 실행 방지)
         if (!this.isUpdatingEntities) {
             this.updateEntity();
         }
@@ -1073,39 +1077,186 @@ export class WebGLManager {
     
     // ✅ 엔티티 업데이트 (큐 처리)
     async updateEntity() {
-        // 중복 실행 방지
         if (this.isUpdatingEntities) {
-            console.log('⏳ Entity update already in progress, skipping...');
+            console.log('⏳ Entity update already in progress');
             return;
+        }
+        
+        // Three.js 초기화
+        if (!this.threeRenderer) {
+            this.initThreeJS();
         }
         
         this.isUpdatingEntities = true;
         
         try {
-            // 큐에서 배치로 처리 (성능 최적화)
             while (this.entityQueue.length > 0) {
-                const batchSize = Math.min(10, this.entityQueue.length);
-                const batch = this.entityQueue.splice(0, batchSize);
+                const entity = this.entityQueue.shift();
                 
-                console.log(`📦 Processing batch of ${batch.length} entities...`);
-                
-                for (const entity of batch) {
-                    await this.processEntity(entity);
+                // Scale 체크
+                if (this.currentScale <= 4) {
+                    console.warn(`⚠️ Scale ${this.currentScale}: Entity ${entity.id} not added`);
+                    continue;
                 }
                 
-                // 프레임 양보 (UI 블로킹 방지)
+                await this.createEntityMesh(entity);
+                
+                // UI 블로킹 방지
                 if (this.entityQueue.length > 0) {
-                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    await new Promise(resolve => setTimeout(resolve, 0));
                 }
             }
             
-            console.log('✅ All entities processed');
+            // Depth sorting
+            this.sortEntitiesByDepth();
+            
+            // 애니메이션 시작
+            if (!this.entitiesAnimationRunning) {
+                this.startEntitiesAnimation();
+            }
             
         } catch (error) {
             console.error('❌ Error updating entities:', error);
         } finally {
             this.isUpdatingEntities = false;
         }
+    }
+
+    // 엔티티 메시 생성
+    async createEntityMesh(entity) {
+        try {
+            const textures = this.textures[entity.species]?.[entity.lifeStage]?.[entity.animation]?.[entity.direction];
+            
+            if (!textures || textures.length === 0) {
+                console.warn(`⚠️ No textures for ${entity.id}`);
+                // 1초 후 재시도
+                setTimeout(() => {
+                    this.entityQueue.push(entity);
+                    if (!this.isUpdatingEntities) {
+                        this.updateEntity();
+                    }
+                }, 1000);
+                return;
+            }
+            
+            const firstTexture = textures[0];
+            if (!firstTexture || !firstTexture.texture) {
+                console.error('❌ Invalid texture');
+                return;
+            }
+            
+            // Mesh 생성
+            const width = (firstTexture.width || 512) / 100;  // 크기 조정
+            const height = (firstTexture.height || 512) / 100;  // 크기 조정
+            const geometry = new THREE.PlaneGeometry(width * entity.scale, height * entity.scale);
+            const material = new THREE.MeshBasicMaterial({
+                map: firstTexture.texture,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                depthTest: true
+            });
+            
+            const mesh = new THREE.Mesh(geometry, material);
+            
+            // 위치 설정 (픽셀 좌표를 3D 좌표로 변환)
+            mesh.position.x = 0;
+            mesh.position.y = 0;
+            mesh.position.z = 0;
+            
+            // Depth sorting (y값이 클수록 앞쪽)
+            mesh.renderOrder = entity.y;
+            
+            // Y축 반전
+            mesh.scale.y = -1;
+            
+            // 가시성
+            mesh.visible = entity.visible;
+            
+            // 그룹에 추가
+            this.entitiesGroup.add(mesh);
+            
+            // 저장
+            this.entities.set(entity.id, entity);
+            this.entityMeshes.set(entity.id, mesh);
+            this.entityAnimationData.set(entity.id, {
+                textures: textures,
+                frameIndex: 0,
+                lastFrameTime: performance.now(),
+                frameInterval: 1000 / 30  // 30 FPS 기본값
+            });
+            
+            console.log(`✅ Entity ${entity.id} mesh created`);
+            
+        } catch (error) {
+            console.error(`❌ Failed to create mesh for ${entity.id}:`, error);
+        }
+    }
+
+    // Depth Sorting
+    sortEntitiesByDepth() {
+        if (!this.entitiesGroup) return;
+        
+        // renderOrder 재설정 (y값 기준)
+        this.entitiesGroup.children.forEach(mesh => {
+            const entity = Array.from(this.entities.values()).find(e => 
+                this.entityMeshes.get(e.id) === mesh
+            );
+            if (entity) {
+                mesh.renderOrder = entity.y;
+            }
+        });
+    }
+
+    // 엔티티 애니메이션 시작
+    startEntitiesAnimation() {
+        if (this.entitiesAnimationRunning) return;
+        
+        this.entitiesAnimationRunning = true;
+        
+        const animate = (timestamp) => {
+            if (!this.entitiesAnimationRunning || this.entityMeshes.size === 0) {
+                this.entitiesAnimationRunning = false;
+                return;
+            }
+            
+            // 애니메이션 업데이트
+            this.updateAllEntityAnimations(timestamp);
+            
+            // 렌더링
+            if (this.threeRenderer && this.threeScene && this.threeCamera) {
+                this.threeRenderer.render(this.threeScene, this.threeCamera);
+            }
+            
+            requestAnimationFrame(animate);
+        };
+        
+        requestAnimationFrame(animate);
+    }
+
+    // 모든 엔티티 애니메이션 업데이트
+    updateAllEntityAnimations(timestamp) {
+        this.entities.forEach((entity, id) => {
+            const animData = this.entityAnimationData.get(id);
+            const mesh = this.entityMeshes.get(id);
+            
+            if (!animData || !mesh) return;
+            
+            const elapsed = timestamp - animData.lastFrameTime;
+            if (elapsed >= animData.frameInterval / entity.animationSpeed) {
+                // 다음 프레임
+                animData.frameIndex = (animData.frameIndex + 1) % animData.textures.length;
+                
+                // 텍스처 교체
+                const texture = animData.textures[animData.frameIndex];
+                if (texture && texture.texture) {
+                    mesh.material.map = texture.texture;
+                    mesh.material.needsUpdate = true;
+                }
+                
+                animData.lastFrameTime = timestamp;
+            }
+        });
     }
     
     // ✅ 개별 엔티티 처리
@@ -1224,16 +1375,18 @@ export class WebGLManager {
             return;
         }
         
-        // 레이어에서 제거
-        const layerIndex = this.layers.entity.indexOf(entity);
-        if (layerIndex > -1) {
-            this.layers.entity.splice(layerIndex, 1);
+        // Three.js Mesh 제거
+        const mesh = this.entityMeshes.get(entityId);
+        if (mesh && this.entitiesGroup) {
+            this.entitiesGroup.remove(mesh);
+            mesh.geometry.dispose();
+            mesh.material.dispose();
         }
         
         // 맵에서 제거
         this.entities.delete(entityId);
-        
-        // 애니메이션 타이머 제거
+        this.entityMeshes.delete(entityId);
+        this.entityAnimationData.delete(entityId);
         this.animationTimers.delete(entityId);
         
         console.log(`🗑️ Entity ${entityId} removed`);
@@ -1241,10 +1394,31 @@ export class WebGLManager {
     
     // ✅ 모든 엔티티 제거
     clearAllEntities() {
-        for (const [id] of this.entities) {
-            this.removeEntity(id);
-        }
+        // 애니메이션 중지
+        this.entitiesAnimationRunning = false;
+        
+        // 큐 비우기
         this.entityQueue = [];
+        this.isUpdatingEntities = false;
+        
+        // 모든 Three.js 메시 제거
+        if (this.entitiesGroup) {
+            this.entities.forEach((entity, id) => {
+                const mesh = this.entityMeshes.get(id);
+                if (mesh) {
+                    this.entitiesGroup.remove(mesh);
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                }
+            });
+        }
+        
+        // 맵 초기화
+        this.entities.clear();
+        this.entityMeshes.clear();
+        this.entityAnimationData.clear();
+        this.animationTimers.clear();
+        
         console.log('🧹 All entities cleared');
     }
     
@@ -1252,12 +1426,10 @@ export class WebGLManager {
     
     // ✅ Three.js 초기화
     initThreeJS() {
-        // 이미 초기화되었으면 스킵
         if (this.threeRenderer) return;
         
         console.log('🎬 Initializing Three.js renderer...');
         
-        // Three.js 렌더러 생성 (기존 캔버스 사용)
         this.threeRenderer = new THREE.WebGLRenderer({ 
             canvas: this.canvas,
             alpha: true,
@@ -1265,19 +1437,21 @@ export class WebGLManager {
         });
         this.threeRenderer.setSize(this.canvas.width, this.canvas.height);
         this.threeRenderer.setPixelRatio(window.devicePixelRatio);
+        this.threeRenderer.sortObjects = true; // depth sorting 활성화
         
-        // Scene 생성
         this.threeScene = new THREE.Scene();
         
-        // Camera 생성
         const aspect = this.canvas.width / this.canvas.height;
         this.threeCamera = new THREE.PerspectiveCamera(45, aspect, 0.1, 100);
-        this.threeCamera.position.z = 2;
+        this.threeCamera.position.z = 8;  // 카메라 거리 조정
         
-        // 조명 추가
         this.threeScene.add(new THREE.AmbientLight(0xffffff, 1.2));
         
-        console.log('✅ Three.js initialized');
+        // 엔티티 그룹 생성
+        this.entitiesGroup = new THREE.Group();
+        this.threeScene.add(this.entitiesGroup);
+        
+        console.log('✅ Three.js initialized with entities support');
     }
     
     // ✅ 테스트 렌더링 메인 함수
@@ -1477,6 +1651,10 @@ export class WebGLManager {
     
     // ✅ Three.js 정리
     cleanupThreeJS() {
+        // 엔티티 정리
+        this.clearAllEntities();
+        
+        // 테스트 메시 정리
         if (this.testMesh) {
             this.threeScene.remove(this.testMesh);
             this.testMesh.geometry.dispose();
@@ -1487,28 +1665,25 @@ export class WebGLManager {
         this.testTextures = null;
         this.testAnimationPlaying = false;
         
-        // Canvas를 깨끗하게 지우기
+        // Canvas 지우기
         if (this.threeRenderer) {
-            // Three.js renderer로 화면 지우기
             this.threeRenderer.clear();
             this.threeRenderer.clearColor();
             this.threeRenderer.clearDepth();
             this.threeRenderer.clearStencil();
             
-            // 빈 씬 렌더링하여 완전히 지우기
             if (this.threeScene && this.threeCamera) {
                 const emptyScene = new THREE.Scene();
                 this.threeRenderer.render(emptyScene, this.threeCamera);
             }
         }
         
-        // WebGL 컨텍스트 직접 지우기 (fallback)
         if (this.gl) {
             this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
             this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
         }
         
-        console.log('✅ Three.js test render and canvas cleaned up');
+        console.log('✅ Three.js and canvas cleaned up');
     }
     
     // ✅ 정리
