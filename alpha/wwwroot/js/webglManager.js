@@ -280,26 +280,25 @@ export class WebGLManager {
                         const frames = this.textures[species][lifeStage][animation][direction];
                         if (Array.isArray(frames)) {
                             frames.forEach(textureData => {
-                                if (textureData) {
+                                if (textureData && textureData.texture) {
                                     try {
                                         // Three.js 텍스처인 경우 dispose 호출
-                                        if (textureData.threeTexture && textureData.texture && textureData.texture.dispose) {
-                                            textureData.texture.dispose();
-                                            deletedCount++;
-                                        } 
-                                        // 일반 텍스처 데이터인 경우
-                                        else if (textureData.texture) {
-                                            // WebGL 텍스처라면 삭제 시도
-                                            try {
-                                                gl.deleteTexture(textureData.texture);
+                                        if (textureData.threeTexture) {
+                                            // Three.js Texture 객체의 dispose 메서드 호출
+                                            if (textureData.texture.dispose) {
+                                                textureData.texture.dispose();
                                                 deletedCount++;
-                                            } catch {
-                                                // WebGL 텍스처가 아니면 스킵
+                                            } else {
+                                                console.warn('Texture has no dispose method:', textureData);
                                                 failedCount++;
                                             }
+                                        } else {
+                                            // 일반 WebGL 텍스처인 경우
+                                            gl.deleteTexture(textureData.texture);
+                                            deletedCount++;
                                         }
                                     } catch (error) {
-                                        // 삭제 실패
+                                        console.error('Error disposing texture:', error);
                                         failedCount++;
                                     }
                                 }
@@ -327,6 +326,12 @@ export class WebGLManager {
             const afterHeap = parseFloat(afterMem.jsHeapUsed);
             const diff = (beforeHeap - afterHeap).toFixed(2);
             console.log(`   Memory freed: ~${diff} MB (JS Heap: ${afterMem.jsHeapUsed})`);
+        }
+        
+        // Garbage Collection 트리거 (Chrome에서만 작동)
+        if (window.gc) {
+            window.gc();
+            console.log('   Garbage collection triggered');
         }
     }
     

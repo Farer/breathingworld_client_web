@@ -29,19 +29,17 @@ export class TextureLoader {
             this.ktx2Loader.load(
                 url,
                 (texture) => {
-                    // KTX2 텍스처 데이터 직접 반환
-                    // texture.source.data가 WebGLTexture일 수 있음
-                    const textureData = {
-                        texture: texture.source?.data || texture,
+                    // Three.js texture 객체를 그대로 보관
+                    // dispose 메서드가 있어야 메모리 해제 가능
+                    resolve({
+                        texture: texture,  // Three.js Texture 객체 전체
                         width: texture.image?.width || 512,
-                        height: texture.image?.height || 512
-                    };
-                    
-                    resolve(textureData);
+                        height: texture.image?.height || 512,
+                        threeTexture: true
+                    });
                 },
                 undefined,
                 (error) => {
-                    console.error(`Failed to load KTX2: ${url}`, error);
                     reject(error);
                 }
             );
