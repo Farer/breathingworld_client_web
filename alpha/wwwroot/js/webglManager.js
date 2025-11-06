@@ -478,6 +478,199 @@ export class WebGLManager {
         }
     }
     
+    // ✅ 메모리 모니터 DOM 생성 및 업데이트
+    createMemoryMonitor() {
+        // 기존 모니터가 있다면 제거
+        const existing = document.getElementById('webgl-memory-monitor');
+        if (existing) {
+            existing.remove();
+        }
+        
+        // 모니터 컨테이너 생성
+        const monitor = document.createElement('div');
+        monitor.id = 'webgl-memory-monitor';
+        monitor.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #00ff00;
+            z-index: 10000;
+            min-width: 280px;
+            backdrop-filter: blur(5px);
+        `;
+        
+        // 제목
+        const title = document.createElement('div');
+        title.style.cssText = `
+            font-weight: bold;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #00ff00;
+            color: #ffffff;
+        `;
+        title.textContent = '📊 WebGL Memory Monitor';
+        monitor.appendChild(title);
+        
+        // 정보 라인들
+        const infoLines = [
+            { id: 'scale-info', label: 'Scale' },
+            { id: 'texture-count', label: 'Textures' },
+            { id: 'gpu-memory', label: 'GPU Memory (Est.)' },
+            { id: 'js-heap', label: 'JS Heap' },
+            { id: 'loading-status', label: 'Status' }
+        ];
+        
+        infoLines.forEach(line => {
+            const div = document.createElement('div');
+            div.style.cssText = 'margin: 3px 0;';
+            div.innerHTML = `<span style="color: #888;">${line.label}:</span> <span id="${line.id}" style="color: #00ff00;">-</span>`;
+            monitor.appendChild(div);
+        });
+        
+        // 닫기 버튼
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '✕';
+        closeBtn.style.cssText = `
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            color: #ff0000;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+        `;
+        closeBtn.onclick = () => this.stopMemoryMonitor();
+        monitor.appendChild(closeBtn);
+        
+        // DOM에 추가
+        document.body.appendChild(monitor);
+        
+        // 업데이트 루프 시작
+        this.startMemoryMonitorUpdate();
+        
+        console.log('✅ Memory monitor created');
+    }
+    
+    // ✅ 메모리 모니터 업데이트 시작
+    startMemoryMonitorUpdate() {
+        // 이전 인터벌이 있다면 제거
+        if (this.memoryMonitorInterval) {
+            clearInterval(this.memoryMonitorInterval);
+        }
+        
+        // 업데이트 함수
+        const updateMonitor = () => {
+            const monitor = document.getElementById('webgl-memory-monitor');
+            if (!monitor) {
+                this.stopMemoryMonitor();
+                return;
+            }
+            
+            const memInfo = this.getMemoryInfo();
+            const status = this.getLoadingStatus();
+            
+            // Scale 정보 업데이트
+            const scaleEl = document.getElementById('scale-info');
+            if (scaleEl) {
+                scaleEl.textContent = `${status.currentScale} (Skip: ${status.frameSkip})`;
+                scaleEl.style.color = status.currentScale >= 8 ? '#00ff00' : '#ff8800';
+            }
+            
+            // 텍스처 개수 업데이트
+            const textureEl = document.getElementById('texture-count');
+            if (textureEl) {
+                textureEl.textContent = memInfo.textureCount.toLocaleString();
+                textureEl.style.color = memInfo.textureCount > 1000 ? '#ffff00' : '#00ff00';
+            }
+            
+            // GPU 메모리 업데이트
+            const gpuEl = document.getElementById('gpu-memory');
+            if (gpuEl) {
+                gpuEl.textContent = memInfo.estimatedTextureMemory;
+                const memValue = parseFloat(memInfo.estimatedTextureMemory);
+                gpuEl.style.color = memValue > 500 ? '#ff0000' : (memValue > 100 ? '#ffff00' : '#00ff00');
+            }
+            
+            // JS Heap 업데이트
+            const heapEl = document.getElementById('js-heap');
+            if (heapEl) {
+                if (memInfo.jsHeapUsed) {
+                    heapEl.textContent = `${memInfo.jsHeapUsed} / ${memInfo.jsHeapTotal}`;
+                    const usage = parseFloat(memInfo.jsHeapUsed) / parseFloat(memInfo.jsHeapTotal);
+                    heapEl.style.color = usage > 0.8 ? '#ff0000' : (usage > 0.5 ? '#ffff00' : '#00ff00');
+                } else {
+                    heapEl.textContent = 'N/A (Open DevTools)';
+                    heapEl.style.color = '#888';
+                }
+            }
+            
+            // 로딩 상태 업데이트
+            const statusEl = document.getElementById('loading-status');
+            if (statusEl) {
+                if (status.isLoading) {
+                    statusEl.textContent = '⏳ Loading...';
+                    statusEl.style.color = '#ffff00';
+                    // 로딩 중일 때 애니메이션
+                    statusEl.style.animation = 'pulse 1s infinite';
+                } else {
+                    statusEl.textContent = '✅ Ready';
+                    statusEl.style.color = '#00ff00';
+                    statusEl.style.animation = 'none';
+                }
+            }
+        };
+        
+        // CSS 애니메이션 추가
+        if (!document.getElementById('memory-monitor-styles')) {
+            const style = document.createElement('style');
+            style.id = 'memory-monitor-styles';
+            style.textContent = `
+                @keyframes pulse {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                    100% { opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // 초기 업데이트
+        updateMonitor();
+        
+        // 1초마다 업데이트
+        this.memoryMonitorInterval = setInterval(updateMonitor, 1000);
+    }
+    
+    // ✅ 메모리 모니터 중지
+    stopMemoryMonitor() {
+        if (this.memoryMonitorInterval) {
+            clearInterval(this.memoryMonitorInterval);
+            this.memoryMonitorInterval = null;
+        }
+        
+        const monitor = document.getElementById('webgl-memory-monitor');
+        if (monitor) {
+            monitor.remove();
+        }
+        
+        const styles = document.getElementById('memory-monitor-styles');
+        if (styles) {
+            styles.remove();
+        }
+        
+        console.log('✅ Memory monitor stopped');
+    }
+    
     // ✅ 메모리 사용량 측정 (Chrome용)
     getMemoryInfo() {
         const info = {
@@ -632,6 +825,9 @@ export class WebGLManager {
     // ✅ 정리
     cleanup() {
         console.log('🧹 Cleaning up WebGLManager...');
+        
+        // 메모리 모니터 중지
+        this.stopMemoryMonitor();
         
         // 렌더링 루프 중지
         this.stopRenderLoop();

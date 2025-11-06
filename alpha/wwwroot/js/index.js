@@ -65,6 +65,9 @@ async function initWebGL() {
         window.webglManager.startRenderLoop();
         
         console.log('✅ WebGL initialization complete!');
+
+        // WebGL 초기화 완료 후 메모리 모니터 자동 시작
+        window.webglManager.createMemoryMonitor();
         
     } catch (error) {
         console.error('❌ WebGL initialization failed:', error);
