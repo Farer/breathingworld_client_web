@@ -58,8 +58,8 @@ async function initWebGL() {
         window.webglManager = new WebGLManager(canvas);
         await window.webglManager.init();
         
-        // 테스트: 토끼 프레임 로드
-        await window.webglManager.loadAnimalFrames('rabbit', 'adult', 128);
+        // 샘플 로드 제거됨 - 실제 사용 시 필요한 텍스처만 로드
+        // 테스트용: 콘솔에서 window.webglManager.applyScale(8) 등으로 테스트 가능
         
         // ✅ 렌더링 루프 시작 (WebGLManager가 알아서 처리)
         window.webglManager.startRenderLoop();

@@ -43,6 +43,27 @@ export class WebGLManager {
         this.lastTime = 0;
         this.deltaTime = 0;
         
+        // Scale 관리
+        this.currentScale = 1;
+        this.loadingController = null;
+        this.isLoading = false;
+        this.frameSkip = 1;
+        
+        // 애니메이션 설정
+        this.animalConfig = {
+            rabbit: {
+                lifeStages: ['adult'],
+                animations: ['idle_1', 'run_1', 'eat_1', 'sleep_3'],
+                frameCount: {
+                    idle_1: 35,
+                    run_1: 14,
+                    eat_1: 24,
+                    sleep_3: 12
+                }
+            }
+            // 추후 다른 동물 추가 가능
+        };
+        
         console.log('🎮 WebGLManager created');
     }
     
@@ -141,36 +162,278 @@ export class WebGLManager {
         return texture;
     }
     
-    // ✅ 동물 프레임 로드
-    async loadAnimalFrames(species, lifeStage, scale) {
-        console.log(`📦 Loading ${species} ${lifeStage} frames at scale ${scale}...`);
+    // ================== Scale 관리 시스템 ==================
+    
+    // ✅ Scale 변경 메인 함수
+    async applyScale(newScale) {
+        // 유효성 검증
+        const validScales = [1, 2, 4, 8, 16, 32, 64, 128];
+        if (!validScales.includes(newScale)) {
+            console.warn(`Invalid scale: ${newScale}`);
+            return;
+        }
         
-        const basePath = `/img/ktx2/${species}/${lifeStage}/${scale}`;
-        const animations = ['idle_1', 'walk_1', 'run_1'];
+        // 동일한 scale이면 무시
+        if (this.currentScale === newScale) {
+            return;
+        }
         
-        this.textures[species][lifeStage] = this.textures[species][lifeStage] || {};
+        console.log(`🔄 Applying scale: ${this.currentScale} → ${newScale}`);
         
-        for (const anim of animations) {
-            const url = `${basePath}/${anim}/direction_00/frame_0000.ktx2`;
+        // 1. 진행 중인 로딩 중단
+        this.stopAllLoading();
+        
+        // 2. 기존 텍스처 정리
+        this.clearAllTextures();
+        
+        // 3. Scale 업데이트
+        this.currentScale = newScale;
+        
+        // 4. Scale >= 8일 때만 텍스처 로드
+        if (newScale >= 8) {
+            this.loadingController = new AbortController();
+            this.isLoading = true;
             
             try {
-                // ✅ Three.js KTX2Loader 사용
-                const data = await this.textureLoader.loadKTX2(url);
-                
-                console.log(`   ✅ Loaded: ${url} (${data.width}x${data.height})`);
-                
-                if (!this.textures[species][lifeStage][anim]) {
-                    this.textures[species][lifeStage][anim] = {};
-                }
-                this.textures[species][lifeStage][anim]['direction_00'] = [data.texture];
-                
+                await this.loadAllTexturesForScale(newScale);
+                console.log(`✅ Scale ${newScale} textures loaded`);
             } catch (error) {
-                console.warn(`   ⚠️ Failed to load ${url}:`, error.message);
+                if (error.name !== 'AbortError') {
+                    console.error('Texture loading failed:', error);
+                }
+            } finally {
+                this.isLoading = false;
+                this.loadingController = null;
+            }
+        } else {
+            console.log(`⚠️ Scale ${newScale}: Textures not loaded (< 8)`);
+        }
+    }
+    
+    // ✅ 모든 로딩 작업 중단
+    stopAllLoading() {
+        if (this.loadingController) {
+            this.loadingController.abort();
+            this.loadingController = null;
+        }
+        this.isLoading = false;
+        console.log('⏹️ All loading operations stopped');
+    }
+    
+    // ✅ 모든 텍스처 메모리 정리
+    clearAllTextures() {
+        const gl = this.gl;
+        let deletedCount = 0;
+        
+        // 모든 동물 텍스처 삭제
+        for (const species in this.textures) {
+            // shadow와 기타 특수 텍스처는 유지
+            if (species === 'shadow' || species === 'ground' || species === 'weed' || species === 'trees') {
+                continue;
+            }
+            
+            // 동물 텍스처 삭제
+            for (const lifeStage in this.textures[species]) {
+                for (const animation in this.textures[species][lifeStage]) {
+                    for (const direction in this.textures[species][lifeStage][animation]) {
+                        const frames = this.textures[species][lifeStage][animation][direction];
+                        if (Array.isArray(frames)) {
+                            frames.forEach(texture => {
+                                if (texture) {
+                                    gl.deleteTexture(texture);
+                                    deletedCount++;
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+            // 텍스처 객체 초기화
+            this.textures[species] = {};
+        }
+        
+        console.log(`🗑️ Cleared ${deletedCount} textures from GPU memory`);
+    }
+    
+    // ✅ Scale에 해당하는 모든 텍스처 로드
+    async loadAllTexturesForScale(scale) {
+        console.log(`📦 Loading all textures for scale ${scale}...`);
+        
+        // 기기 사양에 따른 프레임 스킵 설정
+        this.frameSkip = this.detectDeviceCapability();
+        console.log(`   Frame skip: ${this.frameSkip} (1 = load all, 2 = load every 2nd frame)`);
+        
+        // 현재는 rabbit의 adult만 로드
+        const species = 'rabbit';
+        const config = this.animalConfig[species];
+        
+        for (const lifeStage of config.lifeStages) {
+            await this.loadAnimalTextures(
+                species,
+                lifeStage,
+                scale,
+                config.animations,
+                config.frameCount
+            );
+        }
+    }
+    
+    // ✅ 개별 동물의 모든 텍스처 로드
+    async loadAnimalTextures(species, lifeStage, scale, animations, frameCount) {
+        const basePath = `/img/ktx2/${species}/${lifeStage}/${scale}`;
+        
+        // 텍스처 객체 초기화
+        if (!this.textures[species][lifeStage]) {
+            this.textures[species][lifeStage] = {};
+        }
+        
+        let totalLoaded = 0;
+        let totalFailed = 0;
+        
+        for (const animation of animations) {
+            const maxFrames = frameCount[animation];
+            
+            if (!this.textures[species][lifeStage][animation]) {
+                this.textures[species][lifeStage][animation] = {};
+            }
+            
+            // 16방향 모두 로드
+            for (let dir = 0; dir < 16; dir++) {
+                const direction = `direction_${String(dir).padStart(2, '0')}`;
+                const frames = [];
+                
+                // 프레임 로드 (스킵 적용)
+                for (let frame = 0; frame < maxFrames; frame += this.frameSkip) {
+                    const frameStr = String(frame).padStart(4, '0');
+                    const url = `${basePath}/${animation}/${direction}/frame_${frameStr}.ktx2`;
+                    
+                    try {
+                        const textureData = await this.loadTextureWithAbort(url);
+                        frames.push(textureData.texture);
+                        totalLoaded++;
+                        
+                        // 진행 상황 로그 (100개마다)
+                        if (totalLoaded % 100 === 0) {
+                            console.log(`   Loaded ${totalLoaded} textures...`);
+                        }
+                    } catch (error) {
+                        if (error.name === 'AbortError') {
+                            console.log('   Loading aborted by user');
+                            return;
+                        }
+                        console.warn(`   Failed to load: ${url}`);
+                        totalFailed++;
+                    }
+                }
+                
+                // 텍스처 저장
+                this.textures[species][lifeStage][animation][direction] = frames;
             }
         }
         
-        console.log(`✅ ${species} ${lifeStage} frames loaded`);
+        console.log(`✅ ${species}/${lifeStage}: Loaded ${totalLoaded} textures, Failed ${totalFailed}`);
     }
+    
+    // ✅ AbortController와 함께 텍스처 로드
+    async loadTextureWithAbort(url) {
+        if (!this.loadingController) {
+            throw new Error('No loading controller available');
+        }
+        
+        // AbortSignal을 fetch에 전달하기 위한 옵션
+        const fetchOptions = {
+            signal: this.loadingController.signal
+        };
+        
+        // KTX2 로더는 내부적으로 fetch를 사용하므로
+        // AbortSignal 처리를 위해 Promise 래핑
+        return new Promise(async (resolve, reject) => {
+            const abortListener = () => {
+                reject(new DOMException('Aborted', 'AbortError'));
+            };
+            
+            this.loadingController.signal.addEventListener('abort', abortListener);
+            
+            try {
+                const data = await this.textureLoader.loadKTX2(url);
+                this.loadingController.signal.removeEventListener('abort', abortListener);
+                resolve(data);
+            } catch (error) {
+                this.loadingController.signal.removeEventListener('abort', abortListener);
+                reject(error);
+            }
+        });
+    }
+    
+    // ✅ 기기 사양 감지 및 프레임 스킵 결정
+    detectDeviceCapability() {
+        const gl = this.gl;
+        const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+        const maxTextureUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+        
+        // 모바일 기기 감지
+        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+        
+        // 메모리 추정 (간접적)
+        const deviceMemory = navigator.deviceMemory || 4; // GB 단위, 기본값 4GB
+        
+        console.log(`   Device info: Mobile=${isMobile}, Memory≈${deviceMemory}GB, MaxTexture=${maxTextureSize}`);
+        
+        // 프레임 스킵 결정
+        if (isMobile || deviceMemory <= 2) {
+            return 3; // 저사양: 3프레임마다 로드
+        } else if (deviceMemory <= 4 || maxTextureSize < 8192) {
+            return 2; // 중간사양: 2프레임마다 로드
+        } else {
+            return 1; // 고사양: 모든 프레임 로드
+        }
+    }
+    
+    // ✅ 로딩 상태 조회
+    getLoadingStatus() {
+        return {
+            currentScale: this.currentScale,
+            isLoading: this.isLoading,
+            frameSkip: this.frameSkip,
+            textureCount: this.countLoadedTextures()
+        };
+    }
+    
+    // ✅ 로드된 텍스처 개수 계산
+    countLoadedTextures() {
+        let count = 0;
+        
+        for (const species in this.textures) {
+            if (species === 'shadow' || species === 'ground' || species === 'weed' || species === 'trees') {
+                continue;
+            }
+            
+            for (const lifeStage in this.textures[species]) {
+                for (const animation in this.textures[species][lifeStage]) {
+                    for (const direction in this.textures[species][lifeStage][animation]) {
+                        const frames = this.textures[species][lifeStage][animation][direction];
+                        if (Array.isArray(frames)) {
+                            count += frames.length;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return count;
+    }
+    
+    // ✅ 특정 텍스처 준비 상태 확인
+    isTextureReady(species, lifeStage, animation, direction, frameIndex) {
+        try {
+            const frames = this.textures[species][lifeStage][animation][direction];
+            return frames && frames[frameIndex] !== undefined;
+        } catch {
+            return false;
+        }
+    }
+    
+    // ================== 기존 메서드들 ==================
     
     // ✅ 렌더링 루프 시작 (내부에서 관리)
     startRenderLoop() {
@@ -239,15 +502,15 @@ export class WebGLManager {
         // 렌더링 루프 중지
         this.stopRenderLoop();
         
+        // 모든 로딩 중단
+        this.stopAllLoading();
+        
+        // 텍스처 정리
+        this.clearAllTextures();
+        
         // 텍스처 로더 정리
         if (this.textureLoader) {
             this.textureLoader.destroy();
-        }
-        
-        // 텍스처 정리
-        const gl = this.gl;
-        for (const category in this.textures) {
-            // TODO: 텍스처 삭제
         }
         
         console.log('✅ WebGLManager cleaned up');
