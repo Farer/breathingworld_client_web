@@ -48,6 +48,7 @@ export class WebGLManager {
         this.loadingController = null;
         this.isLoading = false;
         this.frameSkip = 1;
+        this.currentLoadingPromise = null;  // 현재 진행 중인 로딩 Promise 추적
         
         // 애니메이션 설정
         this.animalConfig = {
@@ -164,7 +165,7 @@ export class WebGLManager {
     
     // ================== Scale 관리 시스템 ==================
     
-    // ✅ Scale 변경 메인 함수
+    // ✅ Scale 변경 메인 함수 (개선된 버전)
     async applyScale(newScale) {
         // 유효성 검증
         const validScales = [1, 2, 4, 8, 16, 32, 64, 128];
@@ -180,47 +181,68 @@ export class WebGLManager {
         
         console.log(`🔄 Applying scale: ${this.currentScale} → ${newScale}`);
         
-        // Scale 4 이하일 때는 즉시 모든 작업 중단 및 메모리 정리
+        // 1. 진행 중인 로딩 즉시 중단
+        this.stopAllLoading();
+        
+        // 2. 이전 로딩 Promise가 있다면 완료될 때까지 기다림 (에러 무시)
+        if (this.currentLoadingPromise) {
+            try {
+                await this.currentLoadingPromise;
+            } catch {
+                // 중단된 Promise의 에러는 무시
+            }
+            this.currentLoadingPromise = null;
+        }
+        
+        // 3. 기존 텍스처 정리
+        this.clearAllTextures();
+        
+        // 4. Scale 업데이트
+        const previousScale = this.currentScale;
+        this.currentScale = newScale;
+        
+        // Scale 4 이하일 때는 텍스처 로드 없이 종료
         if (newScale <= 4) {
-            console.log(`⚠️ Scale ${newScale} <= 4: Stopping all operations and clearing memory`);
-            
-            // 1. 진행 중인 로딩 즉시 중단
-            this.stopAllLoading();
-            
-            // 2. 모든 텍스처 메모리에서 제거
-            this.clearAllTextures();
-            
-            // 3. Scale 업데이트
-            this.currentScale = newScale;
-            
-            console.log(`✅ Scale ${newScale}: All textures cleared, loading stopped`);
+            console.log(`✅ Scale ${newScale}: All textures cleared, no loading needed (scale <= 4)`);
             return;
         }
         
-        // Scale 8 이상일 때 처리
-        // 1. 진행 중인 로딩 중단
-        this.stopAllLoading();
-        
-        // 2. 기존 텍스처 정리
-        this.clearAllTextures();
-        
-        // 3. Scale 업데이트
-        this.currentScale = newScale;
-        
-        // 4. 새 텍스처 로드
+        // Scale 8 이상일 때 텍스처 로드
         this.loadingController = new AbortController();
         this.isLoading = true;
         
+        // 로딩 Promise 생성 및 저장
+        this.currentLoadingPromise = this.loadTexturesForScale(newScale, previousScale);
+        
         try {
-            await this.loadAllTexturesForScale(newScale);
-            console.log(`✅ Scale ${newScale} textures loaded`);
+            await this.currentLoadingPromise;
         } catch (error) {
-            if (error.name !== 'AbortError') {
-                console.error('Texture loading failed:', error);
+            // 에러는 loadTexturesForScale 내부에서 처리됨
+        } finally {
+            this.currentLoadingPromise = null;
+        }
+    }
+    
+    // ✅ 텍스처 로딩 Promise 생성 (별도 메서드로 분리)
+    async loadTexturesForScale(scale, previousScale) {
+        try {
+            await this.loadAllTexturesForScale(scale);
+            // 현재 scale과 일치할 때만 성공 메시지 출력
+            if (this.currentScale === scale) {
+                console.log(`✅ Scale ${scale} textures loaded`);
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log(`   Scale ${scale} loading aborted (changed to scale ${this.currentScale})`);
+            } else {
+                console.error(`Texture loading failed for scale ${scale}:`, error);
             }
         } finally {
-            this.isLoading = false;
-            this.loadingController = null;
+            // 현재 scale과 일치할 때만 정리
+            if (this.currentScale === scale) {
+                this.isLoading = false;
+                this.loadingController = null;
+            }
         }
     }
     
@@ -253,14 +275,27 @@ export class WebGLManager {
                     for (const direction in this.textures[species][lifeStage][animation]) {
                         const frames = this.textures[species][lifeStage][animation][direction];
                         if (Array.isArray(frames)) {
-                            frames.forEach(texture => {
-                                if (texture) {
+                            frames.forEach(textureData => {
+                                if (textureData) {
                                     try {
-                                        // WebGL 텍스처 삭제 시도
-                                        gl.deleteTexture(texture);
-                                        deletedCount++;
+                                        // Three.js 텍스처인 경우 dispose 호출
+                                        if (textureData.threeTexture && textureData.texture && textureData.texture.dispose) {
+                                            textureData.texture.dispose();
+                                            deletedCount++;
+                                        } 
+                                        // 일반 텍스처 데이터인 경우
+                                        else if (textureData.texture) {
+                                            // WebGL 텍스처라면 삭제 시도
+                                            try {
+                                                gl.deleteTexture(textureData.texture);
+                                                deletedCount++;
+                                            } catch {
+                                                // WebGL 텍스처가 아니면 스킵
+                                                failedCount++;
+                                            }
+                                        }
                                     } catch (error) {
-                                        // 삭제 실패 (WebGLTexture가 아닌 경우)
+                                        // 삭제 실패
                                         failedCount++;
                                     }
                                 }
@@ -540,6 +575,12 @@ export class WebGLManager {
         
         // 모든 로딩 중단
         this.stopAllLoading();
+        
+        // 이전 로딩 Promise 대기
+        if (this.currentLoadingPromise) {
+            this.currentLoadingPromise.catch(() => {});
+            this.currentLoadingPromise = null;
+        }
         
         // 텍스처 정리
         this.clearAllTextures();
