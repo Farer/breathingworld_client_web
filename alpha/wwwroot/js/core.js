@@ -780,12 +780,7 @@ const Core = {
         Variables.ScrollInfo.upAmount = 0;
         Variables.ScrollInfo.downAmount = 0;
 
-        window.pixiController.clearSceneData();
-        window.pixiController.clearScene();
-        if(newScale >= 8) {
-            await window.pixiController.pixiManager.applyTextureImmediately(newScale);
-            await window.pixiController.pixiManager.reserveLoadAnimalFrames('rabbit', 'adult', newScale);
-        }
+        await window.webglManager.applyScale(newScale);
     },
     ChangeMapScale: async (newScale) => {
         Variables.MapScaleInfo.previous = Variables.MapScaleInfo.current;
