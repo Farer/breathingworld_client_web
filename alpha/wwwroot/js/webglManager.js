@@ -1415,8 +1415,6 @@ export class WebGLManager {
         if (currentTexture && currentTexture.texture) {
             this.testMesh.material.map = currentTexture.texture;
             this.testMesh.material.needsUpdate = true;
-            
-            console.log(`Frame: ${this.testAnimationFrame + 1}/${this.testTextures.length}`);
         }
     }
     
@@ -1489,7 +1487,28 @@ export class WebGLManager {
         this.testTextures = null;
         this.testAnimationPlaying = false;
         
-        console.log('✅ Three.js test render cleaned up');
+        // Canvas를 깨끗하게 지우기
+        if (this.threeRenderer) {
+            // Three.js renderer로 화면 지우기
+            this.threeRenderer.clear();
+            this.threeRenderer.clearColor();
+            this.threeRenderer.clearDepth();
+            this.threeRenderer.clearStencil();
+            
+            // 빈 씬 렌더링하여 완전히 지우기
+            if (this.threeScene && this.threeCamera) {
+                const emptyScene = new THREE.Scene();
+                this.threeRenderer.render(emptyScene, this.threeCamera);
+            }
+        }
+        
+        // WebGL 컨텍스트 직접 지우기 (fallback)
+        if (this.gl) {
+            this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
+            this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+        }
+        
+        console.log('✅ Three.js test render and canvas cleaned up');
     }
     
     // ✅ 정리
