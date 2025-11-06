@@ -258,6 +258,9 @@ export class WebGLManager {
     
     // ✅ 모든 텍스처 메모리 정리
     clearAllTextures() {
+        // 정리 전 메모리 상태 기록
+        const beforeMem = this.getMemoryInfo();
+        
         const gl = this.gl;
         let deletedCount = 0;
         let failedCount = 0;
@@ -308,10 +311,21 @@ export class WebGLManager {
             this.textures[species] = {};
         }
         
+        // 정리 후 메모리 상태 기록
+        const afterMem = this.getMemoryInfo();
+        
         if (failedCount > 0) {
             console.log(`🗑️ Cleared ${deletedCount} textures from GPU memory (${failedCount} skipped)`);
         } else {
             console.log(`🗑️ Cleared ${deletedCount} textures from GPU memory`);
+        }
+        
+        // 메모리 변화량 출력
+        if (beforeMem.jsHeapUsed && afterMem.jsHeapUsed) {
+            const beforeHeap = parseFloat(beforeMem.jsHeapUsed);
+            const afterHeap = parseFloat(afterMem.jsHeapUsed);
+            const diff = (beforeHeap - afterHeap).toFixed(2);
+            console.log(`   Memory freed: ~${diff} MB (JS Heap: ${afterMem.jsHeapUsed})`);
         }
     }
     
@@ -372,9 +386,10 @@ export class WebGLManager {
                         frames.push(textureData);  // 전체 textureData 객체 저장
                         totalLoaded++;
                         
-                        // 진행 상황 로그 (100개마다)
+                        // 진행 상황 로그 (100개마다 메모리 포함)
                         if (totalLoaded % 100 === 0) {
-                            console.log(`   Loaded ${totalLoaded} textures...`);
+                            const memInfo = this.getMemoryInfo();
+                            console.log(`   Loaded ${totalLoaded} textures... (Memory: ${memInfo.estimatedTextureMemory}, JS Heap: ${memInfo.jsHeapUsed || 'N/A'})`);
                         }
                     } catch (error) {
                         if (error.name === 'AbortError') {
@@ -392,6 +407,9 @@ export class WebGLManager {
         }
         
         console.log(`✅ ${species}/${lifeStage}: Loaded ${totalLoaded} textures, Failed ${totalFailed}`);
+        
+        // 최종 메모리 상태 출력
+        this.logMemoryUsage(`(After loading ${species}/${lifeStage})`);
     }
     
     // ✅ AbortController와 함께 텍스처 로드
@@ -458,6 +476,51 @@ export class WebGLManager {
         } else {
             return 1; // 고사양: 모든 프레임 로드
         }
+    }
+    
+    // ✅ 메모리 사용량 측정 (Chrome용)
+    getMemoryInfo() {
+        const info = {
+            textureCount: this.countLoadedTextures(),
+            estimatedSize: 0
+        };
+        
+        // Chrome의 performance.memory API 사용 (개발자 도구 열려있을 때만 정확)
+        if (performance.memory) {
+            info.jsHeapUsed = (performance.memory.usedJSHeapSize / 1048576).toFixed(2) + ' MB';
+            info.jsHeapTotal = (performance.memory.totalJSHeapSize / 1048576).toFixed(2) + ' MB';
+            info.jsHeapLimit = (performance.memory.jsHeapSizeLimit / 1048576).toFixed(2) + ' MB';
+        }
+        
+        // 텍스처 메모리 추정 (각 텍스처당 크기 계산)
+        let totalTextureMemory = 0;
+        const scaleToSize = {
+            8: 32 * 32 * 4,      // 32x32 RGBA
+            16: 64 * 64 * 4,     // 64x64 RGBA  
+            32: 128 * 128 * 4,   // 128x128 RGBA
+            64: 256 * 256 * 4,   // 256x256 RGBA
+            128: 512 * 512 * 4   // 512x512 RGBA
+        };
+        
+        const bytesPerTexture = scaleToSize[this.currentScale] || 0;
+        totalTextureMemory = info.textureCount * bytesPerTexture;
+        
+        info.estimatedTextureMemory = (totalTextureMemory / 1048576).toFixed(2) + ' MB';
+        info.currentScale = this.currentScale;
+        
+        return info;
+    }
+    
+    // ✅ 메모리 로깅 헬퍼
+    logMemoryUsage(context = '') {
+        const memInfo = this.getMemoryInfo();
+        console.log(`📊 Memory Usage ${context}:`);
+        console.log(`   Textures: ${memInfo.textureCount}`);
+        console.log(`   Estimated GPU Memory: ${memInfo.estimatedTextureMemory}`);
+        if (memInfo.jsHeapUsed) {
+            console.log(`   JS Heap: ${memInfo.jsHeapUsed} / ${memInfo.jsHeapTotal}`);
+        }
+        return memInfo;
     }
     
     // ✅ 로딩 상태 조회
