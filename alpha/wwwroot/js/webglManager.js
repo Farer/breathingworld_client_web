@@ -64,6 +64,34 @@ export class WebGLManager {
             // 추후 다른 동물 추가 가능
         };
         
+        // 16개 방향 정의 (direction_00이 북쪽 12시, 시계방향)
+        this.directions = [
+            'direction_00',  // 0° - North (12시)
+            'direction_01',  // 22.5°
+            'direction_02',  // 45° - Northeast  
+            'direction_03',  // 67.5°
+            'direction_04',  // 90° - East (3시)
+            'direction_05',  // 112.5°
+            'direction_06',  // 135° - Southeast
+            'direction_07',  // 157.5°
+            'direction_08',  // 180° - South (6시)
+            'direction_09',  // 202.5°
+            'direction_10',  // 225° - Southwest
+            'direction_11',  // 247.5°
+            'direction_12',  // 270° - West (9시)
+            'direction_13',  // 292.5°
+            'direction_14',  // 315° - Northwest
+            'direction_15'   // 337.5°
+        ];
+        
+        // 엔티티 관리
+        this.entities = new Map();      // id -> entity data
+        this.entityQueue = [];          // 추가 대기 큐
+        this.isUpdatingEntities = false; // 중복 실행 방지
+        
+        // 애니메이션 타이머
+        this.animationTimers = new Map(); // entity id -> timer data
+        
         console.log('🎮 WebGLManager created');
     }
     
@@ -209,8 +237,11 @@ export class WebGLManager {
         const previousScale = this.currentScale;
         this.currentScale = newScale;
         
-        // Scale 4 이하일 때는 텍스처 로드 없이 종료
+        // Scale 4 이하일 때는 모든 엔티티 제거 및 텍스처 정리
         if (newScale <= 4) {
+            console.log(`✅ Scale ${newScale}: Clearing all entities and textures (scale <= 4)`);
+            // 모든 엔티티 제거
+            this.clearAllEntities();
             console.log(`✅ Scale ${newScale}: All textures cleared, no loading needed (scale <= 4)`);
             return;
         }
@@ -953,7 +984,14 @@ export class WebGLManager {
     
     // ✅ 업데이트 (게임 로직)
     update(dt) {
-        // TODO: 엔티티 업데이트, 애니메이션 등
+        // 엔티티 애니메이션 업데이트
+        for (const [id, entity] of this.entities) {
+            if (entity.visible) {
+                this.updateEntityAnimation(entity, dt);
+            }
+        }
+        
+        // TODO: 추가 게임 로직
     }
     
     // ✅ 렌더링
@@ -976,6 +1014,217 @@ export class WebGLManager {
         console.log(`📐 Canvas resized: ${width}x${height}`);
     }
     
+    // ================== 엔티티 관리 시스템 ==================
+    
+    // ✅ 엔티티 추가
+    addEntity(entityData) {
+        // 기본값 설정
+        const entity = {
+            ...entityData,
+            direction: entityData.direction || this.getRandomDirection(),
+            animation: entityData.animation || 'idle_1',
+            frameIndex: 0,
+            frameTimer: 0,
+            animationSpeed: entityData.animationSpeed || 1,
+            scale: entityData.scale || 1,
+            visible: true,
+            zIndex: entityData.zIndex || 0
+        };
+        
+        console.log(`🐰 Adding entity: ${entity.id} at (${entity.x}, ${entity.y}) facing ${entity.direction}`);
+        
+        // 큐에 추가
+        this.entityQueue.push(entity);
+        
+        // 업데이트 프로세스 시작 (중복 실행 방지)
+        if (!this.isUpdatingEntities) {
+            this.updateEntity();
+        }
+    }
+    
+    // ✅ 랜덤 방향 선택
+    getRandomDirection() {
+        const randomIndex = Math.floor(Math.random() * this.directions.length);
+        return this.directions[randomIndex];
+    }
+    
+    // ✅ 엔티티 업데이트 (큐 처리)
+    async updateEntity() {
+        // 중복 실행 방지
+        if (this.isUpdatingEntities) {
+            console.log('⏳ Entity update already in progress, skipping...');
+            return;
+        }
+        
+        this.isUpdatingEntities = true;
+        
+        try {
+            // 큐에서 배치로 처리 (성능 최적화)
+            while (this.entityQueue.length > 0) {
+                const batchSize = Math.min(10, this.entityQueue.length);
+                const batch = this.entityQueue.splice(0, batchSize);
+                
+                console.log(`📦 Processing batch of ${batch.length} entities...`);
+                
+                for (const entity of batch) {
+                    await this.processEntity(entity);
+                }
+                
+                // 프레임 양보 (UI 블로킹 방지)
+                if (this.entityQueue.length > 0) {
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                }
+            }
+            
+            console.log('✅ All entities processed');
+            
+        } catch (error) {
+            console.error('❌ Error updating entities:', error);
+        } finally {
+            this.isUpdatingEntities = false;
+        }
+    }
+    
+    // ✅ 개별 엔티티 처리
+    async processEntity(entity) {
+        try {
+            // Scale 4 이하에서는 엔티티 처리하지 않음
+            if (this.currentScale <= 4) {
+                console.warn(`⚠️ Scale ${this.currentScale}: Entity ${entity.id} not added (scale <= 4)`);
+                return;
+            }
+            
+            // 1. 텍스처 준비 확인 (Scale 8 이상일 때만)
+            if (this.currentScale >= 8) {
+                const textureReady = this.isTextureReady(
+                    entity.species,
+                    entity.lifeStage,
+                    entity.animation,
+                    entity.direction,
+                    0
+                );
+                
+                if (!textureReady) {
+                    console.warn(`⚠️ Texture not ready for ${entity.id}, will retry later`);
+                    // 텍스처가 없으면 나중에 다시 시도하도록 큐에 재추가
+                    setTimeout(() => {
+                        this.entityQueue.push(entity);
+                        if (!this.isUpdatingEntities) {
+                            this.updateEntity();
+                        }
+                    }, 1000);
+                    return;
+                }
+            }
+            
+            // 2. 엔티티 맵에 추가
+            this.entities.set(entity.id, entity);
+            
+            // 3. 렌더링 레이어에 추가
+            this.layers.entity.push(entity);
+            
+            // 4. 애니메이션 타이머 초기화
+            this.animationTimers.set(entity.id, {
+                lastFrameTime: performance.now(),
+                frameInterval: 1000 / (this.animalConfig[entity.species]?.frameRate || 24)
+            });
+            
+            console.log(`✅ Entity ${entity.id} added successfully`);
+            
+            // 5. 초기 렌더링
+            this.renderEntity(entity);
+            
+        } catch (error) {
+            console.error(`❌ Failed to process entity ${entity.id}:`, error);
+        }
+    }
+    
+    // ✅ 엔티티 렌더링
+    renderEntity(entity) {
+        // Scale 4 이하에서는 아무것도 그리지 않음
+        if (this.currentScale <= 4) {
+            return;
+        }
+        
+        // 고사양 모드: 텍스처 렌더링
+        this.renderEntityWithTexture(entity);
+    }
+    
+    // ✅ 텍스처 렌더링 (고사양)
+    renderEntityWithTexture(entity) {
+        const texture = this.getEntityTexture(entity);
+        if (texture) {
+            // TODO: WebGL 텍스처 렌더링 구현
+            console.log(`   Rendering texture for ${entity.id} - ${entity.animation} frame ${entity.frameIndex}`);
+        }
+    }
+    
+    // ✅ 엔티티 텍스처 가져오기
+    getEntityTexture(entity) {
+        try {
+            const frames = this.textures[entity.species]?.[entity.lifeStage]?.[entity.animation]?.[entity.direction];
+            return frames?.[entity.frameIndex];
+        } catch {
+            return null;
+        }
+    }
+    
+    // ✅ 엔티티 애니메이션 업데이트 (update 메서드에서 호출)
+    updateEntityAnimation(entity, deltaTime) {
+        const timer = this.animationTimers.get(entity.id);
+        if (!timer) return;
+        
+        const now = performance.now();
+        const elapsed = now - timer.lastFrameTime;
+        
+        // 프레임 업데이트 시간이 되었는지 확인
+        if (elapsed >= timer.frameInterval * entity.animationSpeed) {
+            const config = this.animalConfig[entity.species];
+            if (!config) return;
+            
+            const frameCount = config.frameCount[entity.animation] || 1;
+            
+            // 다음 프레임으로
+            entity.frameIndex = (entity.frameIndex + 1) % frameCount;
+            timer.lastFrameTime = now;
+            
+            // 재렌더링
+            this.renderEntity(entity);
+        }
+    }
+    
+    // ✅ 엔티티 제거
+    removeEntity(entityId) {
+        const entity = this.entities.get(entityId);
+        if (!entity) {
+            console.warn(`Entity ${entityId} not found`);
+            return;
+        }
+        
+        // 레이어에서 제거
+        const layerIndex = this.layers.entity.indexOf(entity);
+        if (layerIndex > -1) {
+            this.layers.entity.splice(layerIndex, 1);
+        }
+        
+        // 맵에서 제거
+        this.entities.delete(entityId);
+        
+        // 애니메이션 타이머 제거
+        this.animationTimers.delete(entityId);
+        
+        console.log(`🗑️ Entity ${entityId} removed`);
+    }
+    
+    // ✅ 모든 엔티티 제거
+    clearAllEntities() {
+        for (const [id] of this.entities) {
+            this.removeEntity(id);
+        }
+        this.entityQueue = [];
+        console.log('🧹 All entities cleared');
+    }
+    
     // ✅ 정리
     cleanup() {
         console.log('🧹 Cleaning up WebGLManager...');
@@ -985,6 +1234,9 @@ export class WebGLManager {
         
         // 렌더링 루프 중지
         this.stopRenderLoop();
+        
+        // 모든 엔티티 정리
+        this.clearAllEntities();
         
         // 모든 로딩 중단
         this.stopAllLoading();
