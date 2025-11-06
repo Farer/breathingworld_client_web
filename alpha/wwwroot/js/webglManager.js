@@ -232,6 +232,12 @@ export class WebGLManager {
         // 1. 진행 중인 로딩 즉시 중단
         this.stopAllLoading();
         
+        // Three.js 렌더링 정리 (scale이 변경되면 항상 정리)
+        if (this.testMesh) {
+            console.log("🧹 Cleaning up Three.js rendering due to scale change");
+            this.cleanupThreeJS();
+        }
+        
         // 2. 이전 로딩 Promise가 있다면 완료될 때까지 기다림 (에러 무시)
         if (this.currentLoadingPromise) {
             try {
@@ -254,6 +260,11 @@ export class WebGLManager {
             console.log(`✅ Scale ${newScale}: Clearing all entities and textures (scale <= 4)`);
             // 모든 엔티티 제거
             this.clearAllEntities();
+            // Three.js 렌더링도 정리 (Scale 4 이하에서는 렌더링 불가)
+            if (this.testMesh) {
+                console.log(`🧹 Scale ${this.currentScale}: Cleaning up Three.js rendering (scale <= 4)`);
+                this.cleanupThreeJS();
+            }
             console.log(`✅ Scale ${newScale}: All textures cleared, no loading needed (scale <= 4)`);
             return;
         }
@@ -1272,6 +1283,14 @@ export class WebGLManager {
     // ✅ 테스트 렌더링 메인 함수
     async testRender(species = 'rabbit', animation = 'idle_1', direction = 'direction_00', fps = 30) {
         console.log(`🎬 Starting test render for ${species}/${animation}/${direction}`);
+        
+        // Scale 체크 - 4 이하에서는 렌더링 불가
+        if (this.currentScale <= 4) {
+            console.error(`❌ Cannot render at Scale ${this.currentScale} (Scale must be > 4)`);
+            console.log('📌 Please set Scale to 8 or higher');
+            console.log('   Try: await window.webglManager.applyScale(8)');
+            return false;
+        }
         
         // Three.js 초기화
         this.initThreeJS();
