@@ -1,4 +1,3 @@
-// /js/webglManager.js
 'use strict';
 
 import { TextureLoader } from './textureLoader.js';
@@ -484,14 +483,152 @@ export class WebGLManager {
         
         console.log(`   Device info: Mobile=${isMobile}, Memory≈${deviceMemory}GB, MaxTexture=${maxTextureSize}`);
         
-        // 프레임 스킵 결정
-        if (isMobile || deviceMemory <= 2) {
-            return 3; // 저사양: 3프레임마다 로드
-        } else if (deviceMemory <= 4 || maxTextureSize < 8192) {
-            return 2; // 중간사양: 2프레임마다 로드
+        // 동적 프레임 스킵 계산 사용
+        const dynamicSkip = this.calculateDynamicFrameSkip(this.currentScale);
+        
+        return dynamicSkip;
+    }
+
+    // ✅ 디바이스 메모리 예산 계산
+    getDeviceMemoryBudget() {
+        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+        const deviceMemory = navigator.deviceMemory || 4; // GB 단위
+        
+        if (isMobile) {
+            // 모바일: 전체 메모리의 10%, 최대 100MB
+            return Math.min(100, deviceMemory * 1024 * 0.1);
         } else {
-            return 1; // 고사양: 모든 프레임 로드
+            // 데스크톱: 전체 메모리의 20%, 최대 500MB  
+            return Math.min(500, deviceMemory * 1024 * 0.2);
         }
+    }
+
+    // ✅ Scale에 따른 텍스처 하나의 크기 (MB)
+    getTextureSizeInMB(scale) {
+        const resolutions = {
+            8: 32, 16: 64, 32: 128, 64: 256, 128: 512
+        };
+        const resolution = resolutions[scale] || 32;
+        const bytesPerPixel = 4; // RGBA
+        const bytesPerTexture = resolution * resolution * bytesPerPixel;
+        return bytesPerTexture / (1024 * 1024); // MB로 변환
+    }
+
+    // ✅ 전체 프레임 수 계산
+    getTotalFrameCount(species = 'rabbit') {
+        const config = this.animalConfig[species];
+        if (!config) return 0;
+        
+        let totalFrames = 0;
+        for (const animation of config.animations) {
+            totalFrames += config.frameCount[animation] || 0;
+        }
+        return totalFrames * 16; // 16방향
+    }
+
+    // ✅ 동적 프레임 스킵 계산 (메인 함수)
+    calculateDynamicFrameSkip(scale) {
+        const memoryBudget = this.getDeviceMemoryBudget();
+        const textureSizeMB = this.getTextureSizeInMB(scale);
+        const totalFrames = this.getTotalFrameCount();
+        
+        // 전체 메모리 사용량 계산
+        const totalMemoryMB = textureSizeMB * totalFrames;
+        
+        // 기본 스킵 계산 (메모리 예산에 맞춰서)
+        let baseSkip = Math.ceil(totalMemoryMB / memoryBudget);
+        
+        // Scale별 최소 스킵 설정
+        const minSkipByScale = {
+            8: 1,
+            16: 1,
+            32: 1,
+            64: 2,
+            128: 3
+        };
+        
+        // 디바이스별 조정
+        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+        if (isMobile) {
+            baseSkip = Math.max(baseSkip, Math.ceil(scale / 16)); // 모바일은 더 적극적으로 스킵
+        }
+        
+        // 최소/최대 제한 적용
+        const minSkip = minSkipByScale[scale] || 1;
+        const maxSkip = 8; // 최대 8프레임마다
+        
+        const finalSkip = Math.min(maxSkip, Math.max(minSkip, baseSkip));
+        
+        // 로그 출력
+        console.log(`📊 Dynamic Frame Skip Calculation:`);
+        console.log(`   Scale: ${scale} (${this.getTextureSizeInMB(scale).toFixed(2)}MB per texture)`);
+        console.log(`   Memory Budget: ${memoryBudget.toFixed(0)}MB`);
+        console.log(`   Total Frames: ${totalFrames}`);
+        console.log(`   Total Memory (no skip): ${totalMemoryMB.toFixed(2)}MB`);
+        console.log(`   Calculated Skip: ${finalSkip}`);
+        console.log(`   Expected Memory: ${(totalMemoryMB / finalSkip).toFixed(2)}MB`);
+        
+        return finalSkip;
+    }
+
+    // ✅ 애니메이션별 차별화된 스킵 계산
+    calculateAnimationSpecificSkip(animation, baseSkip) {
+        // 애니메이션 우선순위 설정
+        const priorities = {
+            idle_1: 3.0,  // 중요 - 스킵 최소화
+            run_1: 1.0,   // 빠른 동작 - 약간 스킵 가능
+            eat_1: 1.0,   // 중간 중요도
+            sleep_3: 3.0  // 느린 동작 - 많이 스킵 가능
+        };
+        
+        const multiplier = priorities[animation] || 1.0;
+        return Math.max(1, Math.round(baseSkip * multiplier));
+    }
+
+    // ✅ 런타임 메모리 압박 감지 및 조정
+    adjustSkipOnMemoryPressure() {
+        if (!performance.memory) return this.frameSkip;
+        
+        const used = performance.memory.usedJSHeapSize;
+        const limit = performance.memory.jsHeapSizeLimit;
+        const usage = used / limit;
+        
+        if (usage > 0.8) {
+            // 80% 이상 사용 시 스킵 2배 증가
+            const newSkip = Math.min(8, this.frameSkip * 2);
+            console.warn(`⚠️ Memory pressure detected (${(usage * 100).toFixed(0)}%): Increasing skip to ${newSkip}`);
+            return newSkip;
+        } else if (usage > 0.6) {
+            // 60% 이상 사용 시 스킵 1.5배 증가
+            const newSkip = Math.min(8, Math.ceil(this.frameSkip * 1.5));
+            console.log(`📊 Memory usage high (${(usage * 100).toFixed(0)}%): Adjusting skip to ${newSkip}`);
+            return newSkip;
+        }
+        
+        return this.frameSkip;
+    }
+
+    // ✅ 메모리 사용량 예측
+    predictMemoryUsage(scale, frameSkip = 1) {
+        const textureSizeMB = this.getTextureSizeInMB(scale);
+        const totalFrames = this.getTotalFrameCount();
+        const loadedFrames = Math.ceil(totalFrames / frameSkip);
+        return textureSizeMB * loadedFrames;
+    }
+
+    // ✅ Scale 변경 가능 여부 체크
+    canChangeToScale(newScale) {
+        const predictedMemory = this.predictMemoryUsage(newScale, 1);
+        const memoryBudget = this.getDeviceMemoryBudget();
+        
+        if (predictedMemory > memoryBudget) {
+            const requiredSkip = Math.ceil(predictedMemory / memoryBudget);
+            console.log(`⚠️ Scale ${newScale} requires ${predictedMemory.toFixed(0)}MB`);
+            console.log(`   Suggested frame skip: ${requiredSkip}`);
+            return { possible: true, suggestedSkip: requiredSkip };
+        }
+        
+        return { possible: true, suggestedSkip: 1 };
     }
     
     // ✅ 메모리 모니터 DOM 생성 및 업데이트
