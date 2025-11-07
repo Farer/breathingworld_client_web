@@ -1007,6 +1007,7 @@ export class PixiManager {
             textureCount: this.countLoadedTextures(),
             estimatedSize: 0
         };
+        console.log(info)
         
         // Chrome의 performance.memory API 사용 (개발자 도구 열려있을 때만 정확)
         if (performance.memory) {

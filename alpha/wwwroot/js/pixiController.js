@@ -26,6 +26,7 @@ export class PixiController {
         this._performanceWarningShown = false;
 
         this.pixiManager = new PixiManager(container, worker);
+        this.pixiManager.createMemoryMonitor();
         this.TWEEN = TWEEN;
         this.worker = worker;
         
