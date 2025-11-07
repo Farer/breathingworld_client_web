@@ -409,7 +409,7 @@ export class PixiController {
             statDom.style.left = '0px';
             statDom.style.top = '0px';
             statDom.style.width = '220px';
-            statDom.style.height = '120px';
+            statDom.style.height = '50px';
             statDom.style.fontSize = '11px';
             statDom.style.background = 'rgba(0,0,0,0.7)';
             statDom.style.color = '#0f0';
@@ -423,7 +423,6 @@ export class PixiController {
         html += `FPS: ${this.stats.fps} / ${this._targetFPS}`;
         html += `<br>Entities: ${this.stats.entityCount} (${this._cachedVisibleCount} visible)`; // ✅ 캐시 사용
         html += `<br>Active: G:${this.activeGround.size} W:${this.activeWeed.size} E:${this.allEntities.size}`;
-        html += `<br>Textures: ${PIXI.Assets.cache.size}`;
         html += `<br>Device: ${this._deviceTier.toUpperCase()}`;
         // ✅ 캐시 통계 추가
         if (this._cachedCacheStats) {

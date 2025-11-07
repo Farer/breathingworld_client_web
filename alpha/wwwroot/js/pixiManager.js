@@ -25,9 +25,6 @@ export class PixiManager {
 
         this._onLoadingAnimalFrames = false;
 
-        // ✅ species별 캐시
-        this._animalCache = {};
-
         this.textures = {
             ground: [], weed: [], shadow: null, trees: [],
             rabbit: {}, wolf: {}, eagle: {}
@@ -50,7 +47,6 @@ export class PixiManager {
     }
 
     resetTextureCache() {
-        this._animalCache = {};
         this.textures.rabbit = {};
     }
 
@@ -134,19 +130,6 @@ export class PixiManager {
             this.cancelCurrentLoading();
         }
 
-        // 캐시 구조 초기화
-        this._animalCache[species] = this._animalCache[species] || {};
-        if(!this._animalCache[species][lifeStage]) {
-            this._animalCache[species][lifeStage] = {};
-        }
-        
-        // 이미 캐시된 경우
-        if (this._animalCache[species][lifeStage][scale]) {
-            this.textures[species][lifeStage] = this._animalCache[species][lifeStage][scale];
-            this._currentTextureScale = scale;
-            return;
-        }
-
         console.log(`📥 Loading new textures: ${species}/${lifeStage}/${scale}`);
 
         // 2️⃣ 새로운 AbortController 생성
@@ -165,6 +148,7 @@ export class PixiManager {
                     scale,
                     this._currentLoadController.signal  // ✅ signal 전달
                 );
+                this.hideLoader();
             } else if (species === 'eagle') {
                 loadedTextures = await this._loadDirectionalFrames(
                     species, 
@@ -180,9 +164,6 @@ export class PixiManager {
 
             // 3️⃣ 취소되지 않았다면 캐시에 저장
             if (!this._currentLoadController.signal.aborted) {
-                // 캐시에 저장 (독립적인 객체)
-                this._animalCache[species][lifeStage][scale] = loadedTextures;
-        
                 // 현재 활성 텍스처로 설정
                 this.textures[species][lifeStage] = loadedTextures;
                 this._currentTextureScale = scale;
@@ -210,6 +191,7 @@ export class PixiManager {
 
     // 기존 _loadDirectionalFrames를 수정하지 않고 새 함수 생성
     async _loadDirectionalFrames(species, lifeStage, animations, scale, signal) {
+        this.showLoader();
         const scaleDir = `${scale}`;
         const basePath = `/img/ktx2/${species}/${lifeStage}/${scaleDir}`;
         const dirs = Array.from({ length: 16 }, (_, i) => 
@@ -404,10 +386,12 @@ export class PixiManager {
         this.currentScale = newScale;
         this.cancelCurrentLoading();
         this.resetTextureCache();
+        PIXI.Assets.reset();
         if(newScale <= 4) {
+            this.hideLoader();
             return;
         }
-        
+        this.isLoading = true;
         const AllLifeStages = Variables.lifeStages.rabbit;
         const AllAnimals = ['rabbit'];
         // 캐시에 있으면 즉시 전환, 없으면 백그라운드 로드
@@ -420,16 +404,9 @@ export class PixiManager {
                 catch(error) {
                     continue;
                 }
+                this.isLoading = false;
             }
         }
-    }
-
-    checkTexture() {
-        try { console.log('8 : '+pixiController.pixiManager._animalCache.rabbit.adult['8'].idle_1.direction_00[0].width); } catch(e) { }
-        try { console.log('16 : '+pixiController.pixiManager._animalCache.rabbit.adult['16'].idle_1.direction_00[0].width); } catch(e) { }
-        try { console.log('32 : '+pixiController.pixiManager._animalCache.rabbit.adult['32'].idle_1.direction_00[0].width); } catch(e) { }
-        try { console.log('64 : '+pixiController.pixiManager._animalCache.rabbit.adult['64'].idle_1.direction_00[0].width); } catch(e) { }
-        try { console.log('128 : '+pixiController.pixiManager._animalCache.rabbit.adult['128'].idle_1.direction_00[0].width); } catch(e) { }
     }
 
     _parseAnimalSheet(sheetTexture, frameSize, animationConfig) {
@@ -610,9 +587,6 @@ export class PixiManager {
             clearInterval(this._decayInterval);
             this._decayInterval = null;
         }
-        
-        // 동물 캐시 정리
-        this._animalCache = {};
         
         // ✅ Layers 정리
         const layers = [this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer];
