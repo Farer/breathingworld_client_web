@@ -82,6 +82,9 @@ export class PixiManager {
             powerPreference: 'low-power'
         });
 
+        const gl = this.app.renderer.gl;
+        this.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+
         targetElement.appendChild(this.app.view);
 
         this.groundLayer = new PIXI.Container();
@@ -236,6 +239,8 @@ export class PixiManager {
                 actualFrameCount = MAX_FRAMES;
             }
 
+            this.frameSkip = this.calculateFrameSkipByDeviceCapability();
+
             const dirPromises = dirs.map(async dir => {
                 // ✅ 취소 체크
                 if (signal?.aborted) {
@@ -245,7 +250,7 @@ export class PixiManager {
                 const path = `${basePath}/${animationKind}/${dir}`;
                 const frames = [];
 
-                for (let i = 0; i < actualFrameCount; i++) {
+                for (let i = 0; i < actualFrameCount; i+=this.frameSkip) {
                     // ✅ 프레임마다 취소 체크
                     if (signal?.aborted) {
                         throw new DOMException('Loading cancelled', 'AbortError');
@@ -637,18 +642,14 @@ export class PixiManager {
     }
 
     // ✅ 기기 사양 감지 및 프레임 스킵 결정
-    detectDeviceCapability() {
-        const gl = this.gl;
-        const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
-        const maxTextureUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
-        
+    calculateFrameSkipByDeviceCapability() {
         // 모바일 기기 감지
         const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
         
         // 메모리 추정 (간접적)
         const deviceMemory = navigator.deviceMemory || 4; // GB 단위, 기본값 4GB
         
-        console.log(`   Device info: Mobile=${isMobile}, Memory≈${deviceMemory}GB, MaxTexture=${maxTextureSize}`);
+        console.log(`   Device info: Mobile=${isMobile}, Memory≈${deviceMemory}GB, MaxTexture=${this.maxTextureSize}`);
         
         // 동적 프레임 스킵 계산 사용
         const dynamicSkip = this.calculateDynamicFrameSkip(this.currentScale);
@@ -671,7 +672,7 @@ export class PixiManager {
     }
 
     // ✅ Scale에 따른 텍스처 하나의 크기 (MB)
-    getTextureSizeInMB(scale) {
+    getTextureSizeByScale(scale) {
         const resolutions = {
             8: 32, 16: 64, 32: 128, 64: 256, 128: 512
         };
@@ -696,7 +697,7 @@ export class PixiManager {
     // ✅ 동적 프레임 스킵 계산 (메인 함수)
     calculateDynamicFrameSkip(scale) {
         const memoryBudget = this.getDeviceMemoryBudget();
-        const textureSizeMB = this.getTextureSizeInMB(scale);
+        const textureSizeMB = this.getTextureSizeByScale(scale);
         const totalFrames = this.getTotalFrameCount();
         
         // 전체 메모리 사용량 계산
@@ -728,7 +729,7 @@ export class PixiManager {
         
         // 로그 출력
         console.log(`📊 Dynamic Frame Skip Calculation:`);
-        console.log(`   Scale: ${scale} (${this.getTextureSizeInMB(scale).toFixed(2)}MB per texture)`);
+        console.log(`   Scale: ${scale} (${this.getTextureSizeByScale(scale).toFixed(2)}MB per texture)`);
         console.log(`   Memory Budget: ${memoryBudget.toFixed(0)}MB`);
         console.log(`   Total Frames: ${totalFrames}`);
         console.log(`   Total Memory (no skip): ${totalMemoryMB.toFixed(2)}MB`);
@@ -736,6 +737,19 @@ export class PixiManager {
         console.log(`   Expected Memory: ${(totalMemoryMB / finalSkip).toFixed(2)}MB`);
         
         return finalSkip;
+    }
+
+    getTextureSizeMB(width, height, format = 'RGBA') {
+        const bytesPerPixel = {
+            'RGBA': 4,
+            'RGB': 3,
+            'LUMINANCE_ALPHA': 2,
+            'LUMINANCE': 1,
+            'ALPHA': 1
+        };
+        const bytes = width * height * (bytesPerPixel[format] || 4);
+        const mb = bytes / (1024 * 1024);
+        return mb;
     }
 
     // ✅ 애니메이션별 차별화된 스킵 계산
@@ -777,7 +791,7 @@ export class PixiManager {
 
     // ✅ 메모리 사용량 예측
     predictMemoryUsage(scale, frameSkip = 1) {
-        const textureSizeMB = this.getTextureSizeInMB(scale);
+        const textureSizeMB = this.getTextureSizeByScale(scale);
         const totalFrames = this.getTotalFrameCount();
         const loadedFrames = Math.ceil(totalFrames / frameSkip);
         return textureSizeMB * loadedFrames;
@@ -840,6 +854,7 @@ export class PixiManager {
         // 정보 라인들
         const infoLines = [
             { id: 'scale-info', label: 'Scale' },
+            { id: 'texture-max-size', label: 'Max Texture Size' },
             { id: 'texture-count', label: 'Textures' },
             { id: 'gpu-memory', label: 'GPU Memory (Est.)' },
             { id: 'js-heap', label: 'JS Heap' },
@@ -904,6 +919,14 @@ export class PixiManager {
             if (scaleEl) {
                 scaleEl.textContent = `${status.currentScale} (Skip: ${status.frameSkip})`;
                 scaleEl.style.color = status.currentScale >= 8 ? '#00ff00' : '#ff8800';
+            }
+
+            const maxTextureSizeMB = this.getTextureSizeMB(this.maxTextureSize, this.maxTextureSize);
+            // 최대 텍스처 크기 업데이트
+            const maxTexEl = document.getElementById('texture-max-size');
+            if (maxTexEl) {
+                maxTexEl.textContent = `${this.maxTextureSize} px (${maxTextureSizeMB.toFixed(2)} MB)`;
+                maxTexEl.style.color = this.maxTextureSize >= 4096 ? '#00ff00' : '#ff8800';
             }
             
             // 텍스처 개수 업데이트
