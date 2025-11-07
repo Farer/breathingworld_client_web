@@ -769,7 +769,7 @@ const Core = {
 
         window.pixiController.clearSceneData();
         window.pixiController.clearScene();
-        await window.pixiController.pixiManager.applyTextureImmediately(newScale);
+        await window.pixiController.pixiManager.applyScale(newScale);
     },
     ChangeMapScale: async (newScale) => {
         Variables.MapScaleInfo.previous = Variables.MapScaleInfo.current;

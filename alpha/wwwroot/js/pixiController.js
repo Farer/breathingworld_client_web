@@ -14,7 +14,6 @@ export class PixiController {
         this._debug = true;
         this._statUpdateCounter = 0;
         this._cachedVisibleCount = 0;
-        this._cachedPoolStats = '';
 
         // 🧩 Safari-safe patch: Safari 감지
         this._isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -46,7 +45,6 @@ export class PixiController {
             fps: 0,
             entityCount: 0,
             textureMemory: PIXI.Assets.cache.size,
-            poolEfficiency: 'N/A'
         };
 
         // 디바이스 성능 기반 동적 조정
@@ -399,16 +397,6 @@ export class PixiController {
             }
             this._cachedVisibleCount = count;
             
-            // ✅ poolStats도 같은 주기에 업데이트
-            this._cachedPoolStats = Object.entries(this.pools)
-                .map(([type, pool]) => `${type[0].toUpperCase()}:${pool.length}`)
-                .join(' ');
-
-            // ✅ 캐시 통계도 가져오기
-            if (this.pixiManager.getCacheStats) {
-                this._cachedCacheStats = this.pixiManager.getCacheStats();
-            }
-            this.stats.poolEfficiency = this._calculatePoolEfficiency();
         }
         this._statUpdateCounter++;
 
@@ -434,8 +422,6 @@ export class PixiController {
         html += `FPS: ${this.stats.fps} / ${this._targetFPS}`;
         html += `<br>Entities: ${this.stats.entityCount} (${this._cachedVisibleCount} visible)`; // ✅ 캐시 사용
         html += `<br>Active: G:${this.activeGround.size} W:${this.activeWeed.size} E:${this.allEntities.size}`;
-        html += `<br>Pool: ${this._cachedPoolStats}`;
-        html += `<br>Pool Efficiency: ${this.stats.poolEfficiency}`;
         html += `<br>Textures: ${PIXI.Assets.cache.size}`;
         html += `<br>Device: ${this._deviceTier.toUpperCase()}`;
         // ✅ 캐시 통계 추가
