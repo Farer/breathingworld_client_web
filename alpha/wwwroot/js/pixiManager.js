@@ -513,7 +513,7 @@ export class PixiManager {
         sprite.play();
         // sprite._tick = d => sprite.update(d);
 
-        this.app.ticker.add(sprite._tick);
+        // this.app.ticker.add(sprite._tick);
         
         // ✅ 더 안전한 정리 로직
         const cleanup = () => {
