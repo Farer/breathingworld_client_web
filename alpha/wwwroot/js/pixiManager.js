@@ -33,6 +33,21 @@ export class PixiManager {
         // ✅ 추가: validDirs 캐시
         this._validDirections = new Map();
 
+        // 애니메이션 설정
+        this.animalConfig = {
+            rabbit: {
+                lifeStages: ['adult'],
+                animations: ['idle_1', 'run_1', 'eat_1', 'sleep_3'],
+                frameCount: {
+                    idle_1: 35,
+                    run_1: 14,
+                    eat_1: 24,
+                    sleep_3: 12
+                }
+            }
+            // 추후 다른 동물 추가 가능
+        };
+
         this._init(targetElement);
     }
 
@@ -144,7 +159,7 @@ export class PixiManager {
                 loadedTextures = await this._loadDirectionalFrames(
                     species, 
                     lifeStage, 
-                    ['idle_1', 'idle_2', 'walk_1', 'run_1', 'sleep_3'], 
+                    this.animalConfig.rabbit.animations,
                     scale,
                     this._currentLoadController.signal  // ✅ signal 전달
                 );
@@ -212,11 +227,10 @@ export class PixiManager {
 
             let actualFrameCount;
             if (species === 'rabbit') {
-                if (animationKind === 'idle_1') actualFrameCount = 35;
-                else if (animationKind === 'idle_2') actualFrameCount = 22;
-                else if (animationKind === 'walk_1') actualFrameCount = 21;
-                else if (animationKind === 'run_1') actualFrameCount = 14;
-                else if (animationKind === 'sleep_3') actualFrameCount = 12;
+                if (animationKind === 'idle_1') actualFrameCount = this.animalConfig.rabbit.frameCount.idle_1;
+                else if (animationKind === 'run_1') actualFrameCount = this.animalConfig.rabbit.frameCount.run_1;
+                else if (animationKind === 'eat_1') actualFrameCount = this.animalConfig.rabbit.frameCount.eat_1;
+                else if (animationKind === 'sleep_3') actualFrameCount = this.animalConfig.rabbit.frameCount.sleep_3;
                 else actualFrameCount = 1;
             } else {
                 actualFrameCount = MAX_FRAMES;
