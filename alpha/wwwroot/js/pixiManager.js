@@ -401,10 +401,12 @@ export class PixiManager {
 
     async applyScale(newScale) {
         // ✅ 현재 로딩 중인 작업 취소
+        this.currentScale = newScale;
         this.cancelCurrentLoading();
-        
         this.resetTextureCache();
-        if(newScale <= 4) { return; }
+        if(newScale <= 4) {
+            return;
+        }
         
         const AllLifeStages = Variables.lifeStages.rabbit;
         const AllAnimals = ['rabbit'];
@@ -1007,7 +1009,6 @@ export class PixiManager {
             textureCount: this.countLoadedTextures(),
             estimatedSize: 0
         };
-        console.log(info)
         
         // Chrome의 performance.memory API 사용 (개발자 도구 열려있을 때만 정확)
         if (performance.memory) {
@@ -1077,7 +1078,6 @@ export class PixiManager {
                 }
             }
         }
-        
         return count;
     }
 }
