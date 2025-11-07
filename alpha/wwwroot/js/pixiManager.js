@@ -601,20 +601,20 @@ export class PixiManager {
     cleanup() {
         console.log('🧹 Cleaning up PixiManager...');
         
-        // Interval 정리
-        if (this._decayInterval) {
-            clearInterval(this._decayInterval);
-            this._decayInterval = null;
-        }
-        
         // ✅ Layers 정리
         const layers = [this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer];
         for (const layer of layers) {
             if (layer) {
                 layer.removeChildren();
-                layer.destroy({ children: true });
+                layer.destroy({ children: true, texture: true, baseTexture: true });
             }
         }
+
+        // ✅ PIXI Assets 캐시 제거
+        PIXI.Assets.reset();
+
+        // ✅ BaseTexture 캐시 제거
+        PIXI.utils.clearTextureCache();
         
         // PIXI Application 정리
         if (this.app) {
