@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Breathing World - Alpha Test</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script>
         const selectedRegion = localStorage.getItem('selectedRegion');
         window.cdnPrefix = selectedRegion === null || selectedRegion == 'kr' ? '' : 'https://'+selectedRegion+'-alpha-bw.b-cdn.net';
@@ -37,7 +38,6 @@
             "/js/domControl.js?5",
             "/js/shadowControl.js?3",
             "/js/methods.js?20",
-            "/js/draggable.js?7",
             "/js/socket.js?32",
             "/js/chat.js?8",
             "/js/core.js?48",
@@ -46,6 +46,8 @@
             "/js/colorCalculator.js",
             "/js/mapCache.js",
             "https://cdn.jsdelivr.net/npm/pixi.js@8.14.0/dist/pixi.min.js",
+            "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+            "/js/leaflet.js",
             "/js/frameInterpFilter.js"
         ];
         function updateProgress() { completedTasks++; const percent = Math.round((completedTasks / totalTasks) * 100); document.getElementById("progress-bar").style.width = percent + "%"; }

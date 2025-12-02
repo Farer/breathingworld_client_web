@@ -71,6 +71,8 @@ const Core = {
         dom.style.position = 'relative';
         dom.style.overflow = 'hidden';
         dom.style.zIndex = '0';
+        dom.style.width = '100vw';
+        dom.style.height = '100vh';
         document.body.appendChild(dom);
         Variables.Doms.set(domId, dom);
     },
@@ -93,6 +95,8 @@ const Core = {
         wrap.style.top = '0px';
         wrap.style.overflow = 'hidden';
         wrap.style.zIndex = '0';
+        wrap.style.width = '100vw';
+        wrap.style.height = '100vh';
         const mapContainer = Variables.Doms.get('mapContainer');
         mapContainer.appendChild(wrap);
         Variables.Doms.set(wrapId, wrap);
@@ -344,12 +348,6 @@ const Core = {
             Core.LoadMap();
         }
     },
-    AddEvents: () => {
-        document.addEventListener('wheel', Core.TryScroll);
-        document.addEventListener('touchstart', Core.HandleTouchStart, { passive: false });
-        document.addEventListener('touchmove', Core.HandleTouchMove, { passive: false });
-        document.addEventListener('touchend', Core.HandleTouchEnd);
-    },
     HandleTouchStart: (event) => {
         Data.UserPaused = false;
         if (event.touches.length === 2) {
@@ -408,13 +406,12 @@ const Core = {
         Variables.MapScaleInfo.mobileTouchScaleIsChanged = false;
     },
     PrepareMapCanvas: () => {
-        const canvas = document.createElement('canvas');
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
+        const canvas = document.createElement('div');
         const domId = 'mapCanvas';
         canvas.id = domId;
-        canvas.width = windowWidth;
-        canvas.height = windowHeight;
+        canvas.style.width = '100vw';
+        canvas.style.height = '100vh';
+        canvas.style.background = '#aadaff';
         const mapWrap = Variables.Doms.get('mapWrap');
         mapWrap.appendChild(canvas);
         Variables.Doms.set(domId, canvas);
@@ -430,6 +427,7 @@ const Core = {
         dom.style.position = "absolute";
         dom.style.left = "0px";
         dom.style.top = "0px";
+        dom.style.pointerEvents = "none";
         const mapWrap = Variables.Doms.get('mapWrap');
         mapWrap.appendChild(dom);
         Variables.Doms.set(domId, dom);
@@ -478,6 +476,7 @@ const Core = {
         }
     },
     DrawMap: (isResizing = false, isZooming = false, redrawOnly = false) => {
+        return;
         const mapContainer = Variables.Doms.get('mapContainer');
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
@@ -668,32 +667,6 @@ const Core = {
         shadowWrapDom.style.top = newTop + 'px';
         
         MovementProcess.TargetDomIds.clear();
-    },
-    TryScroll: (event) => {
-        const chatLogDom = document.getElementById('chat_log');
-        const chatUsernameDom = document.getElementById('chat_username');
-        const chatMessageDom = document.getElementById('chat_message');
-        if (
-            (chatLogDom && chatLogDom.contains(event.target)) ||
-            (chatUsernameDom && chatUsernameDom.contains(event.target)) ||
-            (chatMessageDom && chatMessageDom.contains(event.target))
-        ) {
-            return;
-        }
-    
-        if (event.deltaY < 0) {
-            Variables.ScrollInfo.upAmount++;
-            Variables.ScrollInfo.downAmount = 0;
-        }
-        else if (event.deltaY > 0) {
-            Variables.ScrollInfo.upAmount = 0;
-            Variables.ScrollInfo.downAmount++;
-        }
-        Variables.ScrollInfo.isScrolling = true;
-        clearTimeout(Variables.TimeoutInfo.zoomMap);
-        Variables.TimeoutInfo.zoomMap = setTimeout(async() => {
-            await Core.ZoomMap(event);
-        }, 100);
     },
     ZoomMap: async (event) => {
         if (!Variables.Doms.has('mapWrap')) { return; }

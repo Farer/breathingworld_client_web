@@ -20,14 +20,16 @@ window.onload = async function () {
     Core.DrawOutterLink();
     Core.DrawUsersCountDom();
     Chat.DrawChatUI();
-    AddDragMapEvent();
-    Core.AddEvents();
+
     Core.PrepareMapCanvas();
+    LeafLet.Init();
+
     Core.PrepareWebGlDom();
     Core.PrepareWeatherCanvas();
     Core.PrepareImageSources();
     Core.UpdatePlantProceedAccelerated();
-    Core.ApplyWeather();
+    // Core.ApplyWeather();
+
     window.textureWorker = new Worker('/js/textureWorker.js', { type: 'module' });
     window.pixiController = await PixiController.create(document.getElementById('webGlDom'), TWEEN, window.textureWorker);
 }
