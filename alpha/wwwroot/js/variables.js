@@ -21,7 +21,6 @@ const Variables = {
         y: 0
     },
     TimeoutInfo: {
-        zoomMap: null,
         districtInOut: null,
         updateMapImageUpdateId: null,
     },
