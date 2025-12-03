@@ -124,15 +124,16 @@ export class PixiManager {
             }]
         };
 
-        const totalTreeStages = 12;
-        for (let i = 0; i < totalTreeStages; i++)
-            manifest.bundles[0].assets[`treeStage${i}`] = `img/tree_${i}_tiny.png`;
+            // const totalTreeStages = 12;
+            // for (let i = 0; i < totalTreeStages; i++)
+            //     manifest.bundles[0].assets[`treeStage${i}`] = `img/tree_${i}_tiny.png`;
 
         await PIXI.Assets.init({ manifest });
         const loaded = await PIXI.Assets.loadBundle('game-assets');
 
-        for (let i = 0; i < totalTreeStages; i++)
-            this.textures.trees.push(loaded[`treeStage${i}`]);
+        // for (let i = 0; i < totalTreeStages; i++)
+        //     this.textures.trees.push(loaded[`treeStage${i}`]);
+
         this.textures.ground = this._parseGridSpriteSheet(loaded.groundSheet, 128, 128, 4, 4);
         this.textures.weed = this._parseGridSpriteSheet(loaded.weedSheet, 512, 512, 4, 17);
         this.textures.wolf = this._parseAnimalSheet(loaded.wolfSheet, 256, {
