@@ -65,6 +65,9 @@ const LeafLet = {
             console.log('Bounds:', bounds);
             console.log('========================');
 
+            Variables.MapViewPort.x = topLeftX * scale;
+            Variables.MapViewPort.y = topLeftY * scale;
+
             // Add your custom logic here
             performCustomAction(zoom, scale, center, bounds);
         });
