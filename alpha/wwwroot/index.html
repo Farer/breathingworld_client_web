@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,7 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script>
         const selectedRegion = localStorage.getItem('selectedRegion');
-        window.cdnPrefix = selectedRegion === null || selectedRegion == 'kr' ? '' : 'https://'+selectedRegion+'-alpha-bw.b-cdn.net';
+        window.cdnPrefix = selectedRegion === null || selectedRegion == 'kr' ? '' : 'https://' + selectedRegion + '-alpha-bw.b-cdn.net';
         let totalTasks = 0; let completedTasks = 0;
         function loadCSS(href) {
             const link = document.createElement("link");
@@ -19,7 +20,7 @@
         function loadScript(src, callback) {
             const script = document.createElement("script");
             script.src = window.cdnPrefix + src;
-            script.onload = () => { if (typeof callback === "function") { if(src.indexOf('images.js') !== -1) { totalTasks += Images.PreloadData.length; } callback(); } };
+            script.onload = () => { if (typeof callback === "function") { if (src.indexOf('images.js') !== -1) { totalTasks += Images.PreloadData.length; } callback(); } };
             script.onerror = () => { console.error(`Failed to load script: ${script.src}`); };
             document.body.appendChild(script);
         }
@@ -43,7 +44,6 @@
             "/js/core.js?48",
             "/js/weather.js?3",
             "/js/earthWorm.js?1",
-            "/js/colorCalculator.js",
             "/js/mapCache.js",
             "https://cdn.jsdelivr.net/npm/pixi.js@8.14.0/dist/pixi.min.js",
             "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
@@ -59,8 +59,13 @@
     </script>
     <script type="module" src="./js/index.js"></script>
 </head>
+
 <body>
-    <div id="loading-screen"><div id="progress-bar-container"><div id="progress-bar"></div></div></div>
+    <div id="loading-screen">
+        <div id="progress-bar-container">
+            <div id="progress-bar"></div>
+        </div>
+    </div>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-76TZPZS6VM"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -71,4 +76,5 @@
         });
     </script>
 </body>
+
 </html>

@@ -25,14 +25,10 @@ window.onload = async function () {
     LeafLet.Init();
 
     Core.PrepareWebGlDom();
-    Core.PrepareWeatherCanvas();
     Core.PrepareImageSources();
     Core.UpdatePlantProceedAccelerated();
     // Core.ApplyWeather();
 
     window.textureWorker = new Worker('/js/textureWorker.js', { type: 'module' });
     window.pixiController = await PixiController.create(document.getElementById('webGlDom'), TWEEN, window.textureWorker);
-}
-window.onresize = function () {
-    Core.DrawMap(true, false, false);
 }

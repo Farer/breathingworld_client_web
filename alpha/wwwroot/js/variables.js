@@ -35,8 +35,6 @@ const Variables = {
         mapImage: new Image(),
         mapMinWidth: 0,
         mapMinHeight: 0,
-        mapMaxWidth: 0,
-        mapMaxHeight: 0,
         viewDistrictIds: [],
     },
     MapScaleInfo: {
