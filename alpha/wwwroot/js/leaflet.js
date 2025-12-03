@@ -64,9 +64,9 @@ const LeafLet = {
             console.log('Center:', center);
             console.log('Bounds:', bounds);
             console.log('========================');
-            
+
             // Add your custom logic here
-            performCustomAction(zoom, center, bounds);
+            performCustomAction(zoom, scale, center, bounds);
         });
         
         // Fires when zoom animation finishes
@@ -78,10 +78,14 @@ const LeafLet = {
         });
         
         // Custom function to execute after map update
-        function performCustomAction(zoom, center, bounds) {
+        function performCustomAction(zoom, scale, center, bounds) {
             // Example: Get visible tile coordinates
             const visibleTiles = getVisibleTiles(zoom, bounds);
             console.log('Visible tiles:', visibleTiles);
+            
+            Variables.MapScaleInfo.current = scale;
+            clearTimeout(Variables.TimeoutInfo.districtInOut);
+            Variables.TimeoutInfo.districtInOut = setTimeout(Socket.UnjoinMapGroup, 100);
             
             // Add your custom logic here
             // For example:

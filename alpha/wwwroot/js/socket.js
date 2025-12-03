@@ -52,7 +52,7 @@ const Socket = {
             Variables.Settings.temperature = parsedWeatherInfo.temperature;
             if(Variables.Settings.weatherInfo != parsedWeatherInfo.info) {
                 Variables.Settings.weatherInfo = parsedWeatherInfo.info;
-                Core.ApplyWeather();
+                // Core.ApplyWeather();
             }
         });
         Socket.WebsocketConnection.on("ReceivePlantProceedAccelerated", function (plantProceedAccelerated) {

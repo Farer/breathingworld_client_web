@@ -360,15 +360,6 @@ const Core = {
         mapWrap.appendChild(dom);
         Variables.Doms.set(domId, dom);
     },
-    ReserveDistrictInOut: () => {
-        if (
-            Variables.MapScaleInfo.previous <= 4 && 
-            Variables.MapScaleInfo.current <= 4 && 
-            Variables.MapInfo.viewDistrictIds.length == 0
-        ) { return; }
-        clearTimeout(Variables.TimeoutInfo.districtInOut);
-        Variables.TimeoutInfo.districtInOut = setTimeout(Socket.UnjoinMapGroup, 100);
-    },
     GetSettings: async () => {
         try {
             const response = await fetch(Variables.ApiUrl + '/settings/base', {
