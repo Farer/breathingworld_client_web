@@ -62,26 +62,6 @@ const Methods = {
             if(Variables.ActiveWeather) { Variables.ActiveWeather._resizeCanvas(); }
         }, 250);
     },
-    GatherViewDistrictIds: () => {
-        let districtIds = [];
-        const leftTop = Methods.GetLeftTopMapWrap();
-        const startX = leftTop[0] / Variables.MapScaleInfo.current;
-        const startY = leftTop[1] / Variables.MapScaleInfo.current;
-        const endX = startX - Variables.MapCanvasInfo.widthOfCanvas / Variables.MapScaleInfo.current;
-        const endY = startY - Variables.MapCanvasInfo.heightOfCanvas / Variables.MapScaleInfo.current;
-
-        const districtStartX = parseInt(Math.abs(startX / Variables.Settings.districtWidth), 10);
-        const districtStartY = parseInt(Math.abs(startY / Variables.Settings.districtHeight), 10);
-        const districtEndX = parseInt(Math.abs(endX / Variables.Settings.districtWidth), 10);
-        const districtEndY = parseInt(Math.abs(endY / Variables.Settings.districtHeight), 10);
-
-        for(let y=districtStartY; y<=districtEndY; y++) {
-            for(let x=districtStartX; x<=districtEndX; x++) {
-                districtIds.push(Methods.DefineDistrictIdByPosition(x, y));
-            }
-        }
-        return districtIds;
-    },
     DefineDistrictIdByPosition: (xPos, yPos) => {
         const divide = Variables.MapInfo.mapMinWidth / Variables.Settings.districtWidth;
         return yPos * divide + xPos;
@@ -265,11 +245,6 @@ const Methods = {
     },
     GetLeftTopMapWrap: () => {
         return [Variables.MapViewPort.x, Variables.MapViewPort.y];
-    },
-    SetWhenUserStopAction: (fromId) => {
-        Data.UserPaused = true;
-        if(Variables.UserDragged == true) { Socket.UnjoinMapGroup(); }
-        Variables.UserDragged = false;
     },
     GetMapIndexByMapPosition: (x, y) => {
         return Variables.MapInfo.mapMinWidth * y + x;

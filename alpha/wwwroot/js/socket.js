@@ -6,7 +6,7 @@ const Socket = {
         Socket.WebsocketConnection.start().then(function () {
             console.log("Datahub connection started.");
             Socket.SendMessage('Welcome', 'to Breathing World!');
-            Socket.UnjoinMapGroup();
+            Socket.UnjoinMapGroup([]);
         }).catch(function (err) {
             return console.error(err.toString());
         });
@@ -236,9 +236,9 @@ const Socket = {
             return console.error(err.toString());
         });
     },
-    UnjoinMapGroup: () => {
+    UnjoinMapGroup: (visibleDistrictIds) => {
         if(Variables.MapScaleInfo.current > 4) {
-            Variables.MapInfo.viewDistrictIds = Methods.GatherViewDistrictIds();
+            Variables.MapInfo.viewDistrictIds = visibleDistrictIds;
         }
         else if(Variables.MapInfo.viewDistrictIds.length > 0) {
             Variables.MapInfo.viewDistrictIds = [];
@@ -251,6 +251,7 @@ const Socket = {
         else if(Variables.MapInfo.viewDistrictIds.length == 0) {
             return;
         }
+
         Socket.WebsocketConnection.invoke("UnjoinMapGroup")
         .then(function () {
             if(Variables.MapInfo.viewDistrictIds.length > 0) {
