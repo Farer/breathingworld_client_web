@@ -21,9 +21,9 @@ window.onload = async function () {
     Chat.DrawChatUI();
 
     Core.PrepareMapCanvas();
+    Core.PrepareWebGlDom();
     LeafLet.Init();
 
-    Core.PrepareWebGlDom();
     Core.PrepareImageSources();
     Core.UpdatePlantProceedAccelerated();
     // Core.ApplyWeather();

@@ -338,15 +338,13 @@ const Core = {
     },
     PrepareWebGlDom: () => {
         const dom = document.createElement('div');
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
         const domId = 'webGlDom';
         dom.id = domId;
-        dom.width = windowWidth;
-        dom.height = windowHeight;
         dom.style.position = "absolute";
         dom.style.left = "0px";
         dom.style.top = "0px";
+        dom.style.width = '100vw';
+        dom.style.height = '100vh';
         dom.style.pointerEvents = "none";
         const mapWrap = Variables.Doms.get('mapWrap');
         mapWrap.appendChild(dom);

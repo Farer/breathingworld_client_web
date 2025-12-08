@@ -39,12 +39,9 @@ const LeafLet = {
         // [신규] Iframe 생성 및 초기화 함수 (Hard Reset용)
         // -----------------------------------------------------------
         const spawnGameLayer = (scale) => {
-            // HTML에 미리 만들어둔 컨테이너를 찾음 (없으면 body에 붙임)
-            // * index.html에 <div id="frame-container"></div> 가 있어야 함 *
-            let container = document.getElementById('frame-container');
+            let container = document.getElementById('webGlDom');
             if (!container) {
-                console.warn('#frame-container not found, appending to body');
-                container = document.body;
+                console.error('#webGlDom not found, appending to body');
             }
 
             // 1. 기존 Iframe이 있다면 파괴 (메모리 완전 해제)
