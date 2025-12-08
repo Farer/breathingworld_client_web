@@ -1,5 +1,6 @@
 'use strict';
 import { PixiManager } from './pixiManager.js';
+import { Variables } from './worldVariables.js';
 
 export class PixiController {
     constructor(container, TWEEN, worker) {

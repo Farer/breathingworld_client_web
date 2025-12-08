@@ -76,14 +76,6 @@ const Core = {
         document.body.appendChild(dom);
         Variables.Doms.set(domId, dom);
     },
-    PrepareTextureLoader: () => {
-        const dom = document.createElement('div');
-        const domId = 'texture-loader';
-        dom.id = domId;
-        dom.innerHTML = '<div id="texture-loader-spinner"></div>';
-        document.body.appendChild(dom);
-        Variables.Doms.set(domId, dom);
-    },
     PrepareMapWrap: () => {
         const wrap = document.createElement('div');
         const wrapId = 'mapWrap';

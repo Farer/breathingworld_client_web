@@ -4,18 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Breathing World Layer</title>
-    <style>
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; background: transparent; 
-        }
-        canvas { 
-            display: block; width: 100%; height: 100%; touch-action: none; 
-        }
-    </style>
+    <link rel="stylesheet" href="/css/world.css" />
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8.14.0/dist/pixi.min.js"></script>
 </head>
 <body>
+    <div id="texture-loader">
+        <div id="texture-loader-spinner"></div>
+    </div>
     <script type="module" src="js/world.js"></script>
+    <script type="module">
+        import { Variables } from './js/worldVariables.js';
+        // PixiManager가 참조할 수 있도록 Iframe 내부의 DOM을 Variables에 등록
+        const loaderDom = document.getElementById('texture-loader');
+        if (loaderDom) {
+            Variables.Doms.set('texture-loader', loaderDom);
+        }
+    </script>
 </body>
 </html>

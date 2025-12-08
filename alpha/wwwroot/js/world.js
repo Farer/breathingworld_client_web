@@ -2,6 +2,7 @@
 
 import { PixiController } from './pixiController.js';
 import * as TWEEN from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@20.0.3/dist/tween.esm.js';
+import { Variables } from './worldVariables.js';
 
 // 소켓 통신을 위한 모듈이 있다면 여기서 import 하거나 전역 객체를 사용해야 합니다.
 // import { Socket } from './socket.js'; // (예시) 필요한 경우 주석 해제

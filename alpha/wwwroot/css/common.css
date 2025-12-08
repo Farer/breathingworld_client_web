@@ -4,29 +4,6 @@ body {
     overflow: hidden;
 }
 
-#texture-loader {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 999;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-#texture-loader-spinner {
-    width: 15px;
-    height: 15px;
-    border: 3px solid rgba(0, 0, 0, 0.1);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 1.5s linear infinite;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
 .external-links-container {
     display: flex;
     gap: 20px;

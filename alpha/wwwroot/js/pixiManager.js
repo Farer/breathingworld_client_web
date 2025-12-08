@@ -1,4 +1,5 @@
 'use strict';
+import { Variables } from './worldVariables.js';
 export class PixiManager {
     constructor(targetElement, worker) {
         if (!targetElement) throw new Error("invalid targetElement");
