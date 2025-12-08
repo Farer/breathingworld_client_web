@@ -345,6 +345,7 @@ const Core = {
         dom.style.top = "0px";
         dom.style.width = '100vw';
         dom.style.height = '100vh';
+        dom.style.zIndex = 1000;
         dom.style.pointerEvents = "none";
         const mapWrap = Variables.Doms.get('mapWrap');
         mapWrap.appendChild(dom);
