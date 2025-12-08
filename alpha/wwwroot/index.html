@@ -5,7 +5,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Breathing World - Alpha Test</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script>
         const selectedRegion = localStorage.getItem('selectedRegion');
         window.cdnPrefix = selectedRegion === null || selectedRegion == 'kr' ? '' : 'https://' + selectedRegion + '-alpha-bw.b-cdn.net';
@@ -25,6 +24,7 @@
             document.body.appendChild(script);
         }
         loadCSS("/css/common.css?8");
+        loadCSS("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
         const scripts = [
             "/js/images.js?13",
             "/js/lib/msgpack.min.js",
@@ -37,10 +37,11 @@
             "/js/socket.js?32",
             "/js/chat.js?8",
             "/js/core.js?48",
-            "https://cdn.jsdelivr.net/npm/pixi.js@8.14.0/dist/pixi.min.js",
+            // "https://cdn.jsdelivr.net/npm/pixi.js@8.14.0/dist/pixi.min.js",
             "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
             "/js/leaflet.js",
-            "/js/frameInterpFilter.js"
+            "/js/index.js",
+            // "/js/frameInterpFilter.js"
         ];
         function updateProgress() { completedTasks++; const percent = Math.round((completedTasks / totalTasks) * 100); document.getElementById("progress-bar").style.width = percent + "%"; }
         function loadScriptsSequentially(index = 0) { if (index < scripts.length) { loadScript(scripts[index], () => { updateProgress(); loadScriptsSequentially(index + 1); }); } }
@@ -49,7 +50,6 @@
             loadScriptsSequentially();
         });
     </script>
-    <script type="module" src="./js/index.js"></script>
 </head>
 
 <body>

@@ -1,6 +1,6 @@
 'use strict';
-import * as TWEEN from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@20.0.3/dist/tween.esm.js';
-import { PixiController } from '/js/pixiController.js';
+// import * as TWEEN from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@20.0.3/dist/tween.esm.js';
+// import { PixiController } from '/js/pixiController.js';
 window.onload = async function () {
     const selectedRegion = localStorage.getItem('selectedRegion');
     if (!selectedRegion) {
@@ -29,6 +29,6 @@ window.onload = async function () {
     Core.UpdatePlantProceedAccelerated();
     // Core.ApplyWeather();
 
-    window.textureWorker = new Worker('/js/textureWorker.js', { type: 'module' });
-    window.pixiController = await PixiController.create(document.getElementById('webGlDom'), TWEEN, window.textureWorker);
+    // window.textureWorker = new Worker('/js/textureWorker.js', { type: 'module' });
+    // window.pixiController = await PixiController.create(document.getElementById('webGlDom'), TWEEN, window.textureWorker);
 }
