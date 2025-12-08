@@ -1,162 +1,129 @@
 const LeafLet = {
+    gameIframe: null, // Iframe 요소 참조 저장
+    currentScale: 1,  // 현재 스케일 추적
+
     Init() {
         // ================= Configuration =================
-        const baseWidth = 1920;   // Width at Scale 1 (Zoom 0)
-        const baseHeight = 1080;  // Height at Scale 1 (Zoom 0)
-        const maxZoom = 7;        // Max zoom level (Scale 128)
-        const tileSize = 512;     // Tile size
+        const baseWidth = 1920;
+        const baseHeight = 1080;
+        const maxZoom = 7;
+        const tileSize = 512;
         // =================================================
 
-        // 1. Initialize Map (Using CRS.Simple for flat pixel coordinates)
+        // 1. Initialize Map
         const map = L.map('mapCanvas', {
             crs: L.CRS.Simple,
             minZoom: 0,
             maxZoom: maxZoom,
-            zoomSnap: 1, // Only allow integer zoom levels
-            zoomDelta: 1, // Zoom in/out by 1 level at a time
-            // Sticky bounds behavior
-            // 1.0 means the map stops solid at the edge (no elastic bounce).
+            zoomSnap: 1,
+            zoomDelta: 1,
             maxBoundsViscosity: 1.0,
             attributionControl: false,
             zoomControl: false
         });
 
-        // Define map bounds [SouthWest, NorthEast]
-        // Note: In CRS.Simple, Y-axis goes down, so we use negative height.
         const bounds = [[-baseHeight, 0], [0, baseWidth]];
         map.setMaxBounds(bounds);
 
-        // 2. Add Main Map Layer
-        const mapLayer = L.tileLayer('/img/map/{z}/{x}_{y}.webp', {
+        L.tileLayer('/img/map/{z}/{x}_{y}.webp', {
             tileSize: tileSize,
             bounds: bounds,
-            noWrap: true, // Prevent map from repeating horizontally
-            tms: false    // Standard Y-axis orientation
+            noWrap: true,
+            tms: false
         }).addTo(map);
 
-        // 3. Initial View Settings
-        map.fitBounds(bounds); // Fit map to screen
-        map.setView([-baseHeight / 2, baseWidth / 2], 0); // Center map
+        map.fitBounds(bounds);
+        map.setView([-baseHeight / 2, baseWidth / 2], 0);
 
-        // Unified handler for both move and zoom events
-        function handleMapUpdate() {
-            try {
+        // -----------------------------------------------------------
+        // [신규] Iframe 생성 및 초기화 함수 (Hard Reset용)
+        // -----------------------------------------------------------
+        const spawnGameLayer = (scale) => {
+            // HTML에 미리 만들어둔 컨테이너를 찾음 (없으면 body에 붙임)
+            // * index.html에 <div id="frame-container"></div> 가 있어야 함 *
+            let container = document.getElementById('frame-container');
+            if (!container) {
+                console.warn('#frame-container not found, appending to body');
+                container = document.body;
+            }
+
+            // 1. 기존 Iframe이 있다면 파괴 (메모리 완전 해제)
+            if (this.gameIframe) {
+                this.gameIframe.remove();
+                this.gameIframe = null;
+            }
+
+            // 2. 새 Iframe 생성
+            const iframe = document.createElement('iframe');
+            iframe.src = 'world.html'; // 분리된 world.html 로드
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.background = 'transparent'; // 투명 배경
+            iframe.style.pointerEvents = 'none';     // 마우스 이벤트는 지도로 통과
+            
+            container.appendChild(iframe);
+            this.gameIframe = iframe;
+
+            // 3. Iframe 로딩 완료 시 초기 데이터 전송 (INIT)
+            iframe.onload = () => {
+                const center = map.getCenter();
+                iframe.contentWindow.postMessage({
+                    type: 'INIT',
+                    scale: scale, // 현재 스케일 (텍스처 로딩 기준)
+                    viewState: {
+                        // Leaflet 좌표(CRS.Simple)를 그대로 전송
+                        // Child에서 이 값을 받아 화면 좌표로 변환함
+                        centerX: center.lng, // X축 (0 ~ 1920)
+                        centerY: center.lat, // Y축 (-1080 ~ 0)
+                        zoom: map.getZoom()
+                    }
+                }, '*');
+            };
+        };
+
+        // -----------------------------------------------------------
+        // [수정] 지도 이벤트 핸들러 (역할 분리)
+        // -----------------------------------------------------------
+        
+        // 1. 줌 종료 시 (Zoom End) -> 스케일 변경 -> Iframe 리셋
+        map.on('zoomend', () => {
+            const zoom = map.getZoom();
+            const scale = Math.pow(2, zoom);
+
+            // 스케일이 바뀌었을 때만 리셋 수행
+            if (this.currentScale !== scale) {
+                console.log(`🔄 Scale Change (${this.currentScale} -> ${scale}): Resetting World Layer...`);
+                this.currentScale = scale;
+                Variables.MapScaleInfo.current = scale; // 전역 변수 동기화
+                
+                spawnGameLayer(scale);
+            }
+        });
+
+        // 2. 지도 이동 시 (Move) -> 좌표 동기화 (Iframe 유지)
+        // 'move' 이벤트를 사용해 드래그 중에도 실시간으로 따라가게 함
+        map.on('move', () => {
+            if (this.gameIframe && this.gameIframe.contentWindow) {
                 const center = map.getCenter();
                 const zoom = map.getZoom();
-                const bounds = map.getBounds();
 
-                // Debug: Check if bounds is valid
-                if (!bounds || typeof bounds.getWest !== 'function') {
-                    console.error('Invalid bounds object:', bounds);
-                    return;
-                }
-
-                // Calculate top-left corner in DOM-style coordinates
-                const scale = Math.pow(2, zoom);
-                const scaledWidth = baseWidth * scale;
-                const scaledHeight = baseHeight * scale;
-
-                const topLeftX = Math.round(bounds.getWest());
-                const topLeftY = Math.round(-bounds.getNorth());
-
-                console.log('=== Map View Updated ===');
-                console.log('Zoom level:', zoom, '(Scale:', scale + ')');
-                console.log('Full map size at this scale:', scaledWidth, 'x', scaledHeight);
-                console.log('Screen top-left corner (DOM-style):', { x: topLeftX, y: topLeftY });
-                console.log('Center:', center);
-                console.log('Bounds:', bounds);
-                console.log('========================');
-
-                // Execute custom actions
-                performCustomAction(zoom, scale, center, bounds);
-            } catch (error) {
-                console.error('Error in handleMapUpdate:', error);
+                // 렌더링에 필요한 좌표 정보만 전송
+                // (구역 계산 로직은 Child로 이동했으므로 제거됨)
+                this.gameIframe.contentWindow.postMessage({
+                    type: 'SYNC_POSITION',
+                    viewState: {
+                        centerX: center.lng,
+                        centerY: center.lat,
+                        zoom: zoom
+                    }
+                }, '*');
             }
-        }
+        });
 
-        // Fires when map finishes moving (pan/drag complete)
-        map.on('moveend', handleMapUpdate);
-
-        // Fires when zoom animation finishes
-        map.on('zoomend', handleMapUpdate);
-
-        function performCustomAction(zoom, scale, center, bounds) {
-            let visibleDistrictIds = [];
-            // Get visible region IDs when zoom >= 3
-            if (zoom >= 3) {
-                visibleDistrictIds = getVisibleDistrictIds(zoom, bounds);
-                console.log('Visible districtIds:', visibleDistrictIds);
-            }
-
-            Variables.MapScaleInfo.current = scale;
-            clearTimeout(Variables.TimeoutInfo.districtInOut);
-            Variables.TimeoutInfo.districtInOut = setTimeout(function () { Socket.UnjoinMapGroup(visibleDistrictIds); }, 100);
-        }
-
-        // Calculate visible district IDs
-        function getVisibleDistrictIds(zoom, bounds) {
-            const districtIds = [];
-
-            // 1. Grid Configuration
-            const mapWidth = 1920;
-            const mapHeight = 1080;
-            const districtW = 48; // Width of one district
-            const districtH = 27; // Height of one district
-            const colsPerMap = 40; // 1920 / 48 = 40
-            const rowsPerMap = 40; // 1080 / 27 = 40
-
-            // 2. Get Current Map Bounds (Leaflet Coordinates)
-            // Note: In CRS.Simple with the defined bounds [[-1080, 0], [0, 1920]]:
-            // - North is closer to 0 (Visual Top)
-            // - South is closer to -1080 (Visual Bottom)
-            // - West is 0 (Visual Left)
-            // - East is 1920 (Visual Right)
-            
-            let north = bounds.getNorth();
-            let south = bounds.getSouth();
-            let west = bounds.getWest();
-            let east = bounds.getEast();
-
-            // 3. Convert to Grid Coordinates (Absolute Pixel Position from Top-Left)
-            // Invert Y because Leaflet Lat is negative going down, but Grid Y implies positive distance from Top.
-            let topY = -north;     // e.g., -(-100) = 100
-            let bottomY = -south;  // e.g., -(-500) = 500
-            let leftX = west;
-            let rightX = east;
-
-            // 4. Clamp values to ensure they stay within map dimensions
-            // (Prevents errors if map is dragged slightly out of bounds)
-            leftX = Math.max(0, Math.min(mapWidth, leftX));
-            rightX = Math.max(0, Math.min(mapWidth, rightX));
-            topY = Math.max(0, Math.min(mapHeight, topY));
-            bottomY = Math.max(0, Math.min(mapHeight, bottomY));
-
-            // 5. Calculate Row/Col Indices
-            // Use Math.floor to find which grid cell the coordinate falls into.
-            // For the end indices, we subtract a tiny epsilon to handle exact edge cases 
-            // (e.g., if rightX is 48, it should be col 0, not start of col 1).
-            let startCol = Math.floor(leftX / districtW);
-            let endCol = Math.floor((rightX - 0.01) / districtW);
-            
-            let startRow = Math.floor(topY / districtH);
-            let endRow = Math.floor((bottomY - 0.01) / districtH);
-
-            // Safety Check: Ensure indices are within valid range (0 ~ 39)
-            startCol = Math.max(0, Math.min(colsPerMap - 1, startCol));
-            endCol = Math.max(0, Math.min(colsPerMap - 1, endCol));
-            startRow = Math.max(0, Math.min(rowsPerMap - 1, startRow));
-            endRow = Math.max(0, Math.min(rowsPerMap - 1, endRow));
-
-            // 6. Generate ID List
-            for (let r = startRow; r <= endRow; r++) {
-                for (let c = startCol; c <= endCol; c++) {
-                    // ID Formula: Row * TotalColumns + Column
-                    const id = (r * colsPerMap) + c;
-                    districtIds.push(id);
-                }
-            }
-
-            return districtIds;
-        }
+        // 초기 실행 (앱 시작 시 1회)
+        this.currentScale = Math.pow(2, map.getZoom());
+        Variables.MapScaleInfo.current = this.currentScale;
+        spawnGameLayer(this.currentScale);
     }
-}
+};

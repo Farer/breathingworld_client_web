@@ -91,7 +91,7 @@ export class PixiManager {
         this.shadowLayer = new PIXI.Container(); this.shadowLayer.sortableChildren = true;
         this.weedLayer = new PIXI.Container(); this.weedLayer.sortableChildren = true;
         this.entityLayer = new PIXI.Container(); this.entityLayer.sortableChildren = true;
-        this.app.stage.addChild(this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer);
+        // this.app.stage.addChild(this.groundLayer, this.weedLayer, this.shadowLayer, this.entityLayer);
 
         await this.loadAssets();
         this.isReady = true;

@@ -56,6 +56,14 @@ export class PixiController {
 
         this.newSceneData = [];
         this._populatingScene = false;
+
+        // 뷰 상태 저장용
+        this.viewState = { centerX: 0, centerY: 0, zoom: 0 };
+        this.worldContainer = null;
+        
+        // 현재 보고 있는 구역 ID 목록 (중복 요청 방지용)
+        this.currentDistrictIds = [];
+        this.districtDebounceTimer = null;
     }
 
     static async create(container, TWEEN, worker) {
@@ -72,6 +80,19 @@ export class PixiController {
             };
             checkReady();
         });
+
+
+        // ✅ [핵심 수정] World Container 생성 및 구조화
+        this.worldContainer = new PIXI.Container();
+        this.pixiManager.app.stage.addChild(this.worldContainer); // 최상위 스테이지에 월드 컨테이너 부착
+
+        // Manager가 만든 레이어들을 월드 컨테이너에 순서대로 부착 (Z-Index 순서 중요)
+        this.worldContainer.addChild(this.pixiManager.groundLayer);
+        this.worldContainer.addChild(this.pixiManager.weedLayer);
+        this.worldContainer.addChild(this.pixiManager.shadowLayer);
+        this.worldContainer.addChild(this.pixiManager.entityLayer);
+
+        console.log("✅ World Container Initialized & Layers Attached");
 
         // const initialSceneData = [];
         
@@ -126,6 +147,200 @@ export class PixiController {
         if (this.updateHandler) { this.pixiManager.app.ticker.remove(this.updateHandler); }
         this.updateHandler = (ticker) => this.update(ticker);
         this.pixiManager.app.ticker.add(this.updateHandler);
+    }
+
+    // 부모로부터 메시지를 받으면 호출되는 함수
+    updateViewState(viewState) {
+        this.viewState = viewState;
+
+        // 1. 기본 변수 설정
+        const baseWidth = 1920;
+        const baseHeight = 1080;
+        
+        // Scale 계산
+        const scale = Math.pow(2, this.viewState.zoom);
+        
+        // 화면 중앙점 (Iframe 기준)
+        const screenCenterX = this.pixiManager.app.screen.width / 2;
+        const screenCenterY = this.pixiManager.app.screen.height / 2;
+
+        // World 좌표 (Leaflet 좌표 변환)
+        const worldX = this.viewState.centerX; 
+        const worldY = -this.viewState.centerY; 
+
+        // 2. 월드 컨테이너 이동 (화면 동기화)
+        if (this.worldContainer) {
+            this.worldContainer.scale.set(scale);
+            this.worldContainer.position.set(
+                screenCenterX - (worldX * scale),
+                screenCenterY - (worldY * scale)
+            );
+        }
+
+        // -----------------------------------------------------
+        // 📊 [복구된 로그] 디버그 정보 출력
+        // -----------------------------------------------------
+        if (this._debug) {
+            // 전체 맵 크기 (현재 스케일 기준)
+            const scaledWidth = baseWidth * scale;
+            const scaledHeight = baseHeight * scale;
+
+            // 현재 화면의 좌상단(TopLeft)이 월드 좌표계에서 어디인지 역산
+            // (Leaflet의 bounds.getWest(), getNorth()와 유사한 값)
+            const halfScreenW = screenCenterX / scale;
+            const halfScreenH = screenCenterY / scale;
+            
+            const currentLeftX = worldX - halfScreenW;
+            const currentTopY = worldY - halfScreenH;
+
+            // 드래그가 멈추거나 특정 주기마다 로그 출력 (console flood 방지)
+            if (!this._logDebounce) {
+                this._logDebounce = setTimeout(() => {
+                    console.log('=== 🖼️ Child View Updated ===');
+                    console.log(`Zoom level: ${this.viewState.zoom} (Scale: ${scale})`);
+                    console.log(`Full map size: ${scaledWidth.toFixed(0)} x ${scaledHeight.toFixed(0)}`);
+                    console.log(`World Center: { x: ${worldX.toFixed(2)}, y: ${worldY.toFixed(2)} }`);
+                    console.log(`Screen Top-Left (World Coords): { x: ${currentLeftX.toFixed(2)}, y: ${currentTopY.toFixed(2)} }`);
+                    console.log('=============================');
+                    this._logDebounce = null;
+                }, 500);
+            }
+        }
+
+        // 3. 비즈니스 로직 (구역 계산 등)
+        if (this.debounceTimer) clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => {
+            this.calculateAndFetchDistricts();
+        }, 100);
+    }
+
+    // 기존 leaflet.js의 performCustomAction 기능을 수행
+    performCustomActionInChild(scale, currentX, currentY) {
+        // console.log('=== Map View Updated (Calculated in Child) ===');
+        // console.log('Scale:', scale);
+        // console.log('Center Grid:', currentX, currentY);
+
+        // 1. 보이는 구역(District) ID 계산
+        this.calculateAndFetchDistricts(); 
+
+        // 2. 필요시 스케일 전역 변수 업데이트 (PixiManager 등)
+        if (this.pixiManager) {
+            this.pixiManager.currentScale = scale;
+        }
+    }
+
+    syncWorldContainer() {
+        if (!this.worldContainer) return;
+        
+        const scale = Math.pow(2, this.viewState.zoom); 
+        const screenCenterX = this.pixiManager.app.screen.width / 2;
+        const screenCenterY = this.pixiManager.app.screen.height / 2;
+
+        // 화면 중앙에 지도의 중심점이 오도록 컨테이너 이동
+        // Leaflet Y좌표는 음수이므로 부호 주의 (-centerY)
+        this.worldContainer.position.set(
+            screenCenterX - (this.viewState.centerX * scale),
+            screenCenterY - (-this.viewState.centerY * scale) 
+        );
+        // (선택) 줌 레벨에 따라 전체 컨테이너 크기 조정이 필요하다면:
+        // this.worldContainer.scale.set(scale); 
+        // *주의: Pre-load 방식에서는 텍스처 자체가 커지므로 scale은 1.0 유지하는 게 맞을 수 있음.
+        // *작성자님의 로직(scale 리셋)에 따르면 여기선 scale을 건드리지 않아야 합니다.
+    }
+
+    /**
+     * 🟢 [핵심] 보이는 구역 ID 계산 (기존 getVisibleDistrictIds 이식)
+     */
+    calculateAndFetchDistricts() {
+        // 줌 레벨 3 미만에서는 구역 계산 안 함 (기존 로직 유지)
+        if (this.viewState.zoom < 3) return;
+
+        const scale = Math.pow(2, this.viewState.zoom);
+        const screenW = this.pixiManager.app.screen.width;
+        const screenH = this.pixiManager.app.screen.height;
+
+        // 화면의 좌상단/우하단이 월드 좌표(1920x1080)에서 어디인지 역산
+        // 공식: Center +/- (ScreenSize / 2 / Scale)
+        const halfW = (screenW / 2) / scale;
+        const halfH = (screenH / 2) / scale;
+
+        // Leaflet Y는 음수(-1080~0)지만, 그리드 계산은 양수(0~1080) 기준이므로 변환
+        // CenterY가 -500이면, GridY는 500
+        const gridCenterX = this.viewState.centerX;
+        const gridCenterY = -this.viewState.centerY; 
+
+        // 뷰포트 영역 계산 (월드 좌표계 0~1920, 0~1080 기준)
+        let leftX = gridCenterX - halfW;
+        let rightX = gridCenterX + halfW;
+        let topY = gridCenterY - halfH;
+        let bottomY = gridCenterY + halfH;
+
+        // ---------------------------------------------------------
+        // 기존 leaflet.js 로직 그대로 적용
+        // ---------------------------------------------------------
+        const mapWidth = 1920;
+        const mapHeight = 1080;
+        const districtW = 48;
+        const districtH = 27;
+        const colsPerMap = 40;
+        const rowsPerMap = 40;
+
+        // 범위 클램핑 (지도 밖으로 나가는 것 방지)
+        leftX = Math.max(0, Math.min(mapWidth, leftX));
+        rightX = Math.max(0, Math.min(mapWidth, rightX));
+        topY = Math.max(0, Math.min(mapHeight, topY));
+        bottomY = Math.max(0, Math.min(mapHeight, bottomY));
+
+        // 행/열 인덱스 계산
+        let startCol = Math.floor(leftX / districtW);
+        let endCol = Math.floor((rightX - 0.01) / districtW);
+        let startRow = Math.floor(topY / districtH);
+        let endRow = Math.floor((bottomY - 0.01) / districtH);
+
+        // 인덱스 안전장치
+        startCol = Math.max(0, Math.min(colsPerMap - 1, startCol));
+        endCol = Math.max(0, Math.min(colsPerMap - 1, endCol));
+        startRow = Math.max(0, Math.min(rowsPerMap - 1, startRow));
+        endRow = Math.max(0, Math.min(rowsPerMap - 1, endRow));
+
+        const newDistrictIds = [];
+        for (let r = startRow; r <= endRow; r++) {
+            for (let c = startCol; c <= endCol; c++) {
+                const id = (r * colsPerMap) + c;
+                newDistrictIds.push(id);
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 변경 사항 체크 및 서버 요청
+        // ---------------------------------------------------------
+        if (this._hasDistrictsChanged(this.currentDistrictIds, newDistrictIds)) {
+            console.log(`📡 Visible Districts Changed: [${newDistrictIds.length}] zones`);
+            
+            // 기존 구역에서 나가기 (Unjoin) -> 새 구역 들어가기 (Join)
+            // Socket 객체가 있다고 가정하고 호출
+            if (window.Socket) {
+                // 기존 로직: Socket.UnjoinMapGroup(oldIds) / JoinMapGroup(newIds)
+                // 여기서는 새로운 ID 리스트로 갱신 요청
+                window.Socket.JoinMapGroup(newDistrictIds); 
+            }
+            
+            this.currentDistrictIds = newDistrictIds;
+            
+            // 필요하다면 여기서 초기 엔티티 로딩(fetch) 호출
+            // this.fetchEntitiesInDistricts(newDistrictIds);
+        }
+    }
+
+    // 배열 비교 헬퍼
+    _hasDistrictsChanged(oldArr, newArr) {
+        if (oldArr.length !== newArr.length) return true;
+        // 정렬되어 있다고 가정하거나, Set으로 비교
+        const setA = new Set(oldArr);
+        for (const id of newArr) {
+            if (!setA.has(id)) return true;
+        }
+        return false;
     }
 
     _calculatePoolEfficiency() {
