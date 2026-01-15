@@ -434,7 +434,7 @@ const Core = {
     },
     ApplyMapColor: async (dayId, hourId, refresh = false) => {
         if(MapCache.svgText === null) {
-            const svgUrl = window.cdnPrefix + '/img/map1.svg';
+            const svgUrl = window.cdnPrefix + '/img/map1.svg?1';
             MapCache.svgText = await MapCache.getSvgText(svgUrl);
         }
         
